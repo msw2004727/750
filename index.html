@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>芽芽已婚群專屬試玩(審問遊戲)</title>
+    <title>芽芽群專屬 AI 審問遊戲</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
@@ -166,7 +166,7 @@
 <body class="overscroll-y-contain">
     <div class="game-main-area container mx-auto">
         <header class="text-center mb-3">
-            <h1 class="text-2xl sm:text-3xl font-bold text-blue-400">芽芽已婚群專屬試玩(審問遊戲)</h1>
+            <h1 class="text-2xl sm:text-3xl font-bold text-blue-400">芽芽群專屬 AI 審問遊戲</h1>
             <div class="flex justify-around text-sm sm:text-base mt-1">
                 <p>🟢 回合數: <span id="round-count">0</span></p>
                 <p>🗣️ 頑抗度: <span id="confession-meter-text">態度強硬</span></p>
@@ -332,7 +332,15 @@
         const suspectStatusCardEl = document.getElementById('suspect-status-card'); 
         const interrogationTipAreaEl = document.getElementById('interrogation-tip-area');
 
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "YOUR_API_KEY", authDomain: "YOUR_AUTH_DOMAIN", projectId: "YOUR_PROJECT_ID" };
+        const firebaseConfig = {
+  apiKey: "AIzaSyCACj1CS-9gj6hKCyfAedZH9kTf_JZwDE",
+  authDomain: "aigame-fb578.firebaseapp.com",
+  projectId: "aigame-fb578",
+  storageBucket: "aigame-fb578.appspot.com",
+  messagingSenderId: "932095431807",
+  appId: "1:932095431807:web:28aab493c770166102db4a"
+};
+hDomain: "YOUR_AUTH_DOMAIN", projectId: "YOUR_PROJECT_ID" };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);

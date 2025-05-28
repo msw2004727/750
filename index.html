@@ -986,7 +986,7 @@
                 };
             });
             if (state.gameOver) {
-                if(gameOverTitle) gameOverTitle.textContent = state.confessionMeter <= 0 ? "⚖️ 審問成功！" : "⚖️ 審問失敗！";
+                if(gameOverTitle) gameOverTitle.textContent = state.confessionMeter <= 0 ? "⚖️ 審問成功！<請截圖分享😆>" : "⚖️ 審問失敗！";
                 if(totalRoundsEl) totalRoundsEl.textContent = state.round; 
                 
                 if(gameAnalysisContainerEl && typeof state.gameAnalysis === 'object' && state.gameAnalysis.interrogationStyle) { 

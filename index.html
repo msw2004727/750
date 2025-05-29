@@ -573,7 +573,7 @@
     <div id="ai-thinking-modal" class="modal hidden">
         <div class="modal-content text-center">
             <div class="flex flex-col items-center justify-center min-h-[100px]"> 
-                <p class="text-lg">🤖AI正在努力撰寫中!!!</p>
+                <p class="text-lg">🤖狗美拿賽，AI正在努力撰寫中!!!</p>
                 <p class="text-sm text-gray-400 mt-1">(因內容豐富加載很久屬正常)</p>
                 <p class="text-xs text-gray-500 mt-1">(創作者還在努力優化中)</p>
             </div>
@@ -809,7 +809,7 @@ document.addEventListener('DOMContentLoaded', function() {
         async function callDeepSeekAPI(systemPrompt, userPrompt, forMultipleFields = false) {
             if(aiThinkingModal && initialLoadingOverlay && initialLoadingOverlay.style.display === 'none') { 
                 const thinkingText = aiThinkingModal.querySelector('p.text-lg');
-                if(thinkingText) thinkingText.textContent = '🤖AI正在努力撰寫中!!!';
+                if(thinkingText) thinkingText.textContent = '🤖狗美拿賽，AI正在努力撰寫中!!!';
                 aiThinkingModal.classList.remove('hidden');
             }
             const payload = {

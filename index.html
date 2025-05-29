@@ -128,7 +128,7 @@
         <div class="modal-content">
             <h3 class="text-xl font-bold text-blue-300">輸入警官暱稱</h3>
             <input type="text" id="officer-nickname-input" class="w-full p-2 mt-4 border border-gray-500 rounded-md bg-gray-700 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="請輸入您的警官暱稱（例如：明天隊長）">
-            <p id="nickname-error" class="text-red-400 text-sm mt-1 hidden">警官代號不能為空。</p>
+            <p id="nickname-error" class="text-red-400 text-sm mt-1 hidden">警官暱稱不能為空。</p>
             <div class="mt-6 flex items-center gap-2"> <button id="confirm-nickname-button" class="flex-grow bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md">確認進入偵訊室</button>
                 <button id="leaderboard-nickname-button" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-3 rounded-md text-sm">🏆</button> </div>
         </div>
@@ -147,7 +147,7 @@
                 <thead>
                     <tr>
                         <th>排名</th>
-                        <th>警官代號</th>
+                        <th>警官暱稱</th>
                         <th>回合數</th>
                         <th>獲得成就</th> <th>完成時間</th>
                     </tr>
@@ -634,7 +634,7 @@
                 showNicknameModal();
             }
              if (initialLoadingMessageEl) { 
-                initialLoadingMessageEl.textContent = "遊戲資料已就緒，請輸入您的警官代號。";
+                initialLoadingMessageEl.textContent = "遊戲資料已就緒，請輸入您的警官暱稱。";
             }
         } else { 
             console.log("[TRY_PROCEED_V3] Nickname and game data NOT ready.");
@@ -647,7 +647,7 @@
                 showNicknameModal();
             }
             if (initialLoadingMessageEl) {
-                 initialLoadingMessageEl.textContent = "遊戲初始化中，請輸入警官代號...";
+                 initialLoadingMessageEl.textContent = "遊戲初始化中，請輸入警官暱稱...";
             }
         }
     }
@@ -656,7 +656,7 @@
         const nickname = officerNicknameInput.value.trim();
         if (!nickname) {
             if (nicknameErrorEl) {
-                nicknameErrorEl.textContent = "警官代號不能為空。";
+                nicknameErrorEl.textContent = "警官暱稱不能為空。";
                 nicknameErrorEl.classList.remove('hidden');
             }
             return;

@@ -315,7 +315,7 @@
                   <div class="folder folder1"></div> <div class="folder folder2"></div> <div class="folder folder3"></div>
                 </div>
                 <div class="folder-pages" id="keyword-folder-pages-bar"></div>
-                <div class="folder-text" id="keyword-folder-page-text">正在呈上中…</div>
+                <div class="folder-text" id="keyword-folder-page-text">資料正在呈上中…</div>
             </div>
             <p id="keyword-modal-text" class="mt-2">內容AI加載中請稍後...</p>
             <button onclick="document.getElementById('keyword-modal').classList.add('hidden')" class="mt-6 w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md">關閉</button>
@@ -353,7 +353,7 @@
     <div id="ai-thinking-modal" class="modal hidden">
         <div class="modal-content text-center">
             <div class="flex flex-col items-center justify-center min-h-[100px]">
-                <p class="text-lg" id="ai-thinking-message">🤖 AI正在努力思考中...</p>
+                <p class="text-lg" id="ai-thinking-message">🤖 AI正在努力撰寫劇本中...</p>
                 <p class="text-sm text-gray-400 mt-1">(因即時應對加載稍慢屬正常)</p>
                 <p class="text-xs text-gray-500 mt-1">(創作者還在努力優化中)</p>
             </div>
@@ -483,7 +483,7 @@
     let keywordCache = {}; // <--- 關鍵字快取變數
 
     // --- 輔助函數 ---
-    function showThinkingModal(message = 'AI正在努力思考中...') {
+    function showThinkingModal(message = 'AI正在努力撰寫劇本中...') {
         if (aiThinkingModal && aiThinkingMessageEl) {
             aiThinkingMessageEl.textContent = `🤖 ${message}`;
             aiThinkingModal.classList.remove('hidden');

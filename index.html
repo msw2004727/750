@@ -269,7 +269,7 @@
                 <li>開局後請先查看<strong class="text-indigo-300">【案件概要】</strong>了解偵訊重點。</li>
                 <li>
                     偵訊時可運用<strong class="text-green-300">三種語氣</strong>與嫌犯應對，巧妙運用能更快攻破心防：
-                    <ul class="list-disc list-inside ml-5 mt-2 space-y-2 text-sm">
+                    <ul class="list-disc list-inside ml-5 mt-2 space-y-2 text-base">
                         <li>
                             <strong class="text-green-300">😌 平緩 (Calm)：</strong>
                             <p class="mt-1">專業提問，穩健獲取情報的基礎。搭配詳細提問，頑抗度穩定下降。</p>
@@ -394,8 +394,7 @@
                 <p class="text-xs text-gray-500 mt-1">(創作者還在努力優化中)</p>
             </div>
             <div class="loading-spinner my-4"></div>
-            <p id="gameplay-hint-text" class="gameplay-hint">
-                </p>
+            <p id="gameplay-hint-text" class="gameplay-hint"></p>
         </div>
     </div>
 
@@ -525,22 +524,7 @@
         "💡 技巧：詳細描述你的問題，有時能讓頑抗度下降更多。",
         "💡 觀察：注意嫌犯的表情和肢體語言，它們可能透露真相！",
         "💡 關鍵：點擊對話中的關鍵字，可以獲得額外線索！",
-        "💡 耐心：攻破心防需要時間，多嘗試不同的策略。",
-        "💡 思考：結合案件概要和嫌犯的說詞，找出矛盾點。",
-        "💡 壓力：適時「要求認罪」可能會給嫌犯帶來巨大壓力。",
-        "💡 轉移：如果一個問題卡住了，嘗試從不同角度切入。",
-        "💡 聆聽：仔細分析嫌犯的每一句話，可能藏有弦外之音。",
-        "💡 證據：在適當時機拋出對嫌犯不利的證據，觀察其反應。",
-        "💡 節奏：掌握審訊的節奏，時而緊逼，時而放緩。",
-        "💡 心理：了解嫌犯的個性，有助於選擇更有效的溝通方式。",
-        "💡 記憶：記住嫌犯前後的說詞，前後不一致就是突破口。",
-        "💡 威懾：讓嫌犯明白負隅頑抗的後果，但避免過度威脅。",
-        "💡 坦誠：有時表現出一定的坦誠和理解，可能讓嫌犯放下戒心。",
-        "💡 疲勞：長時間的審問可能會讓嫌犯疲憊，更容易出錯。",
-        "💡 複盤：如果失敗了，回顧對話，思考哪些環節可以改進。",
-        "💡 破綻：嫌犯極力否認或迴避的話題，往往是案件的關鍵。",
-        "💡 引導：巧妙地引導話題，讓嫌犯不知不覺中說出實情。",
-        "💡 突襲：偶爾提出意想不到的問題，可能打亂嫌犯的陣腳。"
+        "💡 耐心：攻破心防需要時間，多嘗試不同的策略。"
     ];
     let currentHintIndex = 0;
 
@@ -563,7 +547,15 @@
         stopGameplayHintCarousel(); 
 
         const displayHint = () => {
-            currentHintIndex = Math.floor(Math.random() * gameplayHints.length); 
+            let randomIndex;
+            if (gameplayHints.length > 1) {
+                do {
+                    randomIndex = Math.floor(Math.random() * gameplayHints.length);
+                } while (randomIndex === currentHintIndex);
+            } else {
+                randomIndex = 0;
+            }
+            currentHintIndex = randomIndex;
             gameplayHintTextEl.textContent = gameplayHints[currentHintIndex];
         };
         
@@ -920,10 +912,37 @@
             console.warn("[DEBUG_UPDATE_UI] confessionMeterTextCardEl not found.");
         }
 
+        // 新增：根據頑抗度更換頭像圖片
+        const suspectAvatarImg = document.getElementById('suspect-avatar-img');
+        if (suspectAvatarImg) {
+            let avatarSrc = 'test00.png'; // 預設圖片，假設它在根目錄
+            const meterValue = state.confessionMeter ?? 100;
+
+            // 假設您的圖片檔名如下，並且與 index.html 在同一目錄
+            if (meterValue > 80) { 
+                avatarSrc = 'suspect_strong.png'; 
+            } else if (meterValue > 60) { 
+                avatarSrc = 'suspect_composed.png'; // 故作鎮定
+            } else if (meterValue > 40) { 
+                avatarSrc = 'suspect_shaken.png';   // 略顯動搖
+            } else if (meterValue > 20) { 
+                avatarSrc = 'suspect_nervous.png';  // 心虛慌亂
+            } else if (meterValue > 0) {  
+                avatarSrc = 'suspect_breaking.png'; // 瀕臨崩潰
+            } else { 
+                avatarSrc = 'suspect_confessed.png';// 已然認罪
+            }
+            suspectAvatarImg.src = avatarSrc;
+            suspectAvatarImg.onerror = function() { 
+                this.onerror=null; this.src='https://placehold.co/80x60/718096/E2E8F0?text=頭像載入失敗';
+            };
+        }
+
+
         if (state.suspect) {
             const suspect = state.suspect;
-            const suspectAvatarImg = document.getElementById('suspect-avatar-img');
-            if (suspectAvatarImg) suspectAvatarImg.src = 'test00.png';
+            // const suspectAvatarImg = document.getElementById('suspect-avatar-img'); // 已移到上方
+            // if (suspectAvatarImg) suspectAvatarImg.src = 'test00.png'; // 已移到上方
             if(suspectStatusNameEl) suspectStatusNameEl.textContent = suspect.name ?? "讀取中...";
             if(heartRateEl) heartRateEl.textContent = suspect.heartRate ?? "--";
             if(bloodPressureEl) bloodPressureEl.textContent = suspect.bloodPressure ?? "--/--";

@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" 
-          content="default-src 'self'; 
-                   script-src 'self' https://cdn.tailwindcss.com https://fonts.googleapis.com https://www.gstatic.com https://apis.google.com https://*.firebaseio.com https://*.firebaseapp.com 'unsafe-inline'; 
-                   style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; 
-                   img-src 'self' https://placehold.co data:; 
-                   font-src 'self' https://fonts.gstatic.com; 
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self';
+                   script-src 'self' https://cdn.tailwindcss.com https://fonts.googleapis.com https://www.gstatic.com https://apis.google.com https://*.firebaseio.com https://*.firebaseapp.com 'unsafe-inline';
+                   style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
+                   img-src 'self' https://placehold.co data:;
+                   font-src 'self' https://fonts.gstatic.com;
                    connect-src 'self' wss://*.firebaseio.com https://*.firebaseio.com https://*.googleapis.com https://d1d5ef45-d04b-4a1c-be4b-64a0680c6847-00-xxpggv06ka2e.sisko.replit.dev;
                    frame-src 'self' https://apis.google.com https://*.firebaseapp.com;
                    worker-src 'self' blob:;">
@@ -20,12 +20,12 @@
         /* Tailwind CSS 已經包含 */
         body {
             font-family: 'Noto Sans TC', 'Inter', sans-serif;
-            background-color: #1a202c; 
-            color: #e2e8f0; 
-            overscroll-behavior-y: contain; 
+            background-color: #1a202c;
+            color: #e2e8f0;
+            overscroll-behavior-y: contain;
         }
         .card {
-            background-color: #2d3748; 
+            background-color: #2d3748;
             border-radius: 8px;
             padding: 12px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -33,48 +33,48 @@
         .dialogue-area {
             flex-grow: 1;
             overflow-y: auto;
-            border: 1px solid #4a5568; 
+            border: 1px solid #4a5568;
             padding: 10px;
             border-radius: 8px;
-            background-color: #1f2937; 
-            min-height: 200px; 
+            background-color: #1f2937;
+            min-height: 200px;
         }
         .dialogue-bubble {
             padding: 8px 12px;
             border-radius: 15px;
             margin-bottom: 8px;
             max-width: 85%;
-            word-wrap: break-word; 
-            color: white; 
+            word-wrap: break-word;
+            color: white;
         }
         .player-bubble { background-color: #4299e1; margin-left: auto; text-align: right; }
-        .player-bubble-calm { background-color: #38a169; } 
-        .player-bubble-angry { background-color: #e53e3e; } 
-        .player-bubble-provocative { background-color: #d69e2e; } 
-        .officer-bubble { background-color: #38a169; color: white; margin-left: auto; text-align: right; } 
-        .ai-bubble { background-color: #4a5568; color: #e2e8f0; margin-right: auto; } 
+        .player-bubble-calm { background-color: #38a169; }
+        .player-bubble-angry { background-color: #e53e3e; }
+        .player-bubble-provocative { background-color: #d69e2e; }
+        .officer-bubble { background-color: #38a169; color: white; margin-left: auto; text-align: right; }
+        .ai-bubble { background-color: #4a5568; color: #e2e8f0; margin-right: auto; }
 
-        .keyword, .case-keyword { 
-            text-decoration: underline; 
-            color: #63b3ed; 
-            cursor: pointer; 
-            font-weight: 500; 
+        .keyword, .case-keyword {
+            text-decoration: underline;
+            color: #63b3ed;
+            cursor: pointer;
+            font-weight: 500;
         }
         .keyword:hover, .case-keyword:hover {
-            color: #90cdf4; 
+            color: #90cdf4;
         }
 
         .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.8); 
+            background-color: rgba(0,0,0,0.8);
             display: flex; justify-content: center; align-items: center;
             z-index: 1000; padding: 16px;
         }
         #nickname-modal {
-            z-index: 2001; 
+            z-index: 2001;
         }
         #leaderboard-modal { /* 排行榜 Modal 的 z-index */
-            z-index: 2002; 
+            z-index: 2002;
         }
         .modal-content {
             background-color: #2d3748; padding: 20px; border-radius: 8px;
@@ -83,19 +83,19 @@
         }
         .modal-content.modal-lg { max-width: 700px; } /* 稍微加寬排行榜的 Modal */
         .modal-content h3 { text-align: center; margin-bottom: 16px; }
-        .story-summary-text { font-size: 0.9rem; line-height: 1.6;} 
+        .story-summary-text { font-size: 0.9rem; line-height: 1.6;}
         .story-summary-divider { border-top: 1px solid #4a5568; margin: 12px 0; }
         .personality-block { background-color: #374151; padding: 10px; border-radius: 6px; margin-top: 10px; border: 1px solid #4a5568; }
         #personality-modal { font-style: normal; }
-        
+
         #rights-declaration-modal-content ul { list-style-type: decimal; margin-left: 20px; margin-top: 10px; }
         #rights-declaration-modal-content li { margin-bottom: 8px; line-height: 1.5; }
         #rights-declaration-modal-content p { margin-bottom: 10px; }
 
         #nickname-modal .modal-content {
-            max-width: 400px; 
-            background-color: rgba(45, 55, 72, 0.9); 
-            backdrop-filter: blur(5px); 
+            max-width: 400px;
+            background-color: rgba(45, 55, 72, 0.9);
+            backdrop-filter: blur(5px);
         }
         /* 排行榜表格樣式 */
         #leaderboard-table { width: 100%; margin-top: 16px; border-collapse: collapse; }
@@ -128,7 +128,7 @@
         <div class="modal-content">
             <h3 class="text-xl font-bold text-blue-300">輸入警官暱稱</h3>
             <input type="text" id="officer-nickname-input" class="w-full p-2 mt-4 border border-gray-500 rounded-md bg-gray-700 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="請輸入您的警官暱稱（例如：明天隊長）">
-            <p id="nickname-error" class="text-red-400 text-sm mt-1 hidden">警官暱稱不能為空。</p>
+            <p id="nickname-error" class="text-red-400 text-sm mt-1 hidden">警官代號不能為空。</p>
             <div class="mt-6 flex items-center gap-2"> <button id="confirm-nickname-button" class="flex-grow bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md">確認進入偵訊室</button>
                 <button id="leaderboard-nickname-button" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-3 rounded-md text-sm">🏆</button> </div>
         </div>
@@ -147,7 +147,7 @@
                 <thead>
                     <tr>
                         <th>排名</th>
-                        <th>警官暱稱</th>
+                        <th>警官代號</th>
                         <th>回合數</th>
                         <th>獲得成就</th> <th>完成時間</th>
                     </tr>
@@ -323,7 +323,7 @@
     </div>
 
     <div id="rights-declaration-modal" class="modal hidden">
-        <div class="modal-content modal-lg"> 
+        <div class="modal-content modal-lg">
             <h3 class="text-xl font-bold text-blue-300">📜 權益宣告書</h3>
             <div id="rights-declaration-modal-content" class="story-summary-text mt-4">
                 <p>讀取中...</p>
@@ -353,7 +353,7 @@
     <div id="ai-thinking-modal" class="modal hidden">
         <div class="modal-content text-center">
             <div class="flex flex-col items-center justify-center min-h-[100px]">
-                <p class="text-lg" id="ai-thinking-message">🤖 AI正在努力撰寫劇本中...</p>
+                <p class="text-lg" id="ai-thinking-message">🤖 AI正在努力思考中...</p>
                 <p class="text-sm text-gray-400 mt-1">(因即時應對加載稍慢屬正常)</p>
                 <p class="text-xs text-gray-500 mt-1">(創作者還在努力優化中)</p>
             </div>
@@ -433,8 +433,8 @@
     const confirmNicknameButton = document.getElementById('confirm-nickname-button');
     const nicknameErrorEl = document.getElementById('nickname-error');
     const officerDisplayNameEl = document.getElementById('officer-display-name');
-    const leaderboardButton = document.getElementById('leaderboard-button'); 
-    const leaderboardNicknameButton = document.getElementById('leaderboard-nickname-button'); 
+    const leaderboardButton = document.getElementById('leaderboard-button');
+    const leaderboardNicknameButton = document.getElementById('leaderboard-nickname-button');
     // 新增：排行榜 Modal 相關元素
     const leaderboardModal = document.getElementById('leaderboard-modal');
     const leaderboardLoadingEl = document.getElementById('leaderboard-loading');
@@ -447,16 +447,16 @@
     // --- 配置區域 ---
     const BACKEND_URL = 'https://d1d5ef45-d04b-4a1c-be4b-64a0680c6847-00-xxpggv06ka2e.sisko.replit.dev/';
     const firebaseConfig = typeof __firebase_config !== 'undefined'
-        ? JSON.parse(__firebase_config) 
-        : { 
+        ? JSON.parse(__firebase_config)
+        : {
             apiKey: "AIzaSyCACjjC1S-9gj6hKCyfAedzH9kTf_JZwDE",
             authDomain: "aigame-fb578.firebaseapp.com",
             projectId: "aigame-fb578",
-            storageBucket: "aigame-fb578.appspot.com", 
+            storageBucket: "aigame-fb578.appspot.com",
             messagingSenderId: "932095431807",
             appId: "1:932095431807:web:28aab493c770166102db4a"
           };
-    
+
     const rightsDeclarationText = `
         <p>依據《刑事訴訟法》第95條，你享有以下權利：</p>
         <ul>
@@ -479,7 +479,8 @@
     let officerNickname = null;
     let isGameDataLoaded = false;
     let isNicknameConfirmed = false;
-    let isGameStarted = false; 
+    let isGameStarted = false;
+    let keywordCache = {}; // <--- 關鍵字快取變數
 
     // --- 輔助函數 ---
     function showThinkingModal(message = 'AI正在努力思考中...') {
@@ -537,21 +538,21 @@
                 }
             } catch (error) {
                 console.error("Firebase 認證錯誤:", error);
-                if (!auth.currentUser) { 
+                if (!auth.currentUser) {
                     try { await signInAnonymously(auth); }
                     catch (anonError) {
                         console.error("嚴重錯誤：匿名登入也失敗:", anonError);
                         userId = `local_user_${crypto.randomUUID().substring(0,8)}`;
                         if (userIdDisplayEl) userIdDisplayEl.textContent = "本機用戶";
                         showErrorMessage("Firebase 認證失敗。");
-                        return resolve(userId); 
+                        return resolve(userId);
                     }
                 }
             }
             onAuthStateChanged(auth, (user) => {
                 if (user) { userId = user.uid; if (userIdDisplayEl) userIdDisplayEl.textContent = userId.substring(0, 8) + "..."; }
                 else { if (!userId) { userId = `local_user_${crypto.randomUUID().substring(0,8)}`; if (userIdDisplayEl) userIdDisplayEl.textContent = "本機用戶";}}
-                resolve(userId); 
+                resolve(userId);
             });
         });
     }
@@ -560,23 +561,23 @@
     function showNicknameModal() {
         if (nicknameModal) nicknameModal.classList.remove('hidden');
         if (officerNicknameInput) {
-            officerNicknameInput.disabled = false; 
+            officerNicknameInput.disabled = false;
             officerNicknameInput.focus();
         }
-        if (confirmNicknameButton) confirmNicknameButton.disabled = false; 
+        if (confirmNicknameButton) confirmNicknameButton.disabled = false;
         if (leaderboardNicknameButton) leaderboardNicknameButton.disabled = false;
     }
 
     function hideNicknameModal() {
         if (nicknameModal) nicknameModal.classList.add('hidden');
     }
-    
+
     function tryProceedToGame() {
         if (isGameStarted) {
             console.log("[TRY_PROCEED_V3] Game already started. Ensuring loading overlay is hidden.");
             if (initialLoadingOverlay && !initialLoadingOverlay.classList.contains('hidden')) {
                 initialLoadingOverlay.classList.add('hidden');
-                initialLoadingOverlay.style.display = 'none'; 
+                initialLoadingOverlay.style.display = 'none';
                 stopInitialLoadingAnimation();
                  console.log("[TRY_PROCEED_V3] Force hiding loading overlay as game was already started.");
             }
@@ -584,7 +585,7 @@
         }
 
         console.log(`[TRY_PROCEED_V3] Nickname Confirmed: ${isNicknameConfirmed}, Game Data Loaded: ${isGameDataLoaded}`);
-        
+
         if (isNicknameConfirmed && isGameDataLoaded) {
             console.log("[TRY_PROCEED_V3] Conditions MET. Preparing to hide loading overlay and start game.");
             if (initialLoadingOverlay) {
@@ -592,16 +593,16 @@
                 if (!initialLoadingOverlay.classList.contains('hidden')) {
                     console.log("[TRY_PROCEED_V3] initialLoadingOverlay is VISIBLE. Adding 'hidden' class and setting display to 'none'.");
                     initialLoadingOverlay.classList.add('hidden');
-                    initialLoadingOverlay.style.display = 'none'; 
+                    initialLoadingOverlay.style.display = 'none';
                 } else {
                      console.log("[TRY_PROCEED_V3] initialLoadingOverlay was ALREADY HIDDEN (or so classList says). Forcing style.display='none'.");
-                     initialLoadingOverlay.style.display = 'none'; 
+                     initialLoadingOverlay.style.display = 'none';
                 }
             } else {
                 console.error("[TRY_PROCEED_V3_ERROR] initialLoadingOverlay is NULL when trying to hide!");
             }
             stopInitialLoadingAnimation();
-            
+
             if (nicknameModal && !nicknameModal.classList.contains('hidden')) {
                 hideNicknameModal();
             }
@@ -609,13 +610,13 @@
             if (gameMainAreaEl) gameMainAreaEl.style.display = 'flex';
             if (introModal) introModal.classList.remove('hidden');
             playBackgroundMusic();
-            isGameStarted = true; 
+            isGameStarted = true;
             console.log("[TRY_PROCEED_V3] Game started successfully. isGameStarted = true");
         } else if (isNicknameConfirmed && !isGameDataLoaded) {
             console.log("[TRY_PROCEED_V3] Nickname confirmed, game data loading...");
             if (initialLoadingOverlay && initialLoadingOverlay.classList.contains('hidden')) {
                 initialLoadingOverlay.classList.remove('hidden');
-                initialLoadingOverlay.style.display = 'flex'; 
+                initialLoadingOverlay.style.display = 'flex';
                 startInitialLoadingAnimation();
             }
             if (initialLoadingMessageEl && officerNickname) {
@@ -627,27 +628,27 @@
             console.log("[TRY_PROCEED_V3] Game data loaded, waiting for nickname confirmation...");
             if (initialLoadingOverlay && initialLoadingOverlay.classList.contains('hidden')) {
                  initialLoadingOverlay.classList.remove('hidden');
-                 initialLoadingOverlay.style.display = 'flex'; 
+                 initialLoadingOverlay.style.display = 'flex';
                  startInitialLoadingAnimation();
             }
             if (nicknameModal && nicknameModal.classList.contains('hidden')) {
                 showNicknameModal();
             }
-             if (initialLoadingMessageEl) { 
-                initialLoadingMessageEl.textContent = "遊戲資料已就緒，請輸入您的警官暱稱。";
+             if (initialLoadingMessageEl) {
+                initialLoadingMessageEl.textContent = "遊戲資料已就緒，請輸入您的警官代號。";
             }
-        } else { 
+        } else {
             console.log("[TRY_PROCEED_V3] Nickname and game data NOT ready.");
             if (initialLoadingOverlay && initialLoadingOverlay.classList.contains('hidden')) {
                  initialLoadingOverlay.classList.remove('hidden');
-                 initialLoadingOverlay.style.display = 'flex'; 
+                 initialLoadingOverlay.style.display = 'flex';
                  startInitialLoadingAnimation();
             }
             if (nicknameModal && nicknameModal.classList.contains('hidden')) {
                 showNicknameModal();
             }
             if (initialLoadingMessageEl) {
-                 initialLoadingMessageEl.textContent = "遊戲初始化中，請輸入警官暱稱...";
+                 initialLoadingMessageEl.textContent = "遊戲初始化中，請輸入警官代號...";
             }
         }
     }
@@ -656,19 +657,19 @@
         const nickname = officerNicknameInput.value.trim();
         if (!nickname) {
             if (nicknameErrorEl) {
-                nicknameErrorEl.textContent = "警官暱稱不能為空。";
+                nicknameErrorEl.textContent = "警官代號不能為空。";
                 nicknameErrorEl.classList.remove('hidden');
             }
             return;
         }
         if (nicknameErrorEl) nicknameErrorEl.classList.add('hidden');
-        
+
         officerNickname = nickname; // 設定全域警官暱稱
         if (officerDisplayNameEl) officerDisplayNameEl.textContent = `(${officerNickname})`;
-        
-        hideNicknameModal(); 
+
+        hideNicknameModal();
         isNicknameConfirmed = true;
-        
+
         if (officerNicknameInput) officerNicknameInput.disabled = true;
         if (confirmNicknameButton) confirmNicknameButton.disabled = true;
         if (leaderboardNicknameButton) leaderboardNicknameButton.disabled = true;
@@ -678,18 +679,18 @@
             loadOrCreateNewGame(); // 現在 loadOrCreateNewGame 會傳遞 officerNickname
         } else {
             // 如果遊戲數據已在暱稱輸入前加載完畢，直接嘗試進入遊戲
-            tryProceedToGame(); 
+            tryProceedToGame();
         }
     }
 
     async function loadOrCreateNewGame() { // officerNickname 參數已移除，會從全域變數獲取
-        isGameDataLoaded = false; 
+        isGameDataLoaded = false;
         clearErrorMessage();
-        
+
         if (initialLoadingOverlay && initialLoadingOverlay.classList.contains('hidden')) {
             initialLoadingOverlay.classList.remove('hidden');
             initialLoadingOverlay.style.display = 'flex';
-            startInitialLoadingAnimation(); 
+            startInitialLoadingAnimation();
         }
         if (initialLoadingMessageEl) initialLoadingMessageEl.textContent = "連接伺服器並創建新遊戲...";
 
@@ -700,14 +701,14 @@
             }
 
             const userAuthId = await initializeFirebaseAndUser();
-            if (!userAuthId) { 
+            if (!userAuthId) {
                 throw new Error("無法獲取用戶識別碼，無法創建遊戲。");
             }
 
             if (initialLoadingMessageEl) initialLoadingMessageEl.textContent = "開局加載很久正常!不用擔心";
-            
+
             const requestBody = { userId: userAuthId };
-            if (officerNickname) { 
+            if (officerNickname) {
                 requestBody.officerNickname = officerNickname; // 從全域變數獲取
             } else {
                 // 這種情況理論上不應該發生，因為 loadOrCreateNewGame 現在在暱稱確認後調用
@@ -731,7 +732,7 @@
             currentGameId = gameState.gameId;
 
             if (initialLoadingMessageEl) initialLoadingMessageEl.textContent = "遊戲資料載入完成！";
-            updateUI(gameState); 
+            updateUI(gameState);
             isGameDataLoaded = true;
 
         } catch (error) {
@@ -739,24 +740,24 @@
             const friendlyErrorMessage = `創建新遊戲失敗：${error.message} 請檢查後端伺服器 (${BACKEND_URL}) 是否正在運行，並且網路連線正常。`;
             if (initialLoadingMessageEl) initialLoadingMessageEl.textContent = friendlyErrorMessage;
             showErrorMessage(friendlyErrorMessage);
-            isGameDataLoaded = false; 
+            isGameDataLoaded = false;
         } finally {
             tryProceedToGame();
         }
     }
-    
+
     function processTextToKeywordLinks(text, defaultKeywordClass = "keyword") {
         if (typeof text !== 'string') return text;
         return text.replace(/(##|@@)(.*?)\1/g, (match, p1, keywordText) => {
             let keywordClass = defaultKeywordClass;
-            let dataType = "keyword"; 
+            let dataType = "keyword";
             if (keywordText === "權益宣告書" && p1 === "##") {
-                keywordClass = "case-keyword rights-declaration-link"; 
-                dataType = "rights-declaration"; 
+                keywordClass = "case-keyword rights-declaration-link";
+                dataType = "rights-declaration";
             } else if (p1 === "##") {
-                 keywordClass = "case-keyword"; 
+                 keywordClass = "case-keyword";
             } else if (p1 === "@@") {
-                 keywordClass = "keyword"; 
+                 keywordClass = "keyword";
             }
             return `<span class="${keywordClass}" data-keyword="${keywordText}" data-type="${dataType}">${keywordText}</span>`;
         }).replace(/\n/g, "<br>");
@@ -764,15 +765,15 @@
 
     function updateUI(state) {
         if (!state) return;
-        gameState = state; 
+        gameState = state;
         if (roundCountHeaderEl) roundCountHeaderEl.textContent = state.round ?? '0';
-        if (officerDisplayNameEl && officerNickname) { 
+        if (officerDisplayNameEl && officerNickname) {
             officerDisplayNameEl.textContent = `(${officerNickname})`;
         }
         const meterInfo = getConfessionMeterTextAndColor(state.confessionMeter ?? 100);
         if (confessionMeterTextCardEl) {
             confessionMeterTextCardEl.textContent = meterInfo.text;
-            confessionMeterTextCardEl.className = 'confession-color-white'; 
+            confessionMeterTextCardEl.className = 'confession-color-white';
             confessionMeterTextCardEl.classList.add(meterInfo.colorClass);
         }
         if (state.suspect) {
@@ -804,14 +805,14 @@
             if(evidenceListModalContentEl) evidenceListModalContentEl.innerHTML = (caseDetails.evidence ?? []).map(e => `<li data-id="${e.id || ''}">${processTextToKeywordLinks(e.text, "case-keyword")}</li>`).join('');
             if(doubtsListModalContentEl) doubtsListModalContentEl.innerHTML = (caseDetails.doubts ?? []).map(d => `<li data-id="${d.id || ''}">${processTextToKeywordLinks(d.text, "case-keyword")}</li>`).join('');
         }
-        if (dialogueAreaEl) dialogueAreaEl.innerHTML = ''; 
+        if (dialogueAreaEl) dialogueAreaEl.innerHTML = '';
         if (state.dialogueHistory && Array.isArray(state.dialogueHistory)) {
             state.dialogueHistory.forEach(msg => addMessageToDialogue(msg.speaker, msg.text, msg.tone));
         }
         if (interrogationTipAreaEl && state.interrogationTip) {
             interrogationTipAreaEl.textContent = "※貼心提示： " + state.interrogationTip;
         }
-        bindKeywordClickEvents(); 
+        bindKeywordClickEvents();
         if (state.gameOver) {
             if(gameOverTitle) gameOverTitle.textContent = (state.confessionMeter != null && state.confessionMeter <= 0) ? "⚖️ 審問成功 ⚖️" : "⚖️ 審問失敗 ⚖️";
             if(totalRoundsEl) totalRoundsEl.textContent = state.round ?? '0';
@@ -821,7 +822,7 @@
                     achievementTitleEl.textContent = state.gameAnalysis.achievementTitle;
                     achievementBannerEl.classList.remove('hidden');
                 } else if (achievementBannerEl) { achievementBannerEl.classList.add('hidden'); }
-            } else if (gameAnalysisContainerEl) { 
+            } else if (gameAnalysisContainerEl) {
                 gameAnalysisContainerEl.innerHTML = `<p class="analysis-section-content">${typeof state.gameAnalysis === 'string' ? state.gameAnalysis : "分析生成失敗或格式不符。"}</p>`;
                  if(achievementBannerEl) achievementBannerEl.classList.add('hidden');
             }
@@ -829,15 +830,15 @@
         } else {
             if(gameOverModal) gameOverModal.classList.add('hidden');
         }
-    } 
+    }
 
     function bindKeywordClickEvents() {
         document.querySelectorAll('.keyword, .case-keyword').forEach(el => {
             const newEl = el.cloneNode(true);
             el.parentNode.replaceChild(newEl, el);
-            newEl.onclick = () => { 
+            newEl.onclick = () => {
                 const keyword = newEl.dataset.keyword;
-                const type = newEl.dataset.type; 
+                const type = newEl.dataset.type;
                 if (type === "rights-declaration") {
                     if (rightsDeclarationModalContentEl && rightsDeclarationModal) {
                         rightsDeclarationModalContentEl.innerHTML = rightsDeclarationText;
@@ -845,8 +846,8 @@
                     }
                 } else {
                     if (keywordModalTitle) keywordModalTitle.textContent = `🔑 關於「${keyword}」`;
-                    fetchKeywordInfo(keyword); 
-                    if (keywordModal) keywordModal.classList.remove('hidden'); 
+                    fetchKeywordInfo(keyword); // <--- 快取邏輯將在此函數中處理
+                    if (keywordModal) keywordModal.classList.remove('hidden');
                 }
             };
         });
@@ -855,38 +856,60 @@
     function addMessageToDialogue(speaker, text, tone = null) {
         const messageDiv = document.createElement('div');
         messageDiv.classList.add('dialogue-bubble');
-        let messageContent = text ?? ""; 
+        let messageContent = text ?? "";
         if (speaker === 'Player') {
             messageDiv.classList.add('player-bubble');
-            const displayTone = tone || gameState.selectedTone || "未知"; 
+            const displayTone = tone || gameState.selectedTone || "未知";
             messageContent = `(語氣：${displayTone}) ${messageContent}`;
             switch (displayTone) {
                 case '平緩': messageDiv.classList.add('player-bubble-calm'); break;
                 case '憤怒': messageDiv.classList.add('player-bubble-angry'); break;
                 case '挑釁': messageDiv.classList.add('player-bubble-provocative'); break;
             }
-        } else if (speaker === '警官') { 
+        } else if (speaker === '警官') {
             messageDiv.classList.add('officer-bubble');
             messageContent = `<strong>警官：</strong> ${messageContent}`;
-        } else { 
+        } else {
             messageDiv.classList.add('ai-bubble');
         }
-        messageDiv.innerHTML = processTextToKeywordLinks(messageContent, "keyword"); 
+        messageDiv.innerHTML = processTextToKeywordLinks(messageContent, "keyword");
         if (dialogueAreaEl) {
             dialogueAreaEl.appendChild(messageDiv);
-            dialogueAreaEl.scrollTop = dialogueAreaEl.scrollHeight; 
+            dialogueAreaEl.scrollTop = dialogueAreaEl.scrollHeight;
         }
-        bindKeywordClickEvents(); 
+        bindKeywordClickEvents();
     }
 
     async function fetchKeywordInfo(keyword) {
-        if (!currentGameId) { if(keywordModalText) keywordModalText.textContent = "錯誤：遊戲未初始化。"; return; }
-        clearErrorMessage(); 
-        if(keywordModalText) keywordModalText.style.display = 'none'; 
-        if(keywordFolderLoaderEl) keywordFolderLoaderEl.classList.remove('hidden'); 
-        const totalPages = 4; 
+        if (!currentGameId) {
+            if(keywordModalText) keywordModalText.textContent = "錯誤：遊戲未初始化。";
+            return;
+        }
+        clearErrorMessage();
+        if(keywordModalText) keywordModalText.style.display = 'none'; // 先隱藏文字區域
+        if(keywordFolderLoaderEl) keywordFolderLoaderEl.classList.remove('hidden'); // 顯示載入動畫
+
+        // 初始化目前遊戲的快取 (如果不存在)
+        if (!keywordCache[currentGameId]) {
+            keywordCache[currentGameId] = {};
+        }
+
+        // 檢查快取
+        if (keywordCache[currentGameId][keyword]) {
+            if (keywordModalText) {
+                keywordModalText.innerHTML = keywordCache[currentGameId][keyword]; // 使用快取資料
+                keywordModalText.style.display = 'block'; // 顯示文字區域
+            }
+            if(keywordFolderLoaderEl) keywordFolderLoaderEl.classList.add('hidden'); // 隱藏載入動畫
+            if (keywordPageTimer) clearInterval(keywordPageTimer); // 清除可能存在的計時器
+            console.log(`關鍵字 "${keyword}" 已從遊戲 ${currentGameId} 的快取載入。`);
+            return; // 從快取載入，提早結束
+        }
+
+        // 若快取未命中，則執行載入動畫和 API 請求
+        const totalPages = 4;
         let currentPage = 0;
-        if(keywordFolderPagesBarEl) keywordFolderPagesBarEl.innerHTML = ''; 
+        if(keywordFolderPagesBarEl) keywordFolderPagesBarEl.innerHTML = '';
         function renderKeywordPagesBar() {
             let html = '';
             for (let i = 0; i < totalPages; i++) { html += `<div class="page-dot${i === currentPage ? ' active' : ''}"></div>`; }
@@ -897,10 +920,11 @@
             renderKeywordPagesBar();
             if(keywordFolderPageTextEl) keywordFolderPageTextEl.textContent = `第 ${currentPage + 1} / ${totalPages} 頁，正在呈上中…`;
         }
-        renderKeywordPagesBar(); 
+        renderKeywordPagesBar();
         if(keywordFolderPageTextEl) keywordFolderPageTextEl.textContent = `第 1 / ${totalPages} 頁，正在呈上中…`;
-        if (keywordPageTimer) clearInterval(keywordPageTimer); 
-        keywordPageTimer = setInterval(updateKeywordPage, 700); 
+        if (keywordPageTimer) clearInterval(keywordPageTimer);
+        keywordPageTimer = setInterval(updateKeywordPage, 700);
+
         try {
             const response = await fetch(`${BACKEND_URL}game/${currentGameId}/keyword?keyword=${encodeURIComponent(keyword)}`);
             if (!response.ok) {
@@ -910,27 +934,31 @@
             }
             const data = await response.json();
             if (keywordModalText) {
-                let cleanText = data.information; 
+                let cleanText = data.information;
                 if (typeof cleanText === 'string') {
-                    cleanText = cleanText.replace(/(##|@@)(.*?)\1/g, '$2');
-                    cleanText = cleanText.replace(/\n/g, "<br>"); 
-                } else { cleanText = "無法載入有效的補充資訊。"; }
+                    cleanText = cleanText.replace(/(##|@@)(.*?)\1/g, '$2'); // 基本清理標記
+                    cleanText = cleanText.replace(/\n/g, "<br>"); // 換行符處理
+                } else {
+                    cleanText = "無法載入有效的補充資訊。";
+                }
                 keywordModalText.innerHTML = cleanText;
+                keywordCache[currentGameId][keyword] = cleanText; // 存入快取
+                console.log(`關鍵字 "${keyword}" 已擷取並快取於遊戲 ${currentGameId}。`);
             }
         } catch (error) {
             const friendlyErrorMessage = `無法載入關於「${keyword}」的資訊：${error.message}`;
             if (keywordModalText) keywordModalText.textContent = friendlyErrorMessage;
-            showErrorMessage(friendlyErrorMessage); 
+            showErrorMessage(friendlyErrorMessage);
         } finally {
-            if (keywordPageTimer) clearInterval(keywordPageTimer); 
-            if(keywordFolderLoaderEl) keywordFolderLoaderEl.classList.add('hidden'); 
-            if(keywordModalText) keywordModalText.style.display = 'block'; 
+            if (keywordPageTimer) clearInterval(keywordPageTimer);
+            if(keywordFolderLoaderEl) keywordFolderLoaderEl.classList.add('hidden'); // 隱藏載入動畫
+            if(keywordModalText) keywordModalText.style.display = 'block'; // 顯示文字區域 (無論成功或失敗)
         }
     }
 
     async function handlePlayerTurn(isDemandConfession = false) {
         if (!currentGameId) { showErrorMessage("錯誤：遊戲未正確初始化，請重新載入。"); return; }
-        clearErrorMessage(); 
+        clearErrorMessage();
         const playerMessage = playerInputEl.value.trim();
         const cheatCodes = ["88888888", "88888889", "88888887"];
         if (!isDemandConfession && cheatCodes.includes(playerMessage)) {
@@ -946,19 +974,19 @@
                     try { const errorData = await response.json(); errorText = errorData.error || errorText; } catch (e) { /* ignore */ }
                     throw new Error(errorText);
                 }
-                updateUI(await response.json()); playerInputEl.value = ''; 
+                updateUI(await response.json()); playerInputEl.value = '';
             } catch (error) { showErrorMessage(`作弊指令失敗: ${error.message}`);
             } finally { hideThinkingModal(); if (!(gameState && gameState.gameOver)) { sendButton.disabled = false; demandConfessionButton.disabled = false;}}
-            return; 
+            return;
         }
-        if (!isDemandConfession && !playerMessage) return; 
+        if (!isDemandConfession && !playerMessage) return;
         sendButton.disabled = true; demandConfessionButton.disabled = true;
         const originalSendButtonText = sendButton.innerHTML;
         const originalDemandButtonText = demandConfessionButton.textContent;
         if (isDemandConfession) { demandConfessionButton.innerHTML = '<div class="loading-spinner !w-4 !h-4 border-t-white mx-auto"></div>'; }
         else { sendButton.innerHTML = '<div class="loading-spinner !w-5 !h-5 border-t-white"></div>'; }
-        showThinkingModal(isDemandConfession ? '正在要求對方認罪...' : 'AI正在努力撰寫劇本中');
-        const currentTone = gameState.selectedTone || "平緩"; 
+        showThinkingModal(isDemandConfession ? '正在要求對方認罪...' : 'AI正在分析中');
+        const currentTone = gameState.selectedTone || "平緩";
         const payload = { message: isDemandConfession ? "" : playerMessage, tone: isDemandConfession ? "憤怒" : currentTone, isDemandConfession: isDemandConfession };
         try {
             const response = await fetch(`${BACKEND_URL}game/${currentGameId}/action`, {
@@ -973,27 +1001,28 @@
                 throw new Error(errorText);
             }
             updateUI(await response.json());
-            if (!isDemandConfession) playerInputEl.value = ''; 
+            if (!isDemandConfession) playerInputEl.value = '';
         } catch (error) { showErrorMessage(`操作失敗: ${error.message}`);
         } finally { hideThinkingModal(); if (!(gameState && gameState.gameOver)) { sendButton.disabled = false; demandConfessionButton.disabled = false; sendButton.innerHTML = originalSendButtonText; demandConfessionButton.textContent = originalDemandButtonText;}}
     }
 
     function restartGame() {
         if(gameOverModal) gameOverModal.classList.add('hidden');
-        officerNickname = null; 
-        if(officerDisplayNameEl) officerDisplayNameEl.textContent = ''; 
-        isNicknameConfirmed = false; 
-        isGameDataLoaded = false; 
-        isGameStarted = false; 
-        
+        officerNickname = null;
+        if(officerDisplayNameEl) officerDisplayNameEl.textContent = '';
+        isNicknameConfirmed = false;
+        isGameDataLoaded = false;
+        isGameStarted = false;
+        keywordCache = {}; // <--- 重設遊戲時清除關鍵字快取
+
         if (officerNicknameInput) {
-            officerNicknameInput.value = ''; 
+            officerNicknameInput.value = '';
             officerNicknameInput.disabled = false;
         }
         if (confirmNicknameButton) {
             confirmNicknameButton.disabled = false;
         }
-        if (leaderboardNicknameButton) { 
+        if (leaderboardNicknameButton) {
             leaderboardNicknameButton.disabled = false;
         }
         if (nicknameErrorEl) {
@@ -1012,16 +1041,16 @@
 
     function startInitialLoadingAnimation() {
         if (!loadingAnimationTextEl) return;
-        loadingAnimationTextEl.textContent = initialLoadingTips[0]; 
+        loadingAnimationTextEl.textContent = initialLoadingTips[0];
         if (initialLoadingTipInterval) clearInterval(initialLoadingTipInterval);
         initialLoadingTipInterval = setInterval(() => {
             let idx;
             do { idx = Math.floor(Math.random() * initialLoadingTips.length); }
-            while (idx === lastTipIdx && initialLoadingTips.length > 1); 
+            while (idx === lastTipIdx && initialLoadingTips.length > 1);
             lastTipIdx = idx;
             loadingAnimationTextEl.style.opacity = 0;
-            setTimeout(() => { loadingAnimationTextEl.textContent = initialLoadingTips[idx]; loadingAnimationTextEl.style.opacity = 1; }, 400); 
-        }, 3000); 
+            setTimeout(() => { loadingAnimationTextEl.textContent = initialLoadingTips[idx]; loadingAnimationTextEl.style.opacity = 1; }, 400);
+        }, 3000);
     }
 
     function stopInitialLoadingAnimation() {
@@ -1045,9 +1074,9 @@
             return;
         }
 
-        leaderboardTableEl.classList.add('hidden'); 
-        leaderboardErrorEl.classList.add('hidden'); 
-        leaderboardLoadingEl.classList.remove('hidden'); 
+        leaderboardTableEl.classList.add('hidden');
+        leaderboardErrorEl.classList.add('hidden');
+        leaderboardLoadingEl.classList.remove('hidden');
 
         try {
             const response = await fetch(`${BACKEND_URL}leaderboard`);
@@ -1060,8 +1089,8 @@
                 throw new Error(errorText);
             }
             const leaderboardData = await response.json();
-            
-            leaderboardBodyEl.innerHTML = ''; 
+
+            leaderboardBodyEl.innerHTML = '';
 
             if (leaderboardData && leaderboardData.length > 0) {
                 leaderboardData.forEach((entry, index) => {
@@ -1081,30 +1110,30 @@
                     if (entry.timestamp) {
                         try {
                             const dateObj = new Date(entry.timestamp);
-                            if (!isNaN(dateObj)) { 
-                                formattedTimestamp = dateObj.toLocaleString('zh-TW', { 
-                                    year: 'numeric', month: '2-digit', day: '2-digit', 
-                                    hour: '2-digit', minute: '2-digit' 
+                            if (!isNaN(dateObj)) {
+                                formattedTimestamp = dateObj.toLocaleString('zh-TW', {
+                                    year: 'numeric', month: '2-digit', day: '2-digit',
+                                    hour: '2-digit', minute: '2-digit'
                                 });
                             }
                         } catch (e) {
                             console.warn("轉換時間戳失敗:", e, "原始值:", entry.timestamp);
-                            formattedTimestamp = entry.timestamp; 
+                            formattedTimestamp = entry.timestamp;
                         }
                     }
                     row.insertCell().textContent = formattedTimestamp;
                 });
-                leaderboardTableEl.classList.remove('hidden'); 
+                leaderboardTableEl.classList.remove('hidden');
             } else {
                 leaderboardBodyEl.innerHTML = '<tr><td colspan="5" class="text-center py-4">目前尚無排行榜記錄。</td></tr>'; // 修改 colspan
-                leaderboardTableEl.classList.remove('hidden'); 
+                leaderboardTableEl.classList.remove('hidden');
             }
         } catch (error) {
             console.error("獲取或顯示排行榜失敗:", error);
             leaderboardErrorEl.textContent = `無法載入排行榜：${error.message}`;
             leaderboardErrorEl.classList.remove('hidden');
         } finally {
-            leaderboardLoadingEl.classList.add('hidden'); 
+            leaderboardLoadingEl.classList.add('hidden');
         }
     }
 
@@ -1119,18 +1148,18 @@
     if (showPersonalDetailsButton) showPersonalDetailsButton.addEventListener('click', () => personalDetailsModal.classList.remove('hidden'));
     if (showStorySummaryButton) showStorySummaryButton.addEventListener('click', () => storySummaryModal.classList.remove('hidden'));
     if (restartGameButton) restartGameButton.addEventListener('click', restartGame);
-    
-    if (confirmNicknameButton) { 
+
+    if (confirmNicknameButton) {
         confirmNicknameButton.addEventListener('click', handleConfirmNickname); // 直接調用 handleConfirmNickname
     }
     if (officerNicknameInput) {
-         officerNicknameInput.addEventListener('keypress', (e) => { 
-            if (e.key === 'Enter') { 
-                confirmNicknameButton.click(); 
+         officerNicknameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                confirmNicknameButton.click();
             }
         });
     }
-    
+
     // 遊戲結束畫面的排行榜按鈕
     if (leaderboardButton) leaderboardButton.addEventListener('click', showLeaderboardModal);
 
@@ -1143,9 +1172,9 @@
 
     // --- 頁面載入完成後執行 ---
     window.addEventListener('load', () => {
-        isGameStarted = false; 
-        showNicknameModal(); 
-        if (initialLoadingOverlay) initialLoadingOverlay.classList.remove('hidden'); 
+        isGameStarted = false;
+        showNicknameModal();
+        if (initialLoadingOverlay) initialLoadingOverlay.classList.remove('hidden');
         startInitialLoadingAnimation();
         // loadOrCreateNewGame(); // 改為在暱稱確認後調用
     });

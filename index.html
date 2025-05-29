@@ -76,6 +76,9 @@
         #leaderboard-modal { 
             z-index: 2002; 
         }
+        #ai-thinking-modal { /* 確保 AI 思考 modal 的 z-index 也夠高 */
+            z-index: 2003;
+        }
         .modal-content {
             background-color: #2d3748; padding: 20px; border-radius: 8px;
             width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;
@@ -103,39 +106,38 @@
         #leaderboard-table tr:nth-child(even) { background-color: #2a303c; }
         #leaderboard-table .rank-medal { font-size: 1.1em; margin-right: 6px; }
         
-        /* 新增：頑抗度效果提示樣式 */
         .confession-effect-tip {
-            font-size: 0.8rem; /* 稍小字體 */
-            color: #cbd5e0;    /* 淺灰色，比一般文字略淺 */
-            margin-top: 2px;   /* 與上方對話泡泡的間距 */
-            margin-bottom: 8px;/* 與下方元素的間距 */
+            font-size: 0.8rem; 
+            color: #cbd5e0;    
+            margin-top: 2px;   
+            margin-bottom: 8px;
             padding: 4px 8px;
             border-radius: 4px;
-            background-color: rgba(74, 85, 104, 0.3); /* 半透明背景 */
-            display: block; /* 讓它獨占一行 */
-            width: fit-content; /* 寬度自適應內容 */
+            background-color: rgba(74, 85, 104, 0.3); 
+            display: block; 
+            width: fit-content; 
             max-width: 85%;
             font-style: italic;
         }
-        /* 根據提示是跟在玩家還是 AI 泡泡後來調整對齊 */
         .player-bubble + .confession-effect-tip {
-            margin-left: auto; /* 靠右對齊 */
+            margin-left: auto; 
             margin-right: 0;
         }
         .ai-bubble + .confession-effect-tip {
-            margin-right: auto; /* 靠左對齊 */
+            margin-right: auto; 
             margin-left: 0;
         }
         /* AI 思考中 Modal 的玩法提示樣式 */
         #ai-thinking-modal .gameplay-hint {
-            font-size: 0.8rem; /* 調整字體大小 */
-            color: #a0aec0;    /* 提示文字顏色 */
-            margin-top: 16px;  /* 與上方元素的間距 */
-            padding-top: 12px; /* 頂部內邊距 */
-            border-top: 1px solid #4a5568; /* 上方分隔線 */
-            line-height: 1.6; /* 調整行高以容納多行 */
-            text-align: center; /* 文字置中 */
-            min-height: 3em; /* 確保有足夠高度顯示至少兩行提示 */
+            font-size: 0.8rem; 
+            color: #a0aec0;    
+            margin-top: 16px;  
+            padding-top: 12px; 
+            border-top: 1px solid #4a5568; 
+            line-height: 1.6; 
+            text-align: center; 
+            min-height: 3em; 
+        }
 
 
         .interrogation-loader{display:flex;flex-direction:column;align-items:center;justify-content:center;width:300px;margin:0 auto;padding:28px 20px 22px 20px;background:#1a2332;border-radius:18px;box-shadow:0 8px 24px #000a,0 2px 8px #14223b33;border:2px solid #356cc9}.badge{display:flex;align-items:center;gap:10px;font-family:'Inter','Noto Sans TC',Arial,sans-serif;font-weight:700;color:#f3f8ff;font-size:1.5rem;margin-bottom:16px;letter-spacing:2px}.badge-icon{font-size:2.3rem;filter:drop-shadow(0 1px 4px #262f51aa);margin-right:4px}.badge-text{letter-spacing:3px;text-shadow:0 2px 8px #356cc9aa}.loading-bar{width:90%;height:14px;border-radius:8px;background:#28344d;overflow:hidden;box-shadow:0 0 0 2px #3e5d96 inset,0 2px 6px #0005;margin-bottom:12px}.loading-fill{height:100%;width:0%;background:linear-gradient(90deg,#3ec6e0,#5e89ee 60%,#ffe57f 100%);border-radius:8px;animation:loadBarAnim 2.2s cubic-bezier(.65,.05,.36,1) infinite}.interrogation-text{color:#8cb5f1;margin-top:6px;font-size:1.1rem;letter-spacing:1.5px;font-family:'Noto Sans TC','Inter',Arial,sans-serif;text-shadow:0 1px 4px #1a2332cc;animation:textAnim 1.6s linear infinite alternate;min-height:1.5em;transition:opacity .5s}@keyframes loadBarAnim{0%{width:0%;opacity:.7}40%{width:87%;opacity:1}95%{width:99%;opacity:1}100%{width:0%;opacity:.7}}@keyframes textAnim{from{opacity:.6;letter-spacing:1px}to{opacity:1;letter-spacing:3px}}.tone-button{color:#e2e8f0;border:1px solid #718096;flex-grow:1;padding:8px 0;transition:background-color .2s,border-color .2s}.tone-button-calm{background-color:#2c5282}.tone-button-calm.active{background-color:#3182ce;border-color:#3182ce;color:#fff}.tone-button-angry{background-color:#9b2c2c}.tone-button-angry.active{background-color:#e53e3e;border-color:#e53e3e;color:#fff}.tone-button-provocative{background-color:#975a16}.tone-button-provocative.active{background-color:#d69e2e;border-color:#d69e2e;color:#fff}.loading-spinner{border:4px solid #f3f3f3;border-top:4px solid #3498db;border-radius:50%;width:24px;height:24px;animation:spin 1s linear infinite;margin:0 auto}@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}.game-main-area{display:flex;flex-direction:column;height:calc(100vh - 16px);padding:8px}.interrogation-tip{font-size:.75rem;color:#a0aec0;text-align:center;margin-top:4px;padding:4px;background-color:#2a303c;border-radius:4px;min-height:2.5em;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#suspect-status-details>div{display:flex;flex-direction:column;justify-content:space-around}#suspect-status-card{padding:8px;max-height:6rem;overflow:hidden}#suspect-status-details p{font-size:.68rem;line-height:1.2;margin-bottom:.1rem}@media (min-width:640px){#suspect-status-details p{font-size:.75rem}}.analysis-section-title{font-weight:700;color:#90cdf4;margin-top:10px;margin-bottom:4px}.analysis-section-content{margin-left:10px;white-space:pre-wrap}#initial-loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background-color:rgba(26,32,44,.95);z-index:2000;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#e2e8f0}#initial-loading-message{font-size:1.1rem;margin-top:1rem;text-align:center;padding:0 10px}#error-message-area{color:#f56565;background-color:#4a2424;padding:8px 12px;border-radius:4px;margin-top:8px;text-align:center;font-size:.8rem;display:none;border:1px solid #c53030}.achievement-banner{margin-top:16px;padding:8px;background-color:#374151;border-radius:6px;font-size:1.1rem;color:#f6e05e}.confession-color-white{color:#e2e8f0}.confession-color-green{color:#68d391}.confession-color-blue{color:#63b3ed}.confession-color-pink{color:#f687b3}.confession-color-red{color:#fc8181}.confession-color-purple{color:#b794f4}.folder-loader{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:38px 0 22px 0}.folder-stack{position:relative;width:66px;height:56px}.folder{position:absolute;left:0;top:0;width:60px;height:38px;border-radius:5px 8px 6px 6px;background:#f1c672;box-shadow:0 6px 24px #886b3022,0 2px 5px #674f2133;border:2.2px solid #b99e61;z-index:1}.folder1{top:18px;left:8px;background:#d3b16a;z-index:1;transform:rotate(-7deg);box-shadow:0 2px 12px #a28d5e22}.folder2{top:9px;left:4px;background:#ebcc89;z-index:2;transform:rotate(3deg);box-shadow:0 2px 14px #e9c98433}.folder3{top:0;left:0;background:#f6d184;z-index:3;animation:folderShake 1.45s cubic-bezier(.66,-.11,.48,1.31) infinite alternate;box-shadow:0 8px 22px #e6ba6255,0 2px 8px #baa45333}@keyframes folderShake{0%{transform:rotate(-4deg) translateY(0)}15%{transform:rotate(1.2deg) translateY(-2px)}35%{transform:rotate(-1deg) translateY(1px)}65%{transform:rotate(1deg) translateY(-2.2px)}100%{transform:rotate(-2deg) translateY(0)}}.folder-pages{display:flex;align-items:center;justify-content:center;margin:14px 0 4px 0;gap:7px}.page-dot{width:16px;height:8px;background:#e8d199;border-radius:6px;opacity:.35;transition:all .2s;box-shadow:0 2px 6px #9e9e8455;border:1.2px solid #b6a26a}.page-dot.active{background:#f1c672;opacity:1;box-shadow:0 0 0 2px #ffe7ad55,0 4px 8px #e2b64944;border-color:#a2813b}.folder-text{margin-top:16px;color:#e6c175;font-size:1.13rem;font-family:'Noto Sans TC','Inter',Arial,sans-serif;letter-spacing:2px;text-shadow:0 2px 8px #9b782322;animation:fadeText 1.7s linear infinite alternate;min-height:1.8em}@keyframes fadeText{from{opacity:.6;letter-spacing:1px}to{opacity:1;letter-spacing:4px}}
@@ -247,7 +249,7 @@
             <div class="mt-2 flex gap-1 sm:gap-2">
                 <button class="tone-button tone-button-calm active rounded-md text-xs sm:text-sm" data-tone="平緩">😌 平緩</button>
                 <button class="tone-button tone-button-angry rounded-md ml-1 text-xs sm:text-sm" data-tone="憤怒">😡 憤怒</button>
-                <button class="tone-button tone-button-provocative rounded-md ml-1 text-xs sm:text-sm" data-tone="挑釁">� 挑釁</button>
+                <button class="tone-button tone-button-provocative rounded-md ml-1 text-xs sm:text-sm" data-tone="挑釁">😏 挑釁</button>
             </div>
             <div class="mt-2 flex gap-2">
                 <button id="send-button" class="flex-grow bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-md transition duration-150 text-sm sm:text-base">
@@ -402,7 +404,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-    // DOM 元素獲取 (省略部分，與之前版本相同)
+    // DOM 元素獲取
     const heartRateEl = document.getElementById('heart-rate');
     const bloodPressureEl = document.getElementById('blood-pressure');
     const facialExpressionEl = document.getElementById('facial-expression');
@@ -517,13 +519,11 @@
     let isNicknameConfirmed = false;
     let isGameStarted = false;
     let keywordCache = {}; 
-    let gameplayHintInterval = null; // 新增：玩法提示輪播計時器 ID
-    const gameplayHints = [ // 新增：玩法提示內容陣列
+    let gameplayHintInterval = null; 
+    const gameplayHints = [ 
         "💡 提示：嘗試用不同語氣與嫌犯互動，觀察他的反應！",
         "💡 技巧：詳細描述你的問題，有時能讓頑抗度下降更多。",
         "💡 觀察：注意嫌犯的表情和肢體語言，它們可能透露真相！",
-        "💡 關鍵：點擊對話中的關鍵字，可以獲得額外線索！",
-        "💡 耐心：攻破心防需要時間，多嘗試不同的策略。"
     ];
     let currentHintIndex = 0;
 
@@ -532,12 +532,38 @@
         if (aiThinkingModal && aiThinkingMessageEl) {
             aiThinkingMessageEl.textContent = `🤖 ${message}`;
             aiThinkingModal.classList.remove('hidden');
+            startGameplayHintCarousel(); 
         }
     }
 
     function hideThinkingModal() {
         if (aiThinkingModal) aiThinkingModal.classList.add('hidden');
+        stopGameplayHintCarousel(); 
     }
+
+    function startGameplayHintCarousel() {
+        if (!gameplayHintTextEl || gameplayHints.length === 0) return;
+        stopGameplayHintCarousel(); 
+
+        const displayHint = () => {
+            currentHintIndex = Math.floor(Math.random() * gameplayHints.length); 
+            gameplayHintTextEl.textContent = gameplayHints[currentHintIndex];
+        };
+        
+        displayHint(); 
+        gameplayHintInterval = setInterval(displayHint, 3000); 
+    }
+
+    function stopGameplayHintCarousel() {
+        if (gameplayHintInterval) {
+            clearInterval(gameplayHintInterval);
+            gameplayHintInterval = null;
+        }
+        if (gameplayHintTextEl) { 
+            gameplayHintTextEl.textContent = "";
+        }
+    }
+
 
     function getConfessionMeterTextAndColor(percentage) {
         if (percentage > 80) return { text: "態度強硬", colorClass: "confession-color-white" };
@@ -688,10 +714,9 @@
                 startInitialLoadingAnimation();
             }
             if (initialLoadingMessageEl && officerNickname) {
-                // 修改此處以符合您的新訊息需求
-                initialLoadingMessageEl.innerHTML = `🫡 ${officerNickname}警官你好！<br>開局加載很久正常!不用擔心<br>已經鞭策創作者再努力優化！`;
+                initialLoadingMessageEl.innerHTML = `🫡 ${officerNickname}警官你好 🫡<br>開局加載很久正常!不用擔心<br>已經鞭策創作者再努力優化！`;
             } else if (initialLoadingMessageEl) {
-                initialLoadingMessageEl.innerHTML = `🫡 警官你好！<br>開局加載很久正常!不用擔心<br>已經鞭策創作者再努力優化！`;
+                initialLoadingMessageEl.innerHTML = `🫡 警官你好 🫡<br>開局加載很久正常!不用擔心<br>已經鞭策創作者再努力優化！`;
             }
         } else if (!isNicknameConfirmed && isGameDataLoaded) {
             console.log("[TRY_PROCEED_V3] Game data loaded, waiting for nickname confirmation...");
@@ -780,11 +805,11 @@
                 throw new Error("無法獲取有效的用戶識別碼，無法創建遊戲。");
             }
 
-            if (initialLoadingMessageEl) { // 更新訊息，包含暱稱
+            if (initialLoadingMessageEl) { 
                  if (officerNickname) {
-                    initialLoadingMessageEl.innerHTML = `🫡 ${officerNickname}警官你好！<br>開局加載很久正常!不用擔心<br>已經鞭策創作者再努力優化！`;
+                    initialLoadingMessageEl.innerHTML = `🫡 ${officerNickname}警官你好 🫡<br>開局加載很久正常!不用擔心<br>已經鞭策創作者再努力優化！`;
                 } else {
-                    initialLoadingMessageEl.innerHTML = `🫡 警官你好！<br>開局加載很久正常!不用擔心<br>已經鞭策創作者再努力優化！`;
+                    initialLoadingMessageEl.innerHTML = `🫡 警官你好 🫡<br>開局加載很久正常!不用擔心<br>已經鞭策創作者再努力優化！`;
                 }
             }
             
@@ -920,17 +945,15 @@
              console.warn("[DEBUG_UPDATE_UI] state.dialogueHistory is undefined or not an array.");
         }
         
-        // 新增：顯示頑抗度變化提示
         if (state.confessionMeterEffectText && dialogueAreaEl) {
             const effectTipDiv = document.createElement('div');
             effectTipDiv.classList.add('confession-effect-tip');
-            // 判斷最後一條訊息是玩家還是 AI，來決定提示的對齊方式
             const lastBubble = dialogueAreaEl.querySelector('.dialogue-bubble:last-child');
             if (lastBubble && lastBubble.classList.contains('player-bubble')) {
-                effectTipDiv.style.textAlign = 'right'; // 或者使用 Tailwind class: text-right
+                effectTipDiv.style.textAlign = 'right'; 
                 effectTipDiv.style.marginLeft = 'auto';
             } else {
-                effectTipDiv.style.textAlign = 'left'; // 或者使用 Tailwind class: text-left
+                effectTipDiv.style.textAlign = 'left'; 
                 effectTipDiv.style.marginRight = 'auto';
             }
             effectTipDiv.textContent = state.confessionMeterEffectText;

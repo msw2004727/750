@@ -1010,7 +1010,7 @@
             if(gameOverTitle) gameOverTitle.textContent = (state.confessionMeter != null && state.confessionMeter <= 0) ? "⚖️ 審問成功！" : "⚖️ 審問失敗！";
             if(totalRoundsEl) totalRoundsEl.textContent = state.round ?? '0';
             if(gameAnalysisContainerEl && typeof state.gameAnalysis === 'object' && state.gameAnalysis.interrogationStyle) {
-                gameAnalysisContainerEl.innerHTML = `<p class="analysis-section-title">1. 偵訊員審問風格分析:</p><p class="analysis-section-content">${state.gameAnalysis.interrogationStyle}</p><p class="analysis-section-title">2. 與嫌犯鬥智過程技巧分析:</p><p class="analysis-section-content">${state.gameAnalysis.techniqueAnalysis}</p><p class="analysis-section-title">3. 分析玩家在現實世界潛在人格特質:</p><p class="analysis-section-content">${state.gameAnalysis.playerPersonalityTrait}</p>`;
+                gameAnalysisContainerEl.innerHTML = `<p class="analysis-section-title">1. 偵訊員審問風格分析:</p><p class="analysis-section-content">${state.gameAnalysis.interrogationStyle}</p><p class="analysis-section-title">2. 嫌犯鬥智過程突破分析:</p><p class="analysis-section-content">${state.gameAnalysis.techniqueAnalysis}</p><p class="analysis-section-title">3. 透過遊戲分析玩家潛在社會特質:</p><p class="analysis-section-content">${state.gameAnalysis.playerPersonalityTrait}</p>`;
                 if(achievementBannerEl && achievementTitleEl && state.gameAnalysis.achievementTitle){
                     achievementTitleEl.textContent = state.gameAnalysis.achievementTitle;
                     achievementBannerEl.classList.remove('hidden');

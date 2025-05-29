@@ -353,7 +353,7 @@
     <div id="ai-thinking-modal" class="modal hidden">
         <div class="modal-content text-center">
             <div class="flex flex-col items-center justify-center min-h-[100px]">
-                <p class="text-lg" id="ai-thinking-message">🤖 AI正在努力思考中...</p>
+                <p class="text-lg" id="ai-thinking-message">🤖 AI正在努力撰寫劇本中...</p>
                 <p class="text-sm text-gray-400 mt-1">(因即時應對加載稍慢屬正常)</p>
                 <p class="text-xs text-gray-500 mt-1">(創作者還在努力優化中)</p>
             </div>
@@ -957,7 +957,7 @@
         const originalDemandButtonText = demandConfessionButton.textContent;
         if (isDemandConfession) { demandConfessionButton.innerHTML = '<div class="loading-spinner !w-4 !h-4 border-t-white mx-auto"></div>'; }
         else { sendButton.innerHTML = '<div class="loading-spinner !w-5 !h-5 border-t-white"></div>'; }
-        showThinkingModal(isDemandConfession ? '正在要求對方認罪...' : 'AI正在分析中');
+        showThinkingModal(isDemandConfession ? '正在要求對方認罪...' : 'AI正在努力撰寫劇本中');
         const currentTone = gameState.selectedTone || "平緩"; 
         const payload = { message: isDemandConfession ? "" : playerMessage, tone: isDemandConfession ? "憤怒" : currentTone, isDemandConfession: isDemandConfession };
         try {

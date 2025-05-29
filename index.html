@@ -1024,10 +1024,10 @@
         function updateKeywordPage() {
             currentPage = (currentPage + 1) % totalPages;
             renderKeywordPagesBar();
-            if(keywordFolderPageTextEl) keywordFolderPageTextEl.textContent = `第 ${currentPage + 1} / ${totalPages} 頁，正在呈上中…`;
+            if(keywordFolderPageTextEl) keywordFolderPageTextEl.textContent = `第 ${currentPage + 1} / ${totalPages} 頁，資料正在呈上中…`;
         }
         renderKeywordPagesBar(); 
-        if(keywordFolderPageTextEl) keywordFolderPageTextEl.textContent = `第 1 / ${totalPages} 頁，正在呈上中…`;
+        if(keywordFolderPageTextEl) keywordFolderPageTextEl.textContent = `第 1 / ${totalPages} 頁，資料正在呈上中…`;
         if (keywordPageTimer) clearInterval(keywordPageTimer); 
         keywordPageTimer = setInterval(updateKeywordPage, 700); 
         try {
@@ -1090,7 +1090,7 @@
         const originalDemandButtonText = demandConfessionButton.textContent;
         if (isDemandConfession) { demandConfessionButton.innerHTML = '<div class="loading-spinner !w-4 !h-4 border-t-white mx-auto"></div>'; }
         else { sendButton.innerHTML = '<div class="loading-spinner !w-5 !h-5 border-t-white"></div>'; }
-        showThinkingModal(isDemandConfession ? '正在要求對方認罪...' : 'AI正在分析中');
+        showThinkingModal(isDemandConfession ? '正在要求對方認罪...' : 'AI正在努力撰寫劇本中');
         const currentTone = gameState.selectedTone || "平緩"; 
         const payload = { message: isDemandConfession ? "" : playerMessage, tone: isDemandConfession ? "憤怒" : currentTone, isDemandConfession: isDemandConfession };
         try {

@@ -724,9 +724,9 @@
                 startInitialLoadingAnimation();
             }
             if (initialLoadingMessageEl && officerNickname) {
-                initialLoadingMessageEl.innerHTML = `🫡 ${officerNickname}警官你好 🫡<br>開局加載很久正常!不用擔心<br>已經鞭策創作者再努力優化！`;
+                initialLoadingMessageEl.innerHTML = `🫡 ${officerNickname}警官你好 🫡<br>開局加載很久正常!不用擔心<br>已經鞭策創作者努力優化<br>請先不要離開加載畫面以利加載順利`;
             } else if (initialLoadingMessageEl) {
-                initialLoadingMessageEl.innerHTML = `🫡 警官你好 🫡<br>開局加載很久正常!不用擔心<br>已經鞭策創作者再努力優化！`;
+                initialLoadingMessageEl.innerHTML = `🫡 警官你好 🫡<br>開局加載很久正常!不用擔心<br>已經鞭策創作者努力優化<br>請先不要離開加載畫面以利加載順利`;
             }
         } else if (!isNicknameConfirmed && isGameDataLoaded) {
             console.log("[TRY_PROCEED_V3] Game data loaded, waiting for nickname confirmation...");
@@ -817,9 +817,9 @@
 
             if (initialLoadingMessageEl) { 
                  if (officerNickname) {
-                    initialLoadingMessageEl.innerHTML = `🫡 ${officerNickname}警官你好 🫡<br>開局加載很久正常!不用擔心<br>已經鞭策創作者再努力優化！`;
+                    initialLoadingMessageEl.innerHTML = `🫡 ${officerNickname}警官你好 🫡<br>開局加載很久正常!不用擔心<br>已經鞭策創作者努力優化<br>請先不要離開加載畫面以利加載順利`;
                 } else {
-                    initialLoadingMessageEl.innerHTML = `🫡 警官你好 🫡<br>開局加載很久正常!不用擔心<br>已經鞭策創作者再努力優化！`;
+                    initialLoadingMessageEl.innerHTML = `🫡 警官你好 🫡<br>開局加載很久正常!不用擔心<br>已經鞭策創作者努力優化<br>請先不要離開加載畫面以利加載順利`;
                 }
             }
             

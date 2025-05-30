@@ -321,7 +321,7 @@
                 <li>開局後請先查看<strong class="text-indigo-300">【案件概要】</strong>了解偵訊重點。</li>
                 <li>
                     偵訊時可運用<strong class="text-green-300">三種語氣</strong>與嫌犯應對，巧妙運用能更快攻破心防：
-                    <ul class="list-disc list-inside ml-5 mt-2 space-y-2 text-base">
+                    <ul class="list-disc list-inside ml-5 mt-2 space-y-2 text-xl">
                         <li>
                             <strong class="text-green-300">😌 平緩 (Calm)：</strong>
                             <p class="mt-1">專業提問，穩健獲取情報的基礎。搭配詳細提問，頑抗度穩定下降。</p>
@@ -776,10 +776,20 @@
                 startInitialLoadingAnimation();
             }
             if (initialLoadingMessageEl && officerNickname) {
-                initialLoadingMessageEl.innerHTML = `🫡 ${officerNickname}警官你好 🫡<br>開局加載很久正常!不用擔心<br>已經鞭策創作者再努力優化<br>為了加載順利先不要離開畫面🙏`;
-            } else if (initialLoadingMessageEl) {
-                initialLoadingMessageEl.innerHTML = `🫡 警官你好 🫡<br>開局加載很久正常!不用擔心<br>已經鞭策創作者再努力優化<br>為了加載順利先不要離開畫面🙏`;
-            }
+    initialLoadingMessageEl.innerHTML = `🫡 ${officerNickname}警官你好 🫡<br>
+        <div style="text-align:left; font-size:20px;">
+            開局加載很久正常!不用擔心<br>
+            已經鞭策創作者再努力優化<br>
+            為了加載順利先不要離開畫面🙏
+        </div>`;
+} else if (initialLoadingMessageEl) {
+    initialLoadingMessageEl.innerHTML = `🫡 警官你好 🫡<br>
+        <div style="text-align:left; font-size:20px;">
+            開局加載很久正常!不用擔心<br>
+            已經鞭策創作者再努力優化<br>
+            為了加載順利先不要離開畫面🙏
+        </div>`;
+}
         } else if (!isNicknameConfirmed && isGameDataLoaded) {
             console.log("[TRY_PROCEED_V3] Game data loaded, waiting for nickname confirmation...");
             if (initialLoadingOverlay && initialLoadingOverlay.classList.contains('hidden')) {

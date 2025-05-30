@@ -877,13 +877,21 @@
                 throw new Error("無法獲取有效的用戶識別碼，無法創建遊戲。");
             }
 
-            if (initialLoadingMessageEl) { 
-                 if (officerNickname) {
-                    initialLoadingMessageEl.innerHTML = `🫡 ${officerNickname}警官你好 🫡<br>開局加載很久正常!不用擔心<br>已經鞭策創作者再努力優化<br>為了加載順利先不要離開畫面🙏`;
-                } else {
-                    initialLoadingMessageEl.innerHTML = `🫡 警官你好 🫡<br>開局加載很久正常!不用擔心<br>已經鞭策創作者再努力優化<br>為了加載順利先不要離開畫面🙏`;
-                }
-            }
+            if (initialLoadingMessageEl && officerNickname) {
+    initialLoadingMessageEl.innerHTML = `🫡 ${officerNickname}警官你好 🫡<br>
+        <div style="display:inline-block; text-align:left; font-size:20px; width:auto; margin:0 auto 0 0;">
+            開局加載很久正常!不用擔心<br>
+            已經鞭策創作者再努力優化<br>
+            為了加載順利先不要離開畫面🙏
+        </div>`;
+} else if (initialLoadingMessageEl) {
+    initialLoadingMessageEl.innerHTML = `🫡 警官你好 🫡<br>
+        <div style="display:inline-block; text-align:left; font-size:20px; width:auto; margin:0 auto 0 0;">
+            開局加載很久正常!不用擔心<br>
+            已經鞭策創作者再努力優化<br>
+            為了加載順利先不要離開畫面🙏
+        </div>`;
+}
             
             const requestBody = { userId: userAuthId };
             if (officerNickname) { 

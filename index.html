@@ -7,7 +7,7 @@
           content="default-src 'self'; 
                    script-src 'self' https://cdn.tailwindcss.com https://fonts.googleapis.com https://www.gstatic.com https://apis.google.com https://*.firebaseio.com https://*.firebaseapp.com 'unsafe-inline'; 
                    style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; 
-                   img-src 'self' https://placehold.co data: http:; 
+                   img-src 'self' https://placehold.co data: https://raw.githubusercontent.com; 
                    font-src 'self' https://fonts.gstatic.com; 
                    connect-src 'self' wss://*.firebaseio.com https://*.firebaseio.com https://*.googleapis.com https://d1d5ef45-d04b-4a1c-be4b-64a0680c6847-00-xxpggv06ka2e.sisko.replit.dev;
                    frame-src 'self' https://apis.google.com https://*.firebaseapp.com;
@@ -205,7 +205,7 @@
             <p class="text-sm text-gray-400 mt-1" id="initial-loading-message">遊戲初始化中...</p>
         </div>
         <div class="loading-ad-area">
-            <img src="./your-ad-image.png" alt="廣告圖片" onerror="this.onerror=null; this.src='https://github.com/msw2004727/750/blob/main/Policebow.png?raw=true';">
+            <img src="./your-ad-image.png" alt="廣告圖片" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/msw2004727/750/main/Policebow.png';">
             <p>目前遊戲還在開放測試階段！<br>感謝您對本遊戲的支持！</p>
         </div>
       </div>
@@ -540,7 +540,8 @@
 
 
     // --- 配置區域 ---
-    const BACKEND_URL = 'https://d1d5ef45-d04b-4a1c-be4b-64a0680c6847-00-xxpggv06ka2e.sisko.replit.dev';
+    // 標準化 BACKEND_URL，不含結尾斜線
+    const BACKEND_URL = 'https://d1d5ef45-d04b-4a1c-be4b-64a0680c6847-00-xxpggv06ka2e.sisko.replit.dev'; 
     const firebaseConfig = typeof __firebase_config !== 'undefined'
         ? JSON.parse(__firebase_config)
         : {
@@ -870,7 +871,8 @@
 
 
         try {
-            if (BACKEND_URL === 'YOUR_REPLIT_BACKEND_URL' || !BACKEND_URL.startsWith('https://')) {
+            // 檢查 BACKEND_URL 是否已正確設定
+            if (!BACKEND_URL || BACKEND_URL === 'YOUR_REPLIT_BACKEND_URL' || !BACKEND_URL.startsWith('https://')) {
                 throw new Error("後端 API 網址 (BACKEND_URL) 尚未正確設定。");
             }
 
@@ -907,7 +909,7 @@
             }
 
             console.log("[LOAD_GAME_V2] Sending new game request to backend with body:", JSON.stringify(requestBody));
-            const response = await fetch(`${BACKEND_URL}game/new`, {
+            const response = await fetch(`${BACKEND_URL}/game/new`, { // 確保路徑前有斜線
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody)
@@ -1188,7 +1190,7 @@
         if (keywordPageTimer) clearInterval(keywordPageTimer); 
         keywordPageTimer = setInterval(updateKeywordPage, 700); 
         try {
-            const response = await fetch(`${BACKEND_URL}game/${currentGameId}/keyword?keyword=${encodeURIComponent(keyword)}`);
+            const response = await fetch(`${BACKEND_URL}/game/${currentGameId}/keyword?keyword=${encodeURIComponent(keyword)}`); // 確保路徑前有斜線
             if (!response.ok) {
                 let errorText = `伺服器錯誤: ${response.status} ${response.statusText}`;
                 try { const errorData = await response.json(); errorText = errorData.error || errorText; } catch (e) { /* ignore */ }
@@ -1227,7 +1229,7 @@
             showThinkingModal(`正在處理作弊指令 ${playerMessage}...`);
             sendButton.disabled = true; demandConfessionButton.disabled = true;
             try {
-                const response = await fetch(`${BACKEND_URL}game/${currentGameId}/cheat`, {
+                const response = await fetch(`${BACKEND_URL}/game/${currentGameId}/cheat`, { // 確保路徑前有斜線
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ cheat_code: playerMessage })
                 });
@@ -1251,7 +1253,7 @@
         const currentTone = gameState.selectedTone || "平緩"; 
         const payload = { message: isDemandConfession ? "" : playerMessage, tone: isDemandConfession ? "憤怒" : currentTone, isDemandConfession: isDemandConfession };
         try {
-            const response = await fetch(`${BACKEND_URL}game/${currentGameId}/action`, {
+            const response = await fetch(`${BACKEND_URL}/game/${currentGameId}/action`, { // 確保路徑前有斜線
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
             });
             if (!response.ok) {
@@ -1339,7 +1341,11 @@
         leaderboardLoadingEl.classList.remove('hidden'); 
 
         try {
-            const response = await fetch(`${BACKEND_URL}leaderboard`);
+            // 確保 BACKEND_URL 和 /leaderboard 之間有斜線
+            const leaderboardUrl = `${BACKEND_URL}/leaderboard`; 
+            console.log("Fetching leaderboard from:", leaderboardUrl); // 調試日誌
+            const response = await fetch(leaderboardUrl);
+
             if (!response.ok) {
                 let errorText = `無法獲取排行榜資料: ${response.status} ${response.statusText}`;
                 try {

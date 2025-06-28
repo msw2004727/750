@@ -1,5 +1,5 @@
 # 檔名: app.py
-# 版本: 2.8 - 新增讀取舊存檔時生成「前情提要」的API
+# 版本: 2.9 - 採用全新指令解析器，徹底修復指令洩漏BUG
 
 import os
 import json
@@ -32,7 +32,7 @@ DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY')
 if not DEEPSEEK_API_KEY:
     print("警告：環境變數 'DEEPSEEK_API_KEY' 未設定！AI 功能將無法使用。")
 
-# --- 指令解析與輔助函數 (與上一版相同) ---
+# --- 輔助函數 (與之前版本相同) ---
 def flatten_dict(d, parent_key='', sep='.'):
     items = []
     for k, v in d.items():
@@ -43,42 +43,59 @@ def flatten_dict(d, parent_key='', sep='.'):
             items.append((new_key, v))
     return dict(items)
 
+# --- 【核心修改】重寫為更穩健的指令解析與執行函數 ---
 def parse_and_execute_ai_commands(ai_raw_text, game_state_ref):
     command_pattern = r'\[([A-Z_]+):\s*({.*?})\]'
-    def command_processor(match):
-        command_name, json_str = match.groups()
+    text_to_clean = ai_raw_text
+    
+    # 使用 while 循環來確保所有指令都被處理
+    while True:
+        match = re.search(command_pattern, text_to_clean, flags=re.DOTALL)
+        if not match:
+            break # 如果找不到更多指令，就跳出循環
+
+        full_match_text = match.group(0)
+        command_name = match.group(1)
+        json_str = match.group(2)
+        
         try:
             data = json.loads(json_str)
             print(f"解析到指令：{command_name}, 數據: {data}")
+
+            # --- 指令處理中心 ---
             if command_name == "UPDATE_PC_DATA":
                 update_data = {}
                 flattened_data = flatten_dict(data)
                 for key, value in flattened_data.items():
                     full_key_path = f"pc_data.{key}" if not key.startswith("pc_data") else key
-                    if isinstance(value, (int, float)) and value != 0:
+                    if isinstance(value, (int, float)):
                         update_data[full_key_path] = firestore.Increment(value)
-                    elif isinstance(value, str) and (value.startswith('+') or value.startswith('-')):
-                         update_data[full_key_path] = firestore.Increment(int(value))
                     else:
                         update_data[full_key_path] = value
                 if update_data:
                     game_state_ref.update(update_data)
                     print(f"已執行 UPDATE_PC_DATA: {update_data}")
+
             elif command_name == "CREATE_NPC":
                 if (npc_id := data.get("id")):
                     game_state_ref.update({f'npcs.{npc_id}': data})
                     print(f"已執行 CREATE_NPC: 創建了 ID 為 {npc_id} 的 NPC。")
+
             elif command_name == "ADD_ITEM":
                 if "name" in data and "id" in data:
                     game_state_ref.update({'pc_data.inventory.carried': firestore.ArrayUnion([data])})
                     print(f"已執行 ADD_ITEM: 將物品 {data['name']} 加入背包。")
+            
         except Exception as e:
             print(f"執行指令 {command_name} 時發生錯誤: {e}")
-        return ""
-    cleaned_text = re.sub(command_pattern, command_processor, ai_raw_text, flags=re.DOTALL).strip()
-    return cleaned_text
+            
+        # 從文本中移除剛剛處理過的這一個指令
+        text_to_clean = text_to_clean.replace(full_match_text, '', 1)
+
+    return text_to_clean.strip()
 
 def parse_narrative_entities(narrative_text, current_state):
+    # ... (此函數與上一版完全相同)
     entity_pattern = r'<(npc|item|location)\s+id="([^"]+)">([^<]+)</\1>'
     parts = []
     last_end = 0
@@ -100,9 +117,9 @@ def parse_narrative_entities(narrative_text, current_state):
 
 @app.route('/')
 def index():
-    return "文字江湖遊戲後端 v2.8 已啟動！(前情提要功能)"
+    return "文字江湖遊戲後端 v2.9 已啟動！(BUG修復與三選項)"
 
-# ... 其他路由 (register, login, get_entity_info) 與上一版完全相同，此處省略以保持版面簡潔 ...
+# ... 其他路由 (register, login, get_entity_info, get_summary) 與上一版完全相同，此處省略 ...
 @app.route('/api/register', methods=['POST'])
 def register():
     if not db: return jsonify({"error": "資料庫服務未初始化"}), 500
@@ -166,8 +183,7 @@ def get_entity_info():
         if not entity_data: entity_data = {"name": entity_id, "description": "關於此事的資訊還籠罩在迷霧之中..."}
         return jsonify({"success": True, "data": entity_data}), 200
     except Exception as e: return jsonify({"error": f"伺服器內部發生未知錯誤: {str(e)}"}), 500
-
-# --- 【核心新增】生成前情提要的 API 端點 ---
+    
 @app.route('/api/get_summary', methods=['POST'])
 def get_summary():
     if not db or not DEEPSEEK_API_KEY:
@@ -177,42 +193,29 @@ def get_summary():
         session_id = data.get('session_id')
         if not session_id:
             return jsonify({"error": "請求缺少 session_id。"}), 400
-
         game_state_ref = db.collection('game_sessions').document(session_id)
         game_state = game_state_ref.get().to_dict()
-        
         narrative_log = game_state.get("narrative_log", [])
-        
-        # 如果日誌太短，不需要總結，直接返回歡迎訊息
         if len(narrative_log) <= 3:
             return jsonify({"summary": "書接上回，你剛踏入這個風雲變幻的江湖..."})
-
-        # 將日誌拼接成一個長字串
         log_text = "\n".join(narrative_log)
-
         prompt_text = f"""
         你是一位技藝高超的說書先生。請閱讀以下這段凌亂的江湖日誌，並將其起承轉合梳理成一段引人入勝的「前情提要」。
         你的目標是幫助一位久未歸來的玩家快速回憶起劇情。
-        
         【規則】
         1. 風格必須是小說旁白，充滿懸念和江湖氣息。
         2. 必須總結玩家的關鍵行動和處境。
         3. 最後要對玩家接下來可能的行動方向給出建議。
         4. 總字數【嚴格限制】在 300 字以內。
-        
         [江湖日誌]
         {log_text}
         """
-
         headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"}
         payload = {"model": "deepseek-chat", "messages": [{"role": "system", "content": "你是一位技藝高超的說書先生，擅長總結故事並引導後續。"}, {"role": "user", "content": prompt_text}], "max_tokens": 500, "temperature": 0.7}
         response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload)
         response.raise_for_status()
-        
         summary_text = response.json()['choices'][0]['message']['content']
-        
         return jsonify({"summary": summary_text})
-
     except Exception as e:
         print(f"生成前情提要時發生錯誤: {e}")
         return jsonify({"error": f"生成前情提要時發生錯誤: {str(e)}"}), 500
@@ -220,7 +223,6 @@ def get_summary():
 
 @app.route('/api/generate_turn', methods=['POST'])
 def generate_turn():
-    # ... (此函數與上一版完全相同，此處省略以保持簡潔)
     if not db or not DEEPSEEK_API_KEY:
         return jsonify({"error": "服務未就緒"}), 503
     try:
@@ -234,10 +236,10 @@ def generate_turn():
         current_state = game_state.to_dict()
 
         if player_action and player_action.get('id') == 'START':
-            initial_narrative_text = "\n".join(current_state.get("narrative_log", []))
-            structured_narrative = [{"type": "text", "content": initial_narrative_text}]
-            options_text = ("\n\n你環顧四周，接下來你打算？\n<options>\nA. 先檢查一下自身狀況。\nB. 探索一下這個地方。\nC. 靜觀其變，等待機會。\n</options>")
-            structured_narrative.append({"type": "text", "content": options_text})
+            # 我們不再在這裡生成開場白，因為前情提要功能已取代它
+            # 現在 START 只是用來獲取第一組選項
+            options_text = ("\n\n你心念一定，決定...\n<options>\nA. 先檢查一下自身狀況。\nB. 探索一下這個地方。\nC. 靜觀其變，等待機會。\n</options>")
+            structured_narrative = [{"type": "text", "content": options_text}]
             return jsonify({"narrative": structured_narrative, "state": current_state})
 
         prompt_text = f"""
@@ -251,7 +253,6 @@ def generate_turn():
 
         [當前玩家與世界狀態]
         {json.dumps(current_state, indent=2, ensure_ascii=False)}
-
         [玩家的行動]
         > {player_action.get('text', '無')}
         """

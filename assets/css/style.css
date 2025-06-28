@@ -307,3 +307,10 @@ body {
     transform: translateY(-2px); /* 向上浮動效果 */
     box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
+
+/* 【本次新增】地區資訊面板樣式 */
+#area-info-content p {
+    margin: 0;
+    font-style: italic;
+    color: var(--text-secondary);
+}

@@ -1,5 +1,5 @@
 // 檔案: assets/js/login.js
-// 版本: 1.1 - 整合後端 API 串接與頁面跳轉
+// 版本: 1.3 - 傳統帳號密碼註冊/登入邏輯
 
 document.addEventListener('DOMContentLoaded', () => {
     // 您的 Render 後端服務 URL
@@ -27,8 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     genderGroup.addEventListener('click', (e) => handleButtonGroupClick(genderGroup, (val) => selectedGender = val, e));
     personalityGroup.addEventListener('click', (e) => handleButtonGroupClick(personalityGroup, (val) => selectedPersonality = val, e));
 
-
-    // [核心升級] 登入表單提交
+    // [核心] 登入表單提交事件
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         showMessage('正在登入，請稍候...', 'normal');
@@ -52,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             showMessage('登入成功！正在進入江湖...', 'success');
-
+            
             // 將 session_id 存入 localStorage
             localStorage.setItem('game_session_id', data.session_id); 
             
@@ -65,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // [核心升級] 註冊表單提交
+    // [核心] 註冊表單提交事件
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -100,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             showMessage('角色創建成功！正在進入江湖...', 'success');
 
-            // 將 session_id 存入 localStorage
+            // 將新創建的 session_id 存入 localStorage
             localStorage.setItem('game_session_id', data.session_id); 
             
             setTimeout(() => {

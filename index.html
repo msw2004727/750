@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文字江湖：黑風寨崛起</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+    <div class="game-container">
+        <div class="main-panel">
+            <div id="narrative-log" class="narrative-log">
+                <p>你睜開雙眼，發現自己身處於陰暗而陌生的巷弄之中。</p>
+                <p>一個位於山腳下的純樸小鎮，鎮上居民大多以務農和採集為生。一條清澈的小溪穿鎮而過，為此地帶來了無限生機。</p>
+                <p class="player-prompt">> 始動</p>
+            </div>
+            <div class="input-area">
+                <p id="prompt-question">你想要做什麼...</p>
+                <div id="action-options">
+                    </div>
+            </div>
+        </div>
+
+        <div class="sidebar-panel">
+            <div class="info-box" id="player-info-box">
+                <h3 class="info-title">玩家資料</h3>
+                <div class="info-content">
+                    <p>姓名：<span id="player-name">---</span></p>
+                    <p>狀態：<span id="player-status">---</span></p>
+                    <p>氣血：<span id="player-hp">--/--</span></p>
+                    <p>內力：<span id="player-mp">--/--</span></p>
+                    <p>座標：X:<span id="player-coord-x">--</span>, Y:<span id="player-coord-y">--</span></p>
+                </div>
+            </div>
+
+            <div class="info-box" id="scene-characters-box">
+                <h3 class="info-title">場景角色</h3>
+                <ul id="scene-characters-list" class="info-list">
+                    </ul>
+            </div>
+
+            <div class="info-box" id="nearby-facilities-box">
+                <h3 class="info-title">附近設施</h3>
+                <ul id="nearby-facilities-list" class="info-list">
+                    </ul>
+            </div>
+
+            <div class="info-box" id="area-info-box">
+                <h3 class="info-title">地區資訊</h3>
+                <div class="info-content">
+                    <p>地區名稱：<span id="area-name">---</span></p>
+                    <p>規模：<span id="area-size">---</span></p>
+                    <p>居民總數：<span id="area-population">---</span></p>
+                    <p>地區首長：<span id="area-leader">---</span></p>
+                    <p>治安程度：<span id="area-security">---</span></p>
+                    <p>繁榮度：<span id="area-prosperity">---</span></p>
+                    <p>主要產出：<span id="area-products">---</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/main.js" type="module"></script>
+</body>
+</html>

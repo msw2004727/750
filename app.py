@@ -1,5 +1,5 @@
 # 檔名: app.py
-# 版本: 1.8 - 傳統帳號密碼註冊/登入系統
+# 版本: 1.9 - 儲存玩家個性以供AI參考
 
 import os
 import json
@@ -39,7 +39,7 @@ def process_ai_response(raw_text):
 
 @app.route('/')
 def index():
-    return "文字江湖遊戲後端 v1.8 已啟動！(傳統帳號系統)"
+    return "文字江湖遊戲後端 v1.9 已啟動！(個性儲存)"
 
 # --- [核心] 註冊 API 端點 ---
 @app.route('/api/register', methods=['POST'])
@@ -96,7 +96,8 @@ def register():
                     "name": nickname,
                     "height": data.get('height'),
                     "weight": data.get('weight'),
-                    "gender": data.get('gender')
+                    "gender": data.get('gender'),
+                    "personality_trait": personality # 【本次新增】將個性信條 (justice, neutral, evil) 儲存起來
                 },
                 "core_status": { "hp": {"current": 100, "max": 100}, "mp": {"current": 50, "max": 50}, "sta": {"current": 100, "max": 100}, "san": {"current": 100, "max": 100}, "hunger": {"current": 20, "max": 100}, "thirst": {"current": 20, "max": 100}, "fatigue": {"current": 0, "max": 100} },
                 "reputation_and_alignment": { "morality_alignment": {"value": initial_morality, "level": "初始"} },

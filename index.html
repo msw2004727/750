@@ -2,59 +2,36 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>文字江湖</title>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
     <div class="game-container">
-        <div class="main-panel">
-            <div id="narrative-log" class="narrative-log"></div>
-            <div class="input-area">
-                <p id="prompt-question">你想要做什麼...</p>
-                <div id="action-options"></div>
-                <form id="custom-action-form" class="custom-action-container">
-                    <input type="text" id="custom-action-input" placeholder="或在此輸入你想做的事...">
-                    <button type="submit">執行</button>
-                </form>
-            </div>
+        <div class="top-bar">
+            <button id="status-btn" class="top-bar-btn">角色狀態</button>
+            <button id="inventory-btn" class="top-bar-btn">行囊</button>
+            <button id="map-btn" class="top-bar-btn">地區資訊</button>
         </div>
-        <div class="sidebar-panel">
-            <div class="info-box" id="real-time-info-box">
-                <div class="info-content">
-                    <p><strong>回合：</strong><span id="info-round">---</span></p>
-                    <hr class="info-divider">
-                    <p><strong>時間：</strong><span id="info-time">---</span></p>
-                    <p><strong>地點：</strong><span id="info-location">---</span></p>
-                </div>
-            </div>
-            <div class="info-box" id="player-info-box">
-                <h3 class="info-title">玩家資料</h3>
-                <div class="info-content">
-                    <p>姓名：<span id="player-name">---</span></p>
-                    <p>氣血：<span id="player-hp">--/--</span></p>
-                    <p>內力：<span id="player-mp">--/--</span></p>
-                </div>
-            </div>
-            <div class="info-box" id="scene-characters-box">
-                <h3 class="info-title">場景角色</h3>
-                <ul id="scene-characters-list" class="info-list"></ul>
-            </div>
-            <div class="info-box" id="nearby-facilities-box">
-                <h3 class="info-title">地區資訊</h3>
-                <div class="info-content" id="area-info-content">
-                    </div>
-            </div>
+
+        <div id="narrative-log" class="narrative-log"></div>
+
+        <div class="input-area">
+            <p id="prompt-question">接下來你打算？</p>
+            <div id="action-options"></div>
+            <form id="custom-action-form" class="custom-action-container">
+                <input type="text" id="custom-action-input" placeholder="或在此輸入你想做的事...">
+                <button type="submit">執行</button>
+            </form>
         </div>
     </div>
 
-    <div id="entity-modal" class="modal-overlay hidden">
+    <div id="info-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <button id="modal-close-btn" class="modal-close">&times;</button>
             <h2 id="modal-title">---</h2>
             <div id="modal-body" class="modal-body-content">
-                <p id="modal-description">正在載入資訊...</p>
-            </div>
+                </div>
         </div>
     </div>
 

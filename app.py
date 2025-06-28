@@ -1,5 +1,5 @@
 # 檔名: app.py
-# 版本: 2.11 - 擴充指令集並強化Prompt，實現場景與地區數據同步
+# 版本: 2.12 - 強化解析器與Prompt，修復標籤與上下文連貫性問題
 
 import os
 import json
@@ -32,86 +32,78 @@ DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY')
 if not DEEPSEEK_API_KEY:
     print("警告：環境變數 'DEEPSEEK_API_KEY' 未設定！AI 功能將無法使用。")
 
-# --- 輔助函數 (與之前版本相同) ---
+# --- 指令解析與輔助函數 (與上一版相同) ---
 def flatten_dict(d, parent_key='', sep='.'):
     items = []
     for k, v in d.items():
         new_key = parent_key + sep + k if parent_key else k
-        if isinstance(v, dict):
-            items.extend(flatten_dict(v, new_key, sep=sep).items())
-        else:
-            items.append((new_key, v))
+        if isinstance(v, dict): items.extend(flatten_dict(v, new_key, sep=sep).items())
+        else: items.append((new_key, v))
     return dict(items)
 
-# --- 【核心修改】大幅擴充 AI 指令解析與執行函數 ---
 def parse_and_execute_ai_commands(ai_raw_text, game_state_ref):
     command_pattern = r'\[([A-Z_]+):\s*({.*?})\]'
     commands_to_execute = []
     for match in re.finditer(command_pattern, ai_raw_text, flags=re.DOTALL):
         commands_to_execute.append({"name": match.group(1), "json_str": match.group(2)})
-
     for cmd in commands_to_execute:
         command_name, json_str = cmd["name"], cmd["json_str"]
         try:
             data = json.loads(json_str)
             print(f"準備執行指令：{command_name}, 數據: {data}")
-
             if command_name == "UPDATE_PC_DATA":
                 update_data = {}
                 flattened_data = flatten_dict(data)
                 for key, value in flattened_data.items():
                     full_key_path = f"pc_data.{key}" if not key.startswith("pc_data") else key
-                    if isinstance(value, (int, float)):
-                        update_data[full_key_path] = firestore.Increment(value)
-                    else:
-                        update_data[full_key_path] = value
+                    if isinstance(value, (int, float)): update_data[full_key_path] = firestore.Increment(value)
+                    else: update_data[full_key_path] = value
                 if update_data:
                     game_state_ref.update(update_data)
                     print(f"  [成功] 已執行 UPDATE_PC_DATA: {update_data}")
-
             elif command_name == "UPDATE_NPC":
-                npc_id = data.pop("id", None)
-                if npc_id:
+                if (npc_id := data.pop("id", None)):
                     update_data = {f'npcs.{npc_id}.{key}': value for key, value in data.items()}
                     if update_data:
                         game_state_ref.update(update_data)
                         print(f"  [成功] 已執行 UPDATE_NPC: 更新了 ID 為 {npc_id} 的 NPC。")
-            
             elif command_name == "UPDATE_WORLD":
                 update_data = {f'world.{key}': value for key, value in data.items()}
                 if update_data:
                     game_state_ref.update(update_data)
                     print(f"  [成功] 已執行 UPDATE_WORLD: 更新了世界狀態。")
-
             elif command_name == "CREATE_NPC":
                 if (npc_id := data.get("id")):
                     game_state_ref.update({f'npcs.{npc_id}': data})
                     print(f"  [成功] 已執行 CREATE_NPC: 創建了 ID 為 {npc_id} 的 NPC。")
-            
             elif command_name == "CREATE_LOCATION":
                 if (loc_id := data.get("id")):
                     game_state_ref.update({f'locations.{loc_id}': data})
                     print(f"  [成功] 已執行 CREATE_LOCATION: 創建了 ID 為 {loc_id} 的地點。")
-
             elif command_name == "ADD_ITEM":
                 if "name" in data and "id" in data:
                     game_state_ref.update({'pc_data.inventory.carried': firestore.ArrayUnion([data])})
                     print(f"  [成功] 已執行 ADD_ITEM: 將物品 {data['name']} 加入背包。")
-            
         except Exception as e:
             print(f"  [失敗] 執行指令 {command_name} 時發生錯誤: {e}")
-
     cleaned_text = re.sub(command_pattern, '', ai_raw_text, flags=re.DOTALL).strip()
     return cleaned_text
 
-# --- 其他輔助/路由函數 (與上一版相同) ---
+# --- 【核心修改】讓實體解析器能識別中文標籤 ---
 def parse_narrative_entities(narrative_text, current_state):
-    entity_pattern = r'<(npc|item|location)\s+id="([^"]+)">([^<]+)</\1>'
+    # 擴充正則表達式，使其能識別中文和英文標籤
+    entity_pattern = r'<(人物|物品|地點|npc|item|location)\s+id="([^"]+)">([^<]+)</\1>'
+    # 建立一個中英文標籤映射表
+    tag_map = {'人物': 'npc', '物品': 'item', '地點': 'location', 'npc': 'npc', 'item': 'item', 'location': 'location'}
+    
     parts, last_end = [], 0
     for match in re.finditer(entity_pattern, narrative_text):
         start, end = match.span()
         if start > last_end: parts.append({"type": "text", "content": narrative_text[last_end:start]})
-        entity_type, entity_id, entity_text = match.groups()
+        
+        raw_tag_type, entity_id, entity_text = match.groups()
+        entity_type = tag_map.get(raw_tag_type, 'text') # 將中文標籤轉換為標準英文類型
+        
         entity_obj = {"type": entity_type, "id": entity_id, "text": entity_text, "color_class": f"text-entity-{entity_type}"}
         if entity_type == 'npc':
             friendliness = current_state.get("npcs", {}).get(entity_id, {}).get("relationship", {}).get("friendliness", 0)
@@ -124,8 +116,9 @@ def parse_narrative_entities(narrative_text, current_state):
 
 @app.route('/')
 def index():
-    return "文字江湖遊戲後端 v2.11 已啟動！(數據同步強化)"
+    return "文字江湖遊戲後端 v2.12 已啟動！(上下文連貫性強化)"
 
+# ... 其他路由 (register, login, get_entity_info, get_summary) 與上一版完全相同，此處省略 ...
 @app.route('/api/register', methods=['POST'])
 def register():
     if not db: return jsonify({"error": "資料庫服務未初始化"}), 500
@@ -210,30 +203,43 @@ def generate_turn():
         session_id, player_action = data.get('session_id'), data.get('player_action')
         game_state_ref = db.collection('game_sessions').document(session_id)
         current_state = game_state_ref.get().to_dict()
+
         if player_action and player_action.get('id') == 'START':
             options_text = ("\n\n你心念一定，決定...\n<options>\nA. 先檢查一下自身狀況。\nB. 探索一下這個地方。\nC. 靜觀其變，等待機會。\n</options>")
             return jsonify({"narrative": [{"type": "text", "content": options_text}], "state": current_state})
 
-        # --- 【核心修改】更新 Prompt，教 AI 使用新的指令來同步數據 ---
+        # --- 【核心修改】重構 Prompt，使其更簡潔、更具指導性 ---
+        pc_info = current_state.get('pc_data', {}).get('basic_info', {})
+        world_info = current_state.get('world', {})
+        # 提取最近的5條日誌作為短期記憶
+        recent_log = "\n".join(current_state.get("narrative_log", [])[-5:])
+        
+        # 構造簡潔的上下文摘要
+        context_summary = f"""
+        [當前情境摘要]
+        玩家姓名: {pc_info.get('name', '你')}
+        目前地點: {world_info.get('player_current_location_name', '未知')}
+        最近發生的事:
+        {recent_log}
+        """
+
         prompt_text = f"""
         你是一位頂尖的武俠小說家兼遊戲世界主持人(GM)。
+        
         【極重要規則】
-        1. 你的所有回應都必須嚴格遵守金庸武俠風格。
-        2. 當玩家移動到一個【新】地點時，你【必須】使用`[CREATE_LOCATION: {{...}}]`創建它，並用`[UPDATE_WORLD: {{...}}]`更新玩家的當前位置。
-        3. 當NPC出現在玩家【當前所在位置】時，你【必須】使用`[CREATE_NPC: {{...}}]`（如果首次出現）或`[UPDATE_NPC: {{"id":"npc_id", "current_location_name":"玩家當前位置名"}}]`（如果已存在）來同步其位置。
-        4. 當玩家獲得物品，【必須】使用`[ADD_ITEM: {{...}}]`。
-        5. 當玩家狀態數值變化，【必須】使用`[UPDATE_PC_DATA: {{...}}]`。
-        6. 你生成的所有劇情文字中的實體，【必須】用`<類型 id="ID">名稱</類型>`標籤包裹。
-        7. 最後，你【必須】提供剛好 3 個合理的行動選項，並用`<options>`標籤包裹。選項必須以 A. B. C. 作為開頭。
+        1. 你的【首要任務】是根據[玩家的行動]來推進劇情，確保敘事連貫，絕對不要憑空捏造與玩家行動無關的場景。
+        2. 你的回應必須是金庸武俠風格。
+        3. 當劇情需要創建或更新數據時，【必須】使用對應的指令標籤 `[COMMAND: {{...}}]`。
+        4. 當劇情文字中提到關鍵實體時，【必須】用 `<類型 id="ID">名稱</類型>` 標籤包裹。類型可以是 `npc`, `item`, `location` 或中文 `人物`, `物品`, `地點`。
+        5. 劇情最後【必須】提供剛好 3 個合理的行動選項，並用 `<options>` 標籤包裹。選項必須以 A. B. C. 作為開頭。
 
-        [當前玩家與世界狀態]
-        {json.dumps(current_state, indent=2, ensure_ascii=False)}
+        {context_summary}
 
         [玩家的行動]
         > {player_action.get('text', '無')}
         """
         headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"}
-        payload = {"model": "deepseek-chat", "messages": [{"role": "system", "content": "你是一位頂尖的武俠小說家兼遊戲世界主持人(GM)，你需要根據規則生成劇情、數據指令和實體標籤。"}, {"role": "user", "content": prompt_text}], "max_tokens": 1500, "temperature": 0.8}
+        payload = {"model": "deepseek-chat", "messages": [{"role": "system", "content": "你是一位頂尖的武俠小說家兼遊戲世界主持人(GM)，你需要根據規則生成劇情、數據指令和實體標籤。"}, {"role": "user", "content": prompt_text}], "max_tokens": 1500, "temperature": 0.7}
         response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload)
         response.raise_for_status()
         ai_raw_narrative = response.json()['choices'][0]['message']['content']

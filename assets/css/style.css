@@ -1,19 +1,38 @@
-/* 版本: 3.1 - 響應式佈局 (寬窄兩版) */
+/* 版本: 3.2 - 日夜主題 & 環境系統UI */
 :root {
-    --primary-bg: #1e1e1e; --secondary-bg: #2c2c2c; --border-color: #444;
-    --text-primary: #e0e0e0; --text-secondary: #ccc; --accent-color: #87ceeb;
-    --hp-color: #e57373; --mp-color: #64b5f6;
+    /* 預設為深色主題 */
+    --primary-bg: #1e1e1e;
+    --secondary-bg: #2c2c2c;
+    --border-color: #444;
+    --text-primary: #e0e0e0;
+    --text-secondary: #b0b0b0; /* 提高次要文字亮度 */
+    --accent-color: #87ceeb;
+    --hp-color: #e57373;
+    --mp-color: #64b5f6;
+    --shadow-color: rgba(0,0,0,0.5);
+}
+
+body.theme-light {
+    /* 亮色主題變數 */
+    --primary-bg: #f5f5f5;
+    --secondary-bg: #ffffff;
+    --border-color: #e0e0e0;
+    --text-primary: #212121;
+    --text-secondary: #616161;
+    --shadow-color: rgba(0,0,0,0.1);
 }
 
 html, body {
     height: 100%; margin: 0; overflow: hidden;
     font-family: 'Microsoft JhengHei', '微軟正黑體', sans-serif;
     background-color: var(--primary-bg);
+    color: var(--text-primary); /* 設定基礎文字顏色 */
+    transition: background-color 0.5s, color 0.5s;
 }
 
 .game-container { display: flex; height: 100%; width: 100%; }
-.main-panel { display: flex; flex-direction: column; flex-grow: 1; }
-.sidebar-panel { display: none; /* 窄版時預設隱藏 */ }
+.main-panel { display: flex; flex-direction: column; flex-grow: 1; background-color: var(--secondary-bg); }
+.sidebar-panel { display: none; }
 
 /* --- 窄版佈局 (寬度 <= 800px) --- */
 @media (max-width: 800px) {
@@ -22,113 +41,41 @@ html, body {
     .top-status-bars { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
     .status-bar-container { display: flex; align-items: center; gap: 8px; }
     .status-bar-label { flex-shrink: 0; width: 40px; color: var(--text-secondary); text-align: right; }
-    .status-bar-bg { flex-grow: 1; background-color: #111; border-radius: 4px; height: 18px; padding: 2px; }
+    .status-bar-bg { flex-grow: 1; background-color: var(--primary-bg); border-radius: 4px; height: 18px; padding: 2px; }
     .status-bar { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
     .status-bar.hp { background-color: var(--hp-color); }
     .status-bar.mp { background-color: var(--mp-color); }
     .status-bar-text { font-size: 0.8em; color: var(--text-primary); min-width: 60px; }
+    .top-env-info { display: flex; justify-content: center; gap: 15px; color: var(--text-secondary); font-size: 0.9em; padding: 5px 0 15px 0; }
     .top-buttons { display: flex; justify-content: space-around; }
     .top-bar-btn { background: none; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 8px 15px; border-radius: 20px; cursor: pointer; flex-grow: 1; margin: 0 5px; }
 }
 
-/* --- 寬版佈局 (寬度 > 800px) --- */
+/* --- 寬版佈局 (寬度 > 801px) --- */
 @media (min-width: 801px) {
     .game-container { max-width: 1400px; margin: auto; padding: 20px; gap: 20px; height: calc(100% - 40px); }
-    .main-panel { background-color: var(--primary-bg); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.3); flex-basis: 70%; }
-    .top-bar { display: none; /* 寬版時隱藏頂部欄 */ }
+    .main-panel { border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px var(--shadow-color); flex-basis: 70%; }
+    .top-bar { display: none; }
     .sidebar-panel { display: flex; flex-direction: column; gap: 20px; flex-basis: 30%; }
-    .info-box { background-color: var(--primary-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; }
+    .info-box { background-color: var(--secondary-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; }
     .info-title { margin: 0 0 10px 0; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); font-size: 1.1em; color: var(--text-primary); }
-    .info-content p { margin: 10px 0; color: var(--text-secondary); }
-    .info-content span { color: #fff; }
+    .info-content p { margin: 8px 0; color: var(--text-secondary); }
+    .info-content span { color: var(--text-primary); }
     .info-list { list-style: none; padding: 0; margin: 0; }
-    .info-list li { padding: 8px 0; border-bottom: 1px solid #333; cursor: pointer; transition: color 0.2s; }
-    .info-list li:hover { color: var(--accent-color); }
-    #area-info-content p { margin: 0; font-style: italic; color: var(--text-secondary); }
+    .info-list li { padding: 8px 0; border-bottom: 1px solid var(--border-color); cursor: pointer; }
 }
 
 /* --- 通用樣式 --- */
-.narrative-log { flex-grow: 1; padding: 20px; overflow-y: auto; line-height: 1.7; color: var(--text-primary); }
-.narrative-log p { margin: 0 0 1em 0; }
-.player-prompt strong { color: var(--accent-color); }
-.input-area { flex-shrink: 0; padding: 15px; border-top: 1px solid var(--border-color); background-color: #252525; }
-#action-options button { display: flex; width: 100%; padding: 12px 20px; margin-bottom: 8px; background-color: #3a3a3a; border: 1px solid #555; border-radius: 4px; align-items: center; gap: 0.7em; cursor: pointer; }
-#custom-action-form { display: flex; gap: 10px; margin-top: 15px; }
-#custom-action-input { flex-grow: 1; background-color: #3a3a3a; border: 1px solid #555; color: var(--text-primary); border-radius: 4px; padding: 10px 15px; }
-.custom-action-container button { background-color: var(--accent-color); color: #111; border: none; padding: 0 20px; border-radius: 4px; font-weight: bold; cursor: pointer; }
-
-/* 實體 & Modal 樣式 (與之前類似) */
+.narrative-log { flex-grow: 1; padding: 20px; overflow-y: auto; line-height: 1.7; }
+.input-area { flex-shrink: 0; padding: 15px; border-top: 1px solid var(--border-color); background-color: var(--primary-bg); box-shadow: 0 -2px 10px var(--shadow-color); }
+#action-options button { border: 1px solid var(--border-color); }
+#custom-action-input { background-color: var(--primary-bg); border: 1px solid var(--border-color); color: var(--text-primary); }
+.custom-action-container button { background-color: var(--accent-color); color: #111; }
 .narrative-entity { font-weight: bold; cursor: pointer; }
 .text-entity-npc { color: #fdd835; } .text-entity-item { color: #4fc3f7; } .text-entity-location { color: #9ccc65; }
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 1; transition: opacity 0.3s; }
-.modal-overlay.hidden { opacity: 0; pointer-events: none; }
-.modal-content { background-color: var(--primary-bg); padding: 30px; border-radius: 8px; border: 1px solid var(--border-color); width: 90%; max-width: 600px; }
-.modal-close { position: absolute; top: 10px; right: 15px; background: none; border: none; color: var(--text-secondary); font-size: 2.5em; cursor: pointer; }
-#modal-title { color: var(--accent-color); margin: 0 0 15px 0; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
-.modal-body-content .info-grid { display: grid; grid-template-columns: 100px 1fr; gap: 12px 20px; }
-.modal-body-content .info-grid strong { text-align: right; }
-
-/* 【本次新增】全螢幕載入動畫樣式 */
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.85); /* 背景更深，凸顯載入資訊 */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000; /* 確保在最頂層 */
-    opacity: 1;
-    transition: opacity 0.3s ease;
-}
-
-.loading-overlay.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-
-.loading-content {
-    text-align: center;
-    color: var(--text-secondary);
-    width: 80%;
-    max-width: 400px;
-}
-
-.loading-content p {
-    font-size: 1.1em;
-    margin-bottom: 20px;
-}
-
-.loading-bar-container {
-    width: 100%;
-    height: 8px;
-    background-color: #111;
-    border-radius: 4px;
-    overflow: hidden; /* 隱藏超出部分的動畫 */
-}
-
-.loading-bar {
-    width: 100%;
-    height: 100%;
-    background-color: var(--accent-color);
-    animation: loading-animation 2s linear infinite;
-}
-
-@keyframes loading-animation {
-    0% {
-        transform: translateX(-100%);
-    }
-    50% {
-        transform: translateX(0%);
-    }
-    100% {
-        transform: translateX(100%);
-    }
-}
-
-/* 移除舊的 Spinner，因為被全螢幕載入取代 */
-.loading-spinner {
-    display: none;
-}
+.modal-overlay { background-color: rgba(0, 0, 0, 0.7); }
+body.theme-light .modal-overlay { background-color: rgba(255, 255, 255, 0.7); }
+.modal-content { background-color: var(--secondary-bg); border: 1px solid var(--border-color); }
+#modal-title { color: var(--accent-color); border-bottom: 1px solid var(--border-color); }
+.modal-body-content .info-grid strong { color: var(--text-secondary); }
+.modal-body-content .description-text { border-top: 1px solid var(--border-color); color: var(--text-secondary); }

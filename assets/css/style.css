@@ -225,3 +225,33 @@ body {
     line-height: 1.8;
     color: var(--text-secondary);
 }
+/* 【本次新增】Modal 內部內容的美化樣式 */
+.modal-body-content .info-grid {
+    display: grid;
+    grid-template-columns: 100px 1fr; /* 標籤和內容的寬度 */
+    gap: 12px 20px;
+}
+
+.modal-body-content .info-grid strong {
+    color: var(--text-secondary);
+    font-weight: bold;
+    text-align: right;
+}
+
+.modal-body-content .info-grid span {
+    color: var(--text-primary);
+}
+
+.modal-body-content .description-text {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    line-height: 1.8;
+    font-style: italic; /* 斜體以區分描述文字 */
+}
+
+/* 針對不同心情的特殊顏色 */
+.mood-text-positive { color: #a5d6a7; } /* 友善 - 淡綠 */
+.mood-text-negative { color: #ef9a9a; } /* 敵對 - 淡紅 */
+.mood-text-neutral { color: #fdd835; } /* 中立 - 黃色 */

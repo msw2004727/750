@@ -18,7 +18,6 @@ body {
     font-size: 16px;
 }
 
-/* 遊戲主容器，使用 Flexbox 佈局 */
 .game-container {
     display: flex;
     gap: 20px;
@@ -27,9 +26,8 @@ body {
     height: calc(100vh - 40px);
 }
 
-/* 左側主面板 */
 .main-panel {
-    flex: 3; /* 佔用較大空間 */
+    flex: 3;
     display: flex;
     flex-direction: column;
     background-color: var(--primary-bg);
@@ -39,7 +37,6 @@ body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
-/* 劇情日誌 */
 .narrative-log {
     flex-grow: 1;
     padding: 20px;
@@ -53,27 +50,16 @@ body {
     margin-top: 0;
 }
 
-.narrative-log p {
-    margin: 0 0 1em 0;
-}
+.narrative-log p { margin: 0 0 1em 0; }
+.player-prompt strong { color: var(--accent-color); font-weight: normal; }
 
-/* 玩家提示樣式 */
-.player-prompt strong {
-    color: var(--accent-color);
-    font-weight: normal;
-}
-
-/* 輸入與選項區域 */
 .input-area {
     padding: 20px;
     border-top: 1px solid var(--border-color);
     background-color: #252525;
 }
 
-#prompt-question {
-    color: #aaa;
-    margin: 0 0 10px 0;
-}
+#prompt-question { color: #aaa; margin: 0 0 10px 0; }
 
 #action-options button {
     display: block;
@@ -95,15 +81,13 @@ body {
     border-color: var(--accent-color);
 }
 
-/* 右側資訊欄 */
 .sidebar-panel {
-    flex: 1; /* 佔用較小空間 */
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 20px;
 }
 
-/* 資訊盒子統一樣式 */
 .info-box {
     background-color: var(--primary-bg);
     border: 1px solid var(--border-color);
@@ -119,52 +103,20 @@ body {
     color: var(--text-primary);
 }
 
-.info-content p {
-    margin: 10px 0;
-    color: var(--text-secondary);
-}
+.info-content p { margin: 10px 0; color: var(--text-secondary); }
+.info-content span { color: #fff; font-weight: normal; }
 
-.info-content span {
-    color: #fff;
-    font-weight: normal;
-}
+#real-time-info-box .info-content p { margin: 8px 0; }
+#real-time-info-box .info-content strong { color: var(--text-secondary); min-width: 40px; display: inline-block; }
+.info-divider { border: none; border-top: 1px solid var(--border-color); margin: 8px 0; }
 
-/* 【新增】即時資訊欄的特殊樣式 */
-#real-time-info-box .info-content p {
-    margin: 8px 0;
-}
-#real-time-info-box .info-content strong {
-    color: var(--text-secondary);
-    min-width: 40px;
-    display: inline-block;
-}
-.info-divider {
-    border: none;
-    border-top: 1px solid var(--border-color);
-    margin: 8px 0;
-}
+.info-list { list-style: none; padding: 0; margin: 0; }
+.info-list li { padding: 8px 0; border-bottom: 1px solid #333; cursor: pointer; transition: color 0.2s; }
+.info-list li:last-child { border-bottom: none; }
+.info-list li:hover { color: var(--accent-color); }
 
-/* 列表樣式 (用於角色、設施) */
-.info-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.info-list li {
-    padding: 8px 0;
-    border-bottom: 1px solid #333;
-    cursor: pointer;
-    transition: color 0.2s;
-}
-
-.info-list li:last-child {
-    border-bottom: none;
-}
-
-.info-list li:hover {
-    color: var(--accent-color);
-}
+/* 距離樣式 */
+.distance { color: #999; font-size: 0.9em; margin-left: 8px; }
 
 /* 載入中 Spinner */
 .loading-spinner {
@@ -177,25 +129,10 @@ body {
     margin: 10px auto;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-/* 滾動條美化 (可選) */
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--secondary-bg);
-}
-
-::-webkit-scrollbar-thumb {
-    background: #555;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #666;
-}
+/* 滾動條美化 */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--secondary-bg); }
+::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #666; }

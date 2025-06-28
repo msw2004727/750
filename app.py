@@ -1,5 +1,5 @@
 # 檔名: app.py
-# 版本: 2.6 - 強化指令解析器，修復指令文本洩漏問題
+# 版本: 2.7 - 限制 AI 生成的選項數量為三個
 
 import os
 import json
@@ -32,10 +32,8 @@ DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY')
 if not DEEPSEEK_API_KEY:
     print("警告：環境變數 'DEEPSEEK_API_KEY' 未設定！AI 功能將無法使用。")
 
-
-# --- 【核心修改】大幅擴充 AI 指令解析與執行函數 ---
+# --- 指令解析與輔助函數 (與上一版相同) ---
 def flatten_dict(d, parent_key='', sep='.'):
-    """將巢狀的字典扁平化為用點分隔的單層字典"""
     items = []
     for k, v in d.items():
         new_key = parent_key + sep + k if parent_key else k
@@ -47,59 +45,40 @@ def flatten_dict(d, parent_key='', sep='.'):
 
 def parse_and_execute_ai_commands(ai_raw_text, game_state_ref):
     command_pattern = r'\[([A-Z_]+):\s*({.*?})\]'
-    
-    # 使用 re.sub 的回呼函式來處理和移除指令，確保不會遺漏
     def command_processor(match):
-        command_name = match.group(1)
-        json_str = match.group(2)
-        
+        command_name, json_str = match.groups()
         try:
             data = json.loads(json_str)
             print(f"解析到指令：{command_name}, 數據: {data}")
-
-            # --- 指令處理中心 ---
             if command_name == "UPDATE_PC_DATA":
-                # 使用新的扁平化工具來處理可能的巢狀JSON
                 update_data = {}
                 flattened_data = flatten_dict(data)
-                
                 for key, value in flattened_data.items():
-                    # 確保路徑以 pc_data 開頭，避免意外修改其他欄位
                     full_key_path = f"pc_data.{key}" if not key.startswith("pc_data") else key
-                    
                     if isinstance(value, (int, float)) and value != 0:
                         update_data[full_key_path] = firestore.Increment(value)
                     elif isinstance(value, str) and (value.startswith('+') or value.startswith('-')):
                          update_data[full_key_path] = firestore.Increment(int(value))
-                    else: # 直接賦值
+                    else:
                         update_data[full_key_path] = value
-                
                 if update_data:
                     game_state_ref.update(update_data)
                     print(f"已執行 UPDATE_PC_DATA: {update_data}")
-
             elif command_name == "CREATE_NPC":
-                npc_id = data.get("id")
-                if npc_id:
+                if (npc_id := data.get("id")):
                     game_state_ref.update({f'npcs.{npc_id}': data})
                     print(f"已執行 CREATE_NPC: 創建了 ID 為 {npc_id} 的 NPC。")
-
             elif command_name == "ADD_ITEM":
                 if "name" in data and "id" in data:
                     game_state_ref.update({'pc_data.inventory.carried': firestore.ArrayUnion([data])})
                     print(f"已執行 ADD_ITEM: 將物品 {data['name']} 加入背包。")
-            
         except Exception as e:
             print(f"執行指令 {command_name} 時發生錯誤: {e}")
-            
-        return "" # 回傳空字串，等同於從原文中刪除這個指令
-
-    # 使用 re.sub 和回呼函式來清理文本
-    cleaned_text = re.sub(command_pattern, command_processor, ai_raw_text).strip()
+        return ""
+    cleaned_text = re.sub(command_pattern, command_processor, ai_raw_text, flags=re.DOTALL).strip()
     return cleaned_text
 
 def parse_narrative_entities(narrative_text, current_state):
-    # ... (此函數與上一版完全相同)
     entity_pattern = r'<(npc|item|location)\s+id="([^"]+)">([^<]+)</\1>'
     parts = []
     last_end = 0
@@ -121,7 +100,7 @@ def parse_narrative_entities(narrative_text, current_state):
 
 @app.route('/')
 def index():
-    return "文字江湖遊戲後端 v2.6 已啟動！(指令修復與UI美化支持)"
+    return "文字江湖遊戲後端 v2.7 已啟動！(三選項模式)"
 
 # ... 其他路由 (register, login, get_entity_info) 與上一版完全相同，此處省略以保持版面簡潔 ...
 @app.route('/api/register', methods=['POST'])
@@ -209,16 +188,19 @@ def generate_turn():
             structured_narrative.append({"type": "text", "content": options_text})
             return jsonify({"narrative": structured_narrative, "state": current_state})
 
+        # --- 【核心修改】將選項數量固定為 3 個 ---
         prompt_text = f"""
         你是一位頂尖的武俠小說家兼遊戲世界主持人(GM)。
         【重要規則】
         1. 你的回應必須是金庸武俠風格。
         2. 如果劇情中【首次】出現關鍵NPC或物品，你【必須】使用 `[CREATE_NPC: {{...}}]` 或 `[ADD_ITEM: {{...}}]` 指令來創建數據。
         3. 當你創建了實體，劇情中的對應名詞【必須】用 `<類型 id="ID">名稱</類型>` 標籤包裹。
-        4. 如果只是玩家狀態數值變化，使用 `[UPDATE_PC_DATA: {{...}}]` 指令，你可以使用巢狀JSON，例如 `{{"core_status.hp.current": -10}}` 或 `{{"core_status":{{"hp":{{"current":-10}}}}}}`。
-        5. 劇情最後必須提供3-4個合理的行動選項，並用 `<options>` 標籤包裹。
+        4. 如果只是玩家狀態數值變化，使用 `[UPDATE_PC_DATA: {{...}}]` 指令。
+        5. 劇情最後【必須】提供剛好 3 個合理的行動選項，並用 `<options>` 標籤包裹。選項必須以 A. B. C. 作為開頭。
+
         [當前玩家與世界狀態]
         {json.dumps(current_state, indent=2, ensure_ascii=False)}
+
         [玩家的行動]
         > {player_action.get('text', '無')}
         """
@@ -231,15 +213,16 @@ def generate_turn():
         ai_raw_narrative = ai_response['choices'][0]['message']['content']
         
         narrative_after_commands = parse_and_execute_ai_commands(ai_raw_narrative, game_state_ref)
-        latest_state_doc = game_state_ref.get() # 重新獲取狀態以傳遞給實體解析器
+        latest_state_doc = game_state_ref.get()
         structured_narrative = parse_narrative_entities(narrative_after_commands, latest_state_doc.to_dict())
         
         plain_text_narrative = "".join([part.get("content", part.get("text", "")) for part in structured_narrative])
-        updated_log = current_state.get("narrative_log", [])
-        updated_log.append(f"> {player_action.get('text', '')}")
-        updated_log.append(plain_text_narrative)
         
-        game_state_ref.update({"narrative_log": firestore.ArrayRemove(current_state.get("narrative_log", [])), "narrative_log": firestore.ArrayUnion(updated_log)})
+        # 使用 FieldValue.array_union 來安全地添加日誌，避免重複
+        game_state_ref.update({
+            "narrative_log": firestore.ArrayUnion([f"> {player_action.get('text', '')}", plain_text_narrative])
+        })
+        
         latest_state = latest_state_doc.to_dict()
 
         return jsonify({"narrative": structured_narrative, "state": latest_state})

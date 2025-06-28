@@ -1,0 +1,143 @@
+:root {
+    --primary-bg: #1e1e1e;
+    --secondary-bg: #2c2c2c;
+    --border-color: #444;
+    --text-primary: #e0e0e0;
+    --accent-color: #87ceeb;
+    --error-color: #e57373;
+    --success-color: #81c784;
+}
+
+body {
+    font-family: 'Microsoft JhengHei', '微軟正黑體', sans-serif;
+    background-color: var(--secondary-bg);
+    color: var(--text-primary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+}
+
+.login-container {
+    background-color: var(--primary-bg);
+    padding: 30px 40px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+}
+
+h1 {
+    color: var(--accent-color);
+    margin-bottom: 30px;
+}
+
+h2 {
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    font-weight: 500;
+}
+
+.form-section {
+    margin-bottom: 20px;
+}
+
+.divider {
+    margin: 30px 0;
+    color: #666;
+    position: relative;
+}
+
+.divider::before, .divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 40%;
+    height: 1px;
+    background-color: var(--border-color);
+}
+
+.divider::before { left: 0; }
+.divider::after { right: 0; }
+
+input[type="text"], input[type="password"], input[type="number"] {
+    width: calc(100% - 20px);
+    padding: 10px;
+    margin-bottom: 15px;
+    background-color: var(--secondary-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 4px;
+    font-size: 1em;
+}
+
+.inline-inputs {
+    display: flex;
+    gap: 10px;
+}
+
+.inline-inputs input {
+    width: calc(50% - 25px); /* 減去 gap 和 padding */
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--accent-color);
+    color: #111;
+    border: none;
+    border-radius: 4px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-weight: bold;
+}
+
+button:hover {
+    background-color: #a0d8f5;
+}
+
+.btn-register {
+    margin-top: 20px;
+}
+
+.label {
+    text-align: left;
+    margin-bottom: 10px;
+    color: #bbb;
+}
+
+.button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.button-group .btn-choice {
+    background-color: #3a3a3a;
+    color: var(--text-primary);
+    font-weight: normal;
+}
+
+.button-group .btn-choice:hover {
+    border: 1px solid var(--accent-color);
+}
+
+.button-group .btn-choice.selected {
+    background-color: var(--accent-color);
+    color: #111;
+    border: 1px solid var(--accent-color);
+}
+
+.message-area {
+    margin-top: 20px;
+    min-height: 24px;
+    font-weight: bold;
+}
+
+.message-area.error { color: var(--error-color); }
+.message-area.success { color: var(--success-color); }

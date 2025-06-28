@@ -1,5 +1,5 @@
 // 檔案: assets/js/main.js
-// 版本: 2.12 - 正式渲染場景角色與地區資訊
+// 版本: 3.0 - 全新手機版面UI邏輯
 
 // ------------------- 設定 -------------------
 const API_BASE_URL = "https://md-server-main.onrender.com";
@@ -14,71 +14,31 @@ const actionOptionsContainer = document.getElementById('action-options');
 const promptQuestion = document.getElementById('prompt-question');
 const customActionForm = document.getElementById('custom-action-form');
 const customActionInput = document.getElementById('custom-action-input');
-const infoRound = document.getElementById('info-round');
-const infoTime = document.getElementById('info-time');
-const infoLocation = document.getElementById('info-location');
-const playerName = document.getElementById('player-name');
-const playerHp = document.getElementById('player-hp');
-const playerMp = document.getElementById('player-mp');
-const sceneCharactersList = document.getElementById('scene-characters-list');
-const areaInfoContent = document.getElementById('area-info-content'); // << 新增地區資訊面板的獲取
-const modal = document.getElementById('entity-modal');
+
+// 新的頂部按鈕
+const statusBtn = document.getElementById('status-btn');
+const inventoryBtn = document.getElementById('inventory-btn');
+const mapBtn = document.getElementById('map-btn');
+
+// 通用 Modal 元素
+const modal = document.getElementById('info-modal');
 const modalCloseBtn = document.getElementById('modal-close-btn');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
+
+// 用於儲存最新的遊戲狀態
+let latestGameState = {};
 
 // ------------------- 核心功能函數 -------------------
 
 function updateUI(data) {
     const { narrative, state } = data;
-
-    // 1. 更新所有側邊欄資訊
+    // 更新並儲存最新狀態
     if (state) {
-        const metadata = state.metadata || {};
-        const world = state.world || {};
-        const pc_data = state.pc_data || {};
-
-        // 基本資訊
-        infoRound.textContent = metadata.round ?? '---';
-        infoTime.textContent = metadata.game_timestamp ?? '---';
-        infoLocation.textContent = world.player_current_location_name ?? '未知之地';
-        
-        // 玩家狀態
-        playerName.textContent = pc_data.basic_info?.name ?? '---';
-        playerHp.textContent = `${pc_data.core_status?.hp?.current ?? '--'}/${pc_data.core_status?.hp?.max ?? '--'}`;
-        playerMp.textContent = `${pc_data.core_status?.mp?.current ?? '--'}/${pc_data.core_status?.mp?.max ?? '--'}`;
-
-        // 【核心修改】更新場景角色列表
-        sceneCharactersList.innerHTML = ''; // 清空
-        const allNpcs = state.npcs || {};
-        const playerLocationId = world.player_current_location_id; // 使用 ID 進行比對
-        const charactersInScene = Object.values(allNpcs).filter(npc => npc.current_location_id === playerLocationId);
-        
-        if (charactersInScene.length > 0) {
-            charactersInScene.forEach(npc => {
-                const li = document.createElement('li');
-                li.textContent = npc.name;
-                li.className = 'narrative-entity text-entity-npc';
-                li.dataset.entityId = npc.id;
-                li.dataset.entityType = 'npc';
-                sceneCharactersList.appendChild(li);
-            });
-        } else {
-            sceneCharactersList.innerHTML = '<li>此地似乎空無一人。</li>';
-        }
-
-        // 【核心修改】更新地區資訊
-        const allLocations = state.locations || {};
-        const currentLocationData = allLocations[playerLocationId];
-        
-        if (currentLocationData && currentLocationData.description) {
-            areaInfoContent.innerHTML = `<p>"${currentLocationData.description}"</p>`;
-        } else {
-            areaInfoContent.innerHTML = '<p>"你對此地一無所知，只覺得周遭的景物有些陌生。"</p>';
-        }
+        latestGameState = state;
     }
 
-    // 2. 處理並渲染主敘事區塊 (與上一版相同)
+    // 渲染敘事和選項 (與舊版類似，但不再更新側邊欄)
     const optionsRegex = /<options>([\s\S]*?)<\/options>/;
     let optionsContent = '';
     for (let i = narrative.length - 1; i >= 0; i--) {
@@ -99,7 +59,7 @@ function updateUI(data) {
                 p.appendChild(document.createTextNode(part.content));
             } else {
                 const span = document.createElement('span');
-                span.className = `narrative-entity ${part.color_class}`;
+                span.className = `narrative-entity ${part.color_class || ''}`;
                 span.textContent = part.text;
                 span.dataset.entityId = part.id;
                 span.dataset.entityType = part.type;
@@ -109,7 +69,6 @@ function updateUI(data) {
         narrativeLog.appendChild(p);
     }
     
-    // 3. 渲染行動選項 (與上一版相同)
     actionOptionsContainer.innerHTML = '';
     if (optionsContent) {
         promptQuestion.textContent = "接下來你打算？";
@@ -131,8 +90,63 @@ function updateUI(data) {
     narrativeLog.scrollTop = narrativeLog.scrollHeight;
 }
 
+// 【核心修改】顯示資訊彈窗的通用函數
+function showInfoModal(title, contentHtml) {
+    modalTitle.textContent = title;
+    modalBody.innerHTML = contentHtml;
+    modal.classList.remove('hidden');
+}
 
-// ... 其他函數 (handleActionSelect, handleEntityClick, handleCustomActionSubmit, initializeGame) 與上一版完全相同，此處省略以保持簡潔 ...
+// 處理點擊頂部「角色狀態」按鈕
+function handleStatusBtnClick() {
+    const pc_data = latestGameState.pc_data || {};
+    const basic_info = pc_data.basic_info || {};
+    const core_status = pc_data.core_status || {};
+
+    let contentHtml = '<div class="info-grid">';
+    contentHtml += `<strong>姓名:</strong><span>${basic_info.name || '---'}</span>`;
+    contentHtml += `<strong>性別:</strong><span>${basic_info.gender || '---'}</span>`;
+    contentHtml += `<strong>身高:</strong><span>${basic_info.height || '---'} cm</span>`;
+    contentHtml += `<strong>體重:</strong><span>${basic_info.weight || '---'} kg</span>`;
+    contentHtml += `<strong>氣血:</strong><span>${core_status.hp?.current}/${core_status.hp?.max}</span>`;
+    contentHtml += `<strong>內力:</strong><span>${core_status.mp?.current}/${core_status.mp?.max}</span>`;
+    contentHtml += `<strong>體力:</strong><span>${core_status.sta?.current}/${core_status.sta?.max}</span>`;
+    contentHtml += '</div>';
+    
+    showInfoModal("角色狀態", contentHtml);
+}
+
+// 處理點擊頂部「行囊」按鈕 (背包)
+function handleInventoryBtnClick() {
+    const inventory = latestGameState.pc_data?.inventory?.carried || [];
+    let contentHtml = '';
+
+    if (inventory.length > 0) {
+        inventory.forEach(item => {
+            contentHtml += `<div class="info-grid" style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color);">`;
+            contentHtml += `<strong>${item.name}</strong><span>${item.description || ''}</span>`;
+            contentHtml += `</div>`;
+        });
+    } else {
+        contentHtml = '<p>你的行囊空空如也。</p>';
+    }
+    
+    showInfoModal("行囊", contentHtml);
+}
+
+// 處理點擊頂部「地區資訊」按鈕
+function handleMapBtnClick() {
+    const world = latestGameState.world || {};
+    const locations = latestGameState.locations || {};
+    const currentLocation = locations[world.player_current_location_id] || {};
+
+    let contentHtml = `<p><strong>當前位置:</strong> ${world.player_current_location_name || '未知'}</p>`;
+    contentHtml += `<p class="description-text">"${currentLocation.description || '你對此地一無所知...'}"</p>`;
+    
+    showInfoModal("地區資訊", contentHtml);
+}
+
+
 async function handleActionSelect(event) {
     const button = event.currentTarget;
     const actionId = button.dataset.actionId;
@@ -220,10 +234,7 @@ function handleCustomActionSubmit(event) {
     if (!actionText) return;
     customActionInput.value = '';
     handleActionSelect({
-        currentTarget: {
-            dataset: { actionId: 'CUSTOM' },
-            textContent: `> ${actionText}`
-        }
+        currentTarget: { dataset: { actionId: 'CUSTOM' }, textContent: `> ${actionText}` }
     });
 }
 
@@ -254,29 +265,28 @@ async function initializeGame() {
         const turnResponse = await fetch(TURN_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                session_id: currentGameSessionId,
-                player_action: { id: 'START' }
-            }),
+            body: JSON.stringify({ session_id: currentGameSessionId, player_action: { id: 'START' } }),
         });
         const turnResult = await turnResponse.json();
         if (!turnResponse.ok) throw new Error(turnResult.error || "載入遊戲回合失敗");
-
         updateUI(turnResult);
-        
     } catch (error) {
         console.error("遊戲初始化失敗:", error);
         actionOptionsContainer.innerHTML = `<p style="color: red;">遊戲初始化失敗: ${error.message}</p><button onclick="location.reload()">重新載入</button>`;
     }
+    
+    // 綁定所有事件監聽
     customActionForm.addEventListener('submit', handleCustomActionSubmit);
-    sceneCharactersList.addEventListener('click', handleEntityClick);
     narrativeLog.addEventListener('click', handleEntityClick);
     modalCloseBtn.addEventListener('click', () => modal.classList.add('hidden'));
     modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.classList.add('hidden');
-        }
+        if (e.target === modal) modal.classList.add('hidden');
     });
+    
+    // 【核心新增】為頂部按鈕綁定事件
+    statusBtn.addEventListener('click', handleStatusBtnClick);
+    inventoryBtn.addEventListener('click', handleInventoryBtnClick);
+    mapBtn.addEventListener('click', handleMapBtnClick);
 }
 
 document.addEventListener('DOMContentLoaded', initializeGame);

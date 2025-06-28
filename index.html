@@ -8,6 +8,8 @@
 </head>
 <body>
     <div class="game-container">
+        <button id="logout-btn" class="btn-logout-corner">登</button>
+
         <div class="main-panel">
             <div class="top-bar">
                 <div class="top-status-bars">
@@ -50,12 +52,13 @@
             <div class="info-box" id="world-state-box">
                 <h3 class="info-title">世界狀態</h3>
                 <div class="info-content">
-                    <p><strong>遊戲時間:</strong> <span id="info-time">---</span> <span id="info-time-readable" class="text-secondary"></span></p>
+                    <div id="weather-line">
+                        <p><strong>天氣:</strong> <span id="weather-info-desktop">--</span></p>
+                        <p><strong>溫度:</strong> <span id="temperature-info">--</span></p>
+                        <p><strong>濕度:</strong> <span id="humidity-info">--</span></p>
+                    </div>
+                     <p><strong>遊戲時間:</strong> <span id="info-time">---</span> <span id="info-time-readable" class="text-secondary"></span></p>
                     <p><strong>目前地點:</strong> <span id="info-location">---</span></p>
-                    <hr class="info-divider">
-                    <p><strong>天氣:</strong> <span id="weather-info-desktop">--</span></p>
-                    <p><strong>溫度:</strong> <span id="temperature-info">--</span></p>
-                    <p><strong>濕度:</strong> <span id="humidity-info">--</span></p>
                 </div>
             </div>
             <div class="info-box" id="player-info-box">
@@ -65,15 +68,25 @@
                     <p><strong>氣血:</strong> <span id="player-hp">--/--</span></p>
                     <p><strong>內力:</strong> <span id="player-mp">--/--</span></p>
                 </div>
-                <button id="logout-btn" class="btn-logout">登出江湖</button>
+                <div id="player-panel-buttons" class="player-panel-buttons">
+                    <button id="contacts-btn">人脈</button>
+                    <button id="attributes-btn">數值</button>
+                    <button id="inventory-btn">行囊</button>
+                </div>
             </div>
             <div class="info-box" id="scene-characters-box">
-                <h3 class="info-title">場景角色</h3>
-                <ul id="scene-characters-list" class="info-list"></ul>
+                <h3 class="info-title collapsible-title">
+                    場景角色
+                    <span class="collapse-icon">▾</span>
+                </h3>
+                <ul id="scene-characters-list" class="info-list collapsible-content"></ul>
             </div>
             <div class="info-box" id="scene-info-box">
-                <h3 class="info-title">場景資訊</h3>
-                <div id="scene-info-content" class="info-content">
+                <h3 class="info-title collapsible-title">
+                    場景資訊
+                    <span class="collapse-icon">▾</span>
+                </h3>
+                <div id="scene-info-content" class="info-content collapsible-content">
                     <p><strong>描述:</strong> <span id="scene-desc">探索中...</span></p>
                     <hr class="info-divider">
                     <p><strong>規模:</strong> <span id="scene-size">未知</span></p>

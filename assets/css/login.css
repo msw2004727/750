@@ -17,6 +17,7 @@ body {
     align-items: center;
     min-height: 100vh;
     margin: 0;
+    overflow: hidden; /* 防止切換時出現滾動條 */
 }
 
 .login-container {
@@ -28,43 +29,56 @@ body {
     width: 100%;
     max-width: 500px;
     text-align: center;
-}
-
-h1 {
-    color: var(--accent-color);
-    margin-bottom: 30px;
-}
-
-h2 {
-    color: var(--text-primary);
-    margin-bottom: 20px;
-    font-weight: 500;
-}
-
-.form-section {
-    margin-bottom: 20px;
-}
-
-.divider {
-    margin: 30px 0;
-    color: #666;
     position: relative;
 }
 
-.divider::before, .divider::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    width: 40%;
-    height: 1px;
-    background-color: var(--border-color);
+/* 視圖切換邏輯 */
+.view {
+    transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
-.divider::before { left: 0; }
-.divider::after { right: 0; }
+.view.hidden {
+    opacity: 0;
+    transform: scale(0.95);
+    position: absolute;
+    top: 30px;
+    left: 40px;
+    right: 40px;
+    pointer-events: none; /* 隱藏時不可點擊 */
+}
 
-input[type="text"], input[type="password"], input[type="number"] {
-    width: calc(100% - 20px);
+h1 { color: var(--accent-color); margin-bottom: 30px; }
+h2 { color: var(--text-primary); margin-bottom: 20px; font-weight: 500; }
+
+/* 身份選擇按鈕 */
+.identity-choice {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.btn-identity {
+    padding: 15px;
+    font-size: 1.2em;
+    background-color: #3a3a3a;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-identity:hover {
+    background-color: var(--accent-color);
+    color: #111;
+    border-color: var(--accent-color);
+}
+
+/* 表單通用樣式 */
+form input[type="text"],
+form input[type="password"],
+form input[type="number"] {
+    width: calc(100% - 22px);
     padding: 10px;
     margin-bottom: 15px;
     background-color: var(--secondary-bg);
@@ -74,16 +88,10 @@ input[type="text"], input[type="password"], input[type="number"] {
     font-size: 1em;
 }
 
-.inline-inputs {
-    display: flex;
-    gap: 10px;
-}
+.inline-inputs { display: flex; gap: 10px; }
+.inline-inputs input { width: calc(50% - 27px); }
 
-.inline-inputs input {
-    width: calc(50% - 25px); /* 減去 gap 和 padding */
-}
-
-button {
+form button[type="submit"] {
     width: 100%;
     padding: 12px;
     background-color: var(--accent-color);
@@ -96,45 +104,54 @@ button {
     font-weight: bold;
 }
 
-button:hover {
-    background-color: #a0d8f5;
-}
+form button[type="submit"]:hover { background-color: #a0d8f5; }
 
-.btn-register {
-    margin-top: 20px;
-}
+.btn-register { margin-top: 20px; }
 
-.label {
-    text-align: left;
-    margin-bottom: 10px;
-    color: #bbb;
-}
+.label { text-align: left; margin: 15px 0 10px 0; color: #bbb; }
 
-.button-group {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 15px;
-}
+.button-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
 
 .button-group .btn-choice {
     background-color: #3a3a3a;
     color: var(--text-primary);
     font-weight: normal;
+    padding: 10px;
+    border: 1px solid transparent; /* 佔位 */
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
-.button-group .btn-choice:hover {
-    border: 1px solid var(--accent-color);
-}
+.button-group .btn-choice:hover { border-color: var(--accent-color); }
 
 .button-group .btn-choice.selected {
     background-color: var(--accent-color);
     color: #111;
-    border: 1px solid var(--accent-color);
+    border-color: var(--accent-color);
 }
 
-.message-area {
+/* 返回按鈕 */
+.btn-back {
     margin-top: 20px;
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 8px;
+    width: auto;
+    display: inline-block;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-back:hover {
+    background-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+/* 訊息提示區 */
+.message-area {
+    margin-top: 15px;
     min-height: 24px;
     font-weight: bold;
 }

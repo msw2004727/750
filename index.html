@@ -8,37 +8,35 @@
 </head>
 <body>
     <div class="game-container">
-        <div class="main-panel">
-            <div class="top-bar">
-                <div class="top-status-bars">
-                    <div class="status-bar-container">
-                        <div class="status-bar-label">氣血</div>
-                        <div class="status-bar-bg"><div id="hp-bar" class="status-bar hp"></div></div>
-                        <div id="hp-text" class="status-bar-text">--/--</div>
-                    </div>
-                    <div class="status-bar-container">
-                        <div class="status-bar-label">內力</div>
-                        <div class="status-bar-bg"><div id="mp-bar" class="status-bar mp"></div></div>
-                        <div id="mp-text" class="status-bar-text">--/--</div>
-                    </div>
+        <div class="top-bar">
+            <div class="top-status-bars">
+                <div class="status-bar-container">
+                    <div class="status-bar-label">氣血</div>
+                    <div class="status-bar-bg"><div id="hp-bar" class="status-bar hp"></div></div>
+                    <div id="hp-text" class="status-bar-text">--/--</div>
                 </div>
-                <div class="top-buttons">
-                    <button id="status-btn-mobile" class="top-bar-btn">狀態</button>
-                    <button id="inventory-btn-mobile" class="top-bar-btn">行囊</button>
-                    <button id="map-btn-mobile" class="top-bar-btn">地區</button>
+                <div class="status-bar-container">
+                    <div class="status-bar-label">內力</div>
+                    <div class="status-bar-bg"><div id="mp-bar" class="status-bar mp"></div></div>
+                    <div id="mp-text" class="status-bar-text">--/--</div>
                 </div>
             </div>
-
-            <div id="narrative-log" class="narrative-log"></div>
-
-            <div class="input-area">
-                <p id="prompt-question">接下來你打算？</p>
-                <div id="action-options"></div>
-                <form id="custom-action-form" class="custom-action-container">
-                    <input type="text" id="custom-action-input" placeholder="或在此輸入你想做的事...">
-                    <button type="submit">執行</button>
-                </form>
+            <div class="top-buttons">
+                <button id="status-btn-mobile" class="top-bar-btn">狀態</button>
+                <button id="inventory-btn-mobile" class="top-bar-btn">行囊</button>
+                <button id="map-btn-mobile" class="top-bar-btn">地區</button>
             </div>
+        </div>
+
+        <div id="narrative-log" class="narrative-log"></div>
+
+        <div class="input-area">
+            <p id="prompt-question">接下來你打算？</p>
+            <div id="action-options"></div>
+            <form id="custom-action-form" class="custom-action-container">
+                <input type="text" id="custom-action-input" placeholder="或在此輸入你想做的事...">
+                <button type="submit">執行</button>
+            </form>
         </div>
 
         <div class="sidebar-panel">
@@ -74,6 +72,15 @@
             <button id="modal-close-btn" class="modal-close">&times;</button>
             <h2 id="modal-title">---</h2>
             <div id="modal-body" class="modal-body-content"></div>
+        </div>
+    </div>
+    
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="loading-content">
+            <p id="loading-text">正在載入您的江湖傳說...</p>
+            <div class="loading-bar-container">
+                <div class="loading-bar"></div>
+            </div>
         </div>
     </div>
 

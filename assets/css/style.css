@@ -293,3 +293,17 @@ body {
 .custom-action-container button:hover {
     background-color: #a0d8f5;
 }
+/* 【本次新增】行動選項按鈕美化 */
+#action-options button {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: all 0.2s ease-out;
+    display: flex; /* 為了讓 emoji 和文字對齊 */
+    align-items: center;
+    gap: 0.7em; /* emoji 和文字的間距 */
+    padding-left: 20px;
+}
+
+#action-options button:hover {
+    transform: translateY(-2px); /* 向上浮動效果 */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}

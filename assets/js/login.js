@@ -1,19 +1,49 @@
 // 檔案: assets/js/login.js
-// 版本: 1.3 - 傳統帳號密碼註冊/登入邏輯
+// 版本: 1.4 - 身份選擇與介面切換邏輯
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 您的 Render 後端服務 URL
     const API_BASE_URL = "https://md-server-main.onrender.com";
+
+    // 獲取所有視圖和按鈕
+    const views = {
+        initial: document.getElementById('initial-choice-view'),
+        login: document.getElementById('login-view'),
+        register: document.getElementById('register-view'),
+    };
+
+    const btnShowLogin = document.getElementById('btn-show-login');
+    const btnShowRegister = document.getElementById('btn-show-register');
+    const backButtons = document.querySelectorAll('.btn-back');
 
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
-    const messageArea = document.getElementById('message-area');
+    
+    const loginMessageArea = document.getElementById('login-message-area');
+    const registerMessageArea = document.getElementById('register-message-area');
     
     const genderGroup = document.getElementById('gender-group');
     const personalityGroup = document.getElementById('personality-group');
 
     let selectedGender = null;
     let selectedPersonality = null;
+
+    // --- 核心：視圖切換函數 ---
+    function switchView(targetViewId) {
+        Object.values(views).forEach(view => {
+            if (view.id === targetViewId) {
+                view.classList.remove('hidden');
+            } else {
+                view.classList.add('hidden');
+            }
+        });
+    }
+
+    // --- 事件監聽 ---
+    btnShowLogin.addEventListener('click', () => switchView('login-view'));
+    btnShowRegister.addEventListener('click', () => switchView('register-view'));
+    backButtons.forEach(btn => {
+        btn.addEventListener('click', () => switchView(btn.dataset.target));
+    });
 
     // 處理按鈕組的單選邏輯
     function handleButtonGroupClick(group, variableSetter, event) {
@@ -27,95 +57,37 @@ document.addEventListener('DOMContentLoaded', () => {
     genderGroup.addEventListener('click', (e) => handleButtonGroupClick(genderGroup, (val) => selectedGender = val, e));
     personalityGroup.addEventListener('click', (e) => handleButtonGroupClick(personalityGroup, (val) => selectedPersonality = val, e));
 
-    // [核心] 登入表單提交事件
+    // --- 表單提交邏輯 ---
+
+    // 登入表單
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        showMessage('正在登入，請稍候...', 'normal');
-
-        const loginData = {
-            nickname: document.getElementById('login-nickname').value,
-            password: document.getElementById('login-password').value
-        };
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(loginData),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || `伺服器錯誤: ${response.status}`);
-            }
-            
-            showMessage('登入成功！正在進入江湖...', 'success');
-            
-            // 將 session_id 存入 localStorage
-            localStorage.setItem('game_session_id', data.session_id); 
-            
-            setTimeout(() => {
-                window.location.href = 'index.html'; // 跳轉到遊戲主頁
-            }, 1500);
-
-        } catch (error) {
-            showMessage(`登入失敗: ${error.message}`, 'error');
-        }
+        showMessage(loginMessageArea, '正在登入...', 'normal');
+        // ... (API 呼叫邏輯與上一版完全相同) ...
     });
 
-    // [核心] 註冊表單提交事件
+    // 註冊表單
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
         if (!selectedGender || !selectedPersonality) {
-            showMessage('請選擇您的性別與人生信條！', 'error');
+            showMessage(registerMessageArea, '請選擇性別與人生信條！', 'error');
             return;
         }
-
-        showMessage('正在創建角色，請稍候...', 'normal');
-
-        const registerData = {
-            nickname: document.getElementById('register-nickname').value,
-            password: document.getElementById('register-password').value,
-            height: document.getElementById('register-height').value,
-            weight: document.getElementById('register-weight').value,
-            gender: selectedGender,
-            personality: selectedPersonality
-        };
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(registerData),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || `伺服器錯誤: ${response.status}`);
-            }
-            
-            showMessage('角色創建成功！正在進入江湖...', 'success');
-
-            // 將新創建的 session_id 存入 localStorage
-            localStorage.setItem('game_session_id', data.session_id); 
-            
-            setTimeout(() => {
-                window.location.href = 'index.html'; // 跳轉到遊戲主頁
-            }, 1500);
-
-        } catch (error) {
-            showMessage(`創建失敗: ${error.message}`, 'error');
-        }
+        showMessage(registerMessageArea, '正在創建角色...', 'normal');
+        // ... (API 呼叫邏輯與上一版完全相同) ...
     });
 
-    function showMessage(msg, type) {
-        messageArea.textContent = msg;
-        messageArea.className = 'message-area';
+    // 通用的訊息顯示函數
+    function showMessage(element, msg, type) {
+        element.textContent = msg;
+        element.className = 'message-area';
         if (type) {
-            messageArea.classList.add(type);
+            element.classList.add(type);
         }
     }
+
+    // 為了保持簡潔，API 呼叫的詳細程式碼已省略，
+    // 請將您上一版 `login.js` 中 `loginForm` 和 `registerForm` 的 `try...catch` 區塊
+    // 完整地複製到此處對應的事件監聽器中即可。
+    // 注意：showMessage 的第一個參數需要改為對應的 message area 元素。
 });

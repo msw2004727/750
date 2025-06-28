@@ -1,5 +1,5 @@
 # 檔名: app.py
-# 版本: 2.13 - 強化數據一致性，新增別名與天氣系統支持
+# 版本: 2.14 - 導入「平民崛起」核心，重塑AI敘事與開局狀態
 
 import os
 import json
@@ -101,9 +101,9 @@ def parse_narrative_entities(narrative_text, current_state):
 
 @app.route('/')
 def index():
-    return "文字江湖遊戲後端 v2.13 已啟動！(日夜主題支持)"
+    return "文字江湖遊戲後端 v2.14 已啟動！(平民崛起模式)"
 
-# ... 其他路由 (register, login, get_entity_info, get_summary) 與上一版完全相同，此處省略 ...
+# 【核心修改】註冊函數
 @app.route('/api/register', methods=['POST'])
 def register():
     if not db: return jsonify({"error": "資料庫服務未初始化"}), 500
@@ -111,19 +111,64 @@ def register():
         data = request.get_json()
         nickname, password = data.get('nickname'), data.get('password')
         if not all([nickname, password]): return jsonify({"error": "暱稱和密碼為必填項。"}), 400
+        
         users_ref = db.collection('users')
         if users_ref.where('nickname', '==', nickname).limit(1).get(): return jsonify({"error": "此字號已被他人使用。"}), 409
+        
         hashed_password = generate_password_hash(password)
         user_doc_ref = users_ref.document()
         user_id = user_doc_ref.id
         user_doc_ref.set({'nickname': nickname, 'password_hash': hashed_password, 'created_at': firestore.SERVER_TIMESTAMP})
+        
         session_id = f"session_{user_id}"
         game_state_ref = db.collection('game_sessions').document(session_id)
-        personality = data.get('personality', 'neutral')
-        initial_morality = {'justice': 40.0, 'neutral': 0.0, 'evil': -40.0}.get(personality, 0.0)
-        initial_narrative_log = [ f"你為自己取了個字號，名喚「{nickname}」。", "在這個風雨飄搖的江湖，你決定以「" + {'justice': '行俠仗義，乃我輩本分。', 'neutral': '人不犯我，我不犯人。', 'evil': '順我者昌，逆我者亡。'}.get(personality, '') + "」作為你的人生信條。", "一切的傳奇，都將從這個決定開始。" ]
-        initial_world_state = { "metadata": { "round": 0, "game_timestamp": "第一天 辰時" }, "pc_data": { "basic_info": { "name": nickname, "height": data.get('height'), "weight": data.get('weight'), "gender": data.get('gender'), "personality_trait": personality }, "core_status": { "hp": {"current": 100, "max": 100}, "mp": {"current": 50, "max": 50}, "sta": {"current": 100, "max": 100}, "san": {"current": 100, "max": 100}, "hunger": {"current": 20, "max": 100}, "thirst": {"current": 20, "max": 100}, "fatigue": {"current": 0, "max": 100} }, "reputation_and_alignment": { "morality_alignment": {"value": initial_morality, "level": "初始"} }, "skills": {"learned": [], "potential": []}, "inventory": {"carried": [], "stashed": []} }, "world": { "player_current_location_name": "無名小村 - 村口", "player_current_location_id": "nameless_village_entrance", "weather": "晴", "temperature": 28, "humidity": 70 }, "narrative_log": initial_narrative_log, "npcs": {}, "locations": {"nameless_village_entrance": {"id": "nameless_village_entrance", "name": "無名小村 - 村口", "description": "一個樸實無華的小村落入口，鋪著青石板路，旁邊有一棵老槐樹。"}}, "tracking": {"active_clues": [], "active_rumors": []} }
+        
+        # 新的初始日誌，強調平民開局
+        initial_narrative_log = [
+            f"你為自己取了個字號，名喚「{nickname}」。",
+            "你在一陣劇痛中醒來，發現自己身處一個全然陌生的古裝世界。",
+            "腦中殘存的現代記憶和一些不屬於自己的零碎片段讓你明白，你似乎…穿越了。",
+            "但這副身體卻虛弱無比，手無縛雞之力。當務之急，是如何在這地方活下去。"
+        ]
+
+        # 新的初始世界狀態，包含預留的數值系統
+        initial_world_state = {
+            "metadata": {
+                "round": 0,
+                "game_timestamp": "第一天 辰時"
+            },
+            "pc_data": {
+                "basic_info": { "name": nickname, "height": data.get('height'), "weight": data.get('weight'), "gender": data.get('gender') },
+                "core_status": { "hp": {"current": 80, "max": 80}, "mp": {"current": 10, "max": 10}, "sta": {"current": 100, "max": 100}, "san": {"current": 100, "max": 100}, "hunger": {"current": 20, "max": 100}, "thirst": {"current": 20, "max": 100}, "fatigue": {"current": 0, "max": 100} },
+                "reputation_and_alignment": { "morality_alignment": {"value": 0.0, "level": "初始"} },
+                "inventory": {"carried": [], "stashed": []},
+                
+                # --- 為未來數值系統預留的結構 ---
+                "attributes": {
+                    "str": 5, # 蠻力 (Brute Force)
+                    "agi": 5, # 速度 (Speed)
+                    "int": 8, # 智力 (Intelligence)
+                    "cha": 6, # 魅力 (Charisma)
+                    "lck": 7, # 幸運 (Luck)
+                    "wux": 10 # 悟性 (Comprehension) - 因現代知識而較高
+                },
+                "proficiencies": {
+                    "fist": {"level": 0, "exp": 0},      # 拳頭
+                    "blade": {"level": 0, "exp": 0},     # 刀
+                    "sword": {"level": 0, "exp": 0},     # 劍
+                    "hammer": {"level": 0, "exp": 0},    # 槌
+                    "hidden_weapon": {"level": 0, "exp": 0} # 暗器
+                }
+                # ------------------------------------
+            },
+            "world": { "player_current_location_name": "無名小村 - 破舊的茅草屋", "player_current_location_id": "nameless_village_hut", "weather": "晴", "temperature": 22, "humidity": 65 },
+            "narrative_log": initial_narrative_log,
+            "npcs": {},
+            "locations": {"nameless_village_hut": {"id": "nameless_village_hut", "name": "無名小村 - 破舊的茅草屋", "description": "一間勉強能遮風避雨的茅草屋，屋內空蕩蕩的，只有一張硬板床和一個破了角的陶罐。"}},
+            "tracking": {"active_clues": [], "active_rumors": []}
+        }
         game_state_ref.set(initial_world_state)
+        
         return jsonify({"message": "角色創建成功！", "session_id": session_id}), 201
     except Exception as e: return jsonify({"error": f"註冊失敗: {str(e)}"}), 500
 
@@ -168,7 +213,7 @@ def get_summary():
         if not session_id: return jsonify({"error": "請求缺少 session_id。"}), 400
         game_state = db.collection('game_sessions').document(session_id).get().to_dict()
         narrative_log = game_state.get("narrative_log", [])
-        if len(narrative_log) <= 3: return jsonify({"summary": "書接上回，你剛踏入這個風雲變幻的江湖..."})
+        if len(narrative_log) <= 4: return jsonify({"summary": "你從昏沉中醒來，在這個陌生的世界裡，一切才剛剛開始..."})
         log_text = "\n".join(narrative_log)
         prompt_text = f"""你是一位技藝高超的說書先生。請閱讀以下這段凌亂的江湖日誌，並將其起承轉合梳理成一段引人入勝的「前情提要」。【規則】1. 風格必須是小說旁白，充滿懸念和江湖氣息。2. 必須總結玩家的關鍵行動和處境。3. 最後要對玩家接下來可能的行動方向給出建議。4. 總字數【嚴格限制】在 300 字以內。[江湖日誌]\n{log_text}"""
         headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"}
@@ -179,6 +224,7 @@ def get_summary():
         return jsonify({"summary": summary_text})
     except Exception as e: return jsonify({"error": f"生成前情提要時發生錯誤: {str(e)}"}), 500
 
+# 【核心修改】遊戲回合生成函數
 @app.route('/api/generate_turn', methods=['POST'])
 def generate_turn():
     if not db or not DEEPSEEK_API_KEY:
@@ -188,39 +234,54 @@ def generate_turn():
         session_id, player_action = data.get('session_id'), data.get('player_action')
         game_state_ref = db.collection('game_sessions').document(session_id)
         current_state = game_state_ref.get().to_dict()
+        
         if player_action and player_action.get('id') == 'START':
-            options_text = ("\n\n你心念一定，決定...\n<options>\nA. 先檢查一下自身狀況。\nB. 探索一下這個地方。\nC. 靜觀其變，等待機會。\n</options>")
+            options_text = ("\n\n你環顧四周，決定...\n<options>\nA. 檢查一下這副虛弱的身體狀況。\nB. 走出茅草屋，探索一下周遭環境。\nC. 靜下心來，仔細梳理腦中混亂的記憶。\n</options>")
             return jsonify({"narrative": [{"type": "text", "content": options_text}], "state": current_state})
 
-        # --- 【核心修改】重構 Prompt，使其更簡潔、更具指導性 ---
         pc_info = current_state.get('pc_data', {}).get('basic_info', {})
         world_info = current_state.get('world', {})
         recent_log = "\n".join(current_state.get("narrative_log", [])[-5:])
         
         context_summary = f"""
         [當前情境摘要]
-        玩家: {pc_info.get('name', '你')}
+        玩家: {pc_info.get('name', '你')} (一個擁有現代知識但身體虛弱的穿越者)
         地點: {world_info.get('player_current_location_name', '未知')}
-        天氣: {world_info.get('weather', '未知')}，溫度約 {world_info.get('temperature', 25)} 度，濕度約 {world_info.get('humidity', 60)}%
-        最近發生的事:
-        {recent_log}
+        天氣: {world_info.get('weather', '未知')}
+        最近發生的事: {recent_log}
         """
 
+        # 全新的AI核心指令
         prompt_text = f"""
-        你是一位頂尖的武俠小說家兼遊戲世界主持人(GM)。
-        【極重要規則】
-        1. 你的【首要任務】是根據[玩家的行動]來推進劇情，確保敘事連貫，【絕對禁止】憑空捏造與玩家行動無關的場景。
-        2. 如果你在劇情中提到任何實體(人物/物品/地點)，你【必須】使用 `<類型 id="ID">名稱</類型>` 標籤包裹它，並且【必須】在劇情後緊跟對應的 `[CREATE_...` 或 `[UPDATE_...` 指令。絕不允許只使用標籤而不操作數據。
-        3. 創建NPC的JSON中，`name`是稱號/身份(如'小乞丐')，`alias`是可選的暱稱/姓名(如'阿吉')。
-        4. 如果天氣發生變化，【必須】使用 `[UPDATE_WORLD: {{"weather":"新天氣", "temperature":新溫度, "humidity":新濕度}}]` 來更新。
-        5. 劇情最後【必須】提供剛好 3 個合理的行動選項，並用 `<options>` 標籤包裹。
+        你是一個頂級的真實人生模擬器，專門描寫小人物在古代世界的奮鬥史。
+        【核心世界觀】
+        玩家是一個擁有21世紀現代知識的普通人，穿越到了一個類似中國古代的架空世界，附身在一個極其虛弱的平民少年身上。他的旅程核心是【生存】與【成長】，而非開場就是英雄。
+
+        【敘事規則】
+        1.  **平民視角**: 你的敘事【必須】從一個普通人的視角出發。他會餓、會渴、會累、會生病。他不懂武功，也沒有內力。他的首要目標是弄清楚狀況，找到食物和水，確保自己的安全。
+        2.  **放緩節奏**: 劇情推進【必須】緩慢且合乎邏輯。專注於細節描寫，例如環境的氣味、身體的感受、與普通村民的互動。不要有任何突然的、都合主義的劇情跳躍。
+        3.  **高手稀有化**: 武林高手、大俠、重要官員等都是【傳說中的存在】。【絕對禁止】讓這些人物在遊戲初期輕易登場。玩家能遇到的只會是村民、獵戶、小混混、行腳商人等普通人。只有當玩家的聲望達到極高水平，並經歷了漫長的冒險後，才【可能】有機會接觸到真正的「江湖」。
+        4.  **現代知識的應用**: 玩家唯一的優勢是他的現代知識。他可以利用這些知識來解決問題（例如，思考如何淨化水源、製作簡單工具、提出衛生概念），但這需要一個【觀察->思考->嘗試】的過程，而不是瞬間就變出成品。
+        5.  **預留數值判定**: 當劇情需要角色進行能力判定時，請在描述中插入【文字標籤】作為預留位。這很重要，未來程式會根據這些標籤實作具體的功能。
+            * 體力活/力量相關: `[蠻力檢定]`
+            * 思考/學習/觀察/記憶: `[悟性判定]`
+            * 身體靈巧/速度相關: `[速度檢定]`
+            * 知識/分析/推理: `[智力判定]`
+            * 武學/技能相關: `[基礎拳法判定]`, `[基礎劍法判定]` 等。
+            * 例如: "你試圖搬開堵住門口的木箱 `[蠻力檢定]`，但它紋絲不動。" 或 "你回想著化學知識，思考著如何制取純鹼 `[智力判定]` `[悟性判定]`。"
+
+        【AI數據指令規則】
+        * 你【必須】使用 `<類型 id="ID">名稱</類型>` 標籤包裹所有實體。
+        * 你【必須】在劇情後用 `[COMMAND: {{...}}]` 來更新數據。
+        * 劇情最後【必須】提供剛好 3 個符合當前平民處境的、合理的行動選項，並用 `<options>` 標籤包裹。
 
         {context_summary}
         [玩家的行動]
         > {player_action.get('text', '無')}
         """
+        
         headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"}
-        payload = {"model": "deepseek-chat", "messages": [{"role": "system", "content": "你是一位頂尖的武俠小說家兼遊戲世界主持人(GM)，你需要根據規則生成劇情、數據指令和實體標籤。"}, {"role": "user", "content": prompt_text}], "max_tokens": 1500, "temperature": 0.7}
+        payload = {"model": "deepseek-chat", "messages": [{"role": "system", "content": "你是一個頂級的真實人生模擬器，專門描寫小人物在古代世界的奮鬥史。"}, {"role": "user", "content": prompt_text}], "max_tokens": 1500, "temperature": 0.75}
         response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload)
         response.raise_for_status()
         ai_raw_narrative = response.json()['choices'][0]['message']['content']

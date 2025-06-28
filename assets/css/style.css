@@ -1,397 +1,202 @@
 /*
- * 版本: 4.0
- * 描述: 全新響應式佈局與色彩系統
- * 設計理念: 沉浸感、易讀性、現代武俠風格
+ * 版本: 4.1
+ * 描述: 新增半透明背景、讀取條動畫、登出按鈕及場景資訊樣式
  */
 
 /* --- 根變數與色彩系統 --- */
 :root {
     /* 預設為深色主題 */
-    --bg-main: #1a1c20;          /* 主背景色 (更深邃的黑) */
-    --bg-panel: #25282e;         /* 面板背景色 (如側邊欄、輸入區) */
-    --bg-inset: #1f2125;         /* 嵌入背景色 (如狀態條背景) */
-    --border-color: #3a3f4b;     /* 邊框與分隔線顏色 */
-    --text-primary: #e0e2e8;     /* 主要文字顏色 */
-    --text-secondary: #9fa6b9;   /* 次要文字/提示文字顏色 */
-    --text-title: #ffffff;       /* 標題文字顏色 */
-    --accent-color: #4a90e2;      /* 強調色 (按鈕、連結) */
-    --accent-color-hover: #5aa1f2;/* 強調色懸停 */
-    --hp-color: #e57373;         /* 血量顏色 */
-    --mp-color: #64b5f6;         /* 內力顏色 */
-    --shadow-color: rgba(0, 0, 0, 0.3); /* 陰影顏色 */
+    --bg-main: #1a1c20;
+    --bg-panel: #25282e;
+    --bg-inset: #1f2125;
+    --bg-overlay: rgba(16, 18, 21, 0.7); /* 半透明底色 */
+    --border-color: #3a3f4b;
+    --text-primary: #e0e2e8;
+    --text-secondary: #9fa6b9;
+    --text-title: #ffffff;
+    --accent-color: #4a90e2;
+    --accent-color-hover: #5aa1f2;
+    --danger-color: #e57373; /* 危險/登出按鈕顏色 */
+    --danger-color-hover: #ef5350;
+    --hp-color: #e57373;
+    --mp-color: #64b5f6;
+    --shadow-color: rgba(0, 0, 0, 0.3);
     --scroll-thumb-color: #4a4f5a;
     --scroll-track-color: var(--bg-main);
 }
 
 body.theme-light {
     /* 亮色主題 */
-    --bg-main: #f0f2f5;           /* 主背景 (柔和的灰) */
-    --bg-panel: #ffffff;          /* 面板背景 (純白) */
-    --bg-inset: #e9ecef;          /* 嵌入背景 */
-    --border-color: #d8dee4;      /* 邊框顏色 */
-    --text-primary: #24292e;      /* 主要文字 */
-    --text-secondary: #586069;    /* 次要文字 */
-    --text-title: #000000;        /* 標題文字 */
-    --shadow-color: rgba(0, 0, 0, 0.08); /* 陰影顏色 */
+    --bg-main: #f0f2f5;
+    --bg-panel: #ffffff;
+    --bg-inset: #e9ecef;
+    --bg-overlay: rgba(255, 255, 255, 0.7); /* 半透明底色 */
+    --border-color: #d8dee4;
+    --text-primary: #24292e;
+    --text-secondary: #586069;
+    --text-title: #000000;
+    --shadow-color: rgba(0, 0, 0, 0.08);
     --scroll-thumb-color: #c8cdd2;
     --scroll-track-color: var(--bg-main);
 }
 
-/* --- 基礎與佈局 --- */
+/* --- 基礎與佈局 (無變動) --- */
 html, body {
-    height: 100%;
-    margin: 0;
-    font-family: 'Microsoft JhengHei', 'PingFang TC', 'Heiti TC', sans-serif;
-    font-size: 16px;
-    background-color: var(--bg-main);
-    color: var(--text-primary);
-    transition: background-color 0.3s, color 0.3s;
-    overflow: hidden;
+    height: 100%; margin: 0; font-family: 'Microsoft JhengHei', 'PingFang TC', 'Heiti TC', sans-serif;
+    font-size: 16px; background-color: var(--bg-main); color: var(--text-primary);
+    transition: background-color 0.3s, color 0.3s; overflow: hidden;
 }
+.game-container { display: flex; height: 100%; width: 100%; box-sizing: border-box; }
+.main-panel { display: flex; flex-direction: column; flex-grow: 1; height: 100%; background-color: var(--bg-panel); }
 
-.game-container {
-    display: flex;
-    height: 100%;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.main-panel {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-    height: 100%;
-    background-color: var(--bg-panel);
-}
-
-.sidebar-panel {
-    display: none; /* 預設隱藏，由媒體查詢控制 */
-}
-
-/* --- 寬版佈局 (寬度 > 992px) --- */
+/* --- 寬版佈局 (info-box 修改) --- */
 @media (min-width: 993px) {
-    .game-container {
-        max-width: 1440px;
-        margin: 0 auto;
-        padding: 24px;
-        gap: 24px;
-        height: calc(100% - 48px);
-    }
-    .main-panel {
-        flex-basis: 65%;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 8px 24px var(--shadow-color);
-        border: 1px solid var(--border-color);
-    }
-    .top-bar { display: none; } /* 寬版不顯示頂部欄 */
-    .sidebar-panel {
-        display: flex;
-        flex-direction: column;
-        flex-basis: 35%;
-        gap: 24px;
-    }
+    .game-container { max-width: 1440px; margin: 0 auto; padding: 24px; gap: 24px; height: calc(100% - 48px); }
+    .main-panel { flex-basis: 65%; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px var(--shadow-color); border: 1px solid var(--border-color); }
+    .top-bar { display: none; }
+    .sidebar-panel { display: flex; flex-direction: column; flex-basis: 35%; gap: 24px; }
+    
+    /* 【修改】Info-box 加入半透明效果 */
     .info-box {
-        background-color: var(--bg-panel);
+        background-color: var(--bg-overlay); /* 使用半透明底色 */
         border: 1px solid var(--border-color);
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 4px 12px var(--shadow-color);
+        backdrop-filter: blur(10px); /* 毛玻璃效果 (可選) */
+        -webkit-backdrop-filter: blur(10px);
     }
-    .info-title {
-        font-size: 1.25em;
-        font-weight: 600;
-        color: var(--text-title);
-        margin: 0 0 16px 0;
-        padding-bottom: 12px;
-        border-bottom: 1px solid var(--border-color);
-    }
-    .info-content p {
-        margin: 12px 0;
-        color: var(--text-secondary);
-        font-size: 0.95em;
-        line-height: 1.6;
-    }
-    .info-content p strong {
-        color: var(--text-primary);
-        font-weight: 600;
-        margin-right: 8px;
-    }
+
+    .info-title { font-size: 1.25em; font-weight: 600; color: var(--text-title); margin: 0 0 16px 0; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
+    .info-content p { margin: 12px 0; color: var(--text-secondary); font-size: 0.95em; line-height: 1.6; }
+    .info-content p strong { color: var(--text-primary); font-weight: 600; margin-right: 8px; }
     .info-content span { color: var(--text-primary); }
-    .info-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-    .info-list li {
-        padding: 10px 4px;
-        border-bottom: 1px solid var(--border-color);
-        transition: background-color 0.2s;
-        cursor: pointer;
-    }
+    .info-content hr.info-divider { border: 0; height: 1px; background-color: var(--border-color); margin: 16px 0; } /* 【新增】分隔線樣式 */
+    .info-list { list-style: none; padding: 0; margin: 0; }
+    .info-list li { padding: 10px 4px; border-bottom: 1px solid var(--border-color); transition: background-color 0.2s; cursor: pointer; }
     .info-list li:last-child { border-bottom: none; }
-    .info-list li:hover { background-color: var(--bg-inset); }
+    .info-list li:hover { background-color: rgba(255, 255, 255, 0.05); }
+    body.theme-light .info-list li:hover { background-color: rgba(0, 0, 0, 0.03); }
 }
 
-/* --- 窄版佈局 (寬度 <= 992px) --- */
+/* --- 窄版佈局 (無變動) --- */
 @media (max-width: 992px) {
     .main-panel { width: 100%; }
     .sidebar-panel { display: none; }
-    .top-bar {
-        padding: 12px 16px;
-        background-color: var(--bg-panel);
-        border-bottom: 1px solid var(--border-color);
-        box-shadow: 0 2px 8px var(--shadow-color);
-    }
-    .top-status-bars {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        margin-bottom: 12px;
-    }
+    .top-bar { padding: 12px 16px; background-color: var(--bg-panel); border-bottom: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow-color); }
+    .top-status-bars { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
     .status-bar-container { display: flex; align-items: center; gap: 8px; }
-    .status-bar-label {
-        flex-shrink: 0;
-        width: 40px;
-        font-size: 0.9em;
-        color: var(--text-secondary);
-        text-align: right;
-    }
-    .status-bar-bg {
-        flex-grow: 1;
-        background-color: var(--bg-inset);
-        border-radius: 6px;
-        height: 20px;
-        padding: 3px;
-        box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
-    }
+    .status-bar-label { flex-shrink: 0; width: 40px; font-size: 0.9em; color: var(--text-secondary); text-align: right; }
+    .status-bar-bg { flex-grow: 1; background-color: var(--bg-inset); border-radius: 6px; height: 20px; padding: 3px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2); }
     .status-bar { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
     .status-bar.hp { background: linear-gradient(to right, var(--hp-color), #d32f2f); }
     .status-bar.mp { background: linear-gradient(to right, var(--mp-color), #1976d2); }
     .status-bar-text { font-size: 0.85em; color: var(--text-primary); min-width: 70px; text-align: center;}
-    .top-env-info {
-        display: flex;
-        justify-content: center;
-        gap: 15px;
-        color: var(--text-secondary);
-        font-size: 0.95em;
-        padding: 8px 0 16px 0;
-    }
-    .top-buttons {
-        display: flex;
-        justify-content: space-around;
-        gap: 10px;
-    }
-    .top-bar-btn {
-        flex-grow: 1;
-        padding: 10px 15px;
-        background-color: var(--bg-inset);
-        border: 1px solid var(--border-color);
-        color: var(--text-primary);
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 0.95em;
-        transition: background-color 0.2s, border-color 0.2s;
-    }
-    .top-bar-btn:hover {
-        background-color: var(--accent-color);
-        border-color: var(--accent-color);
-        color: white;
-    }
+    .top-env-info { display: flex; justify-content: center; gap: 15px; color: var(--text-secondary); font-size: 0.95em; padding: 8px 0 16px 0; }
+    .top-buttons { display: flex; justify-content: space-around; gap: 10px; }
+    .top-bar-btn { flex-grow: 1; padding: 10px 15px; background-color: var(--bg-inset); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; cursor: pointer; font-size: 0.95em; transition: background-color 0.2s, border-color 0.2s; }
+    .top-bar-btn:hover { background-color: var(--accent-color); border-color: var(--accent-color); color: white; }
 }
 
-/* --- 敘事與輸入區 --- */
-.narrative-log {
-    flex-grow: 1;
-    padding: 24px;
-    overflow-y: auto;
-    line-height: 1.8;
-    font-size: 1.05em;
+/* --- 【新增】登出按鈕樣式 --- */
+.btn-logout {
+    width: 100%;
+    margin-top: 16px;
+    padding: 10px;
+    font-size: 0.95em;
+    font-weight: 600;
+    color: white;
+    background-color: var(--danger-color);
+    border: 1px solid var(--danger-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.btn-logout:hover {
+    background-color: var(--danger-color-hover);
+    border-color: var(--danger-color-hover);
+    box-shadow: 0 0 10px rgba(229, 115, 115, 0.5);
 }
 
-/* 美化滾動條 */
+/* --- 敘事與輸入區 (無變動) --- */
+.narrative-log { flex-grow: 1; padding: 24px; overflow-y: auto; line-height: 1.8; font-size: 1.05em; }
 .narrative-log::-webkit-scrollbar { width: 8px; }
 .narrative-log::-webkit-scrollbar-track { background: var(--scroll-track-color); }
 .narrative-log::-webkit-scrollbar-thumb { background: var(--scroll-thumb-color); border-radius: 4px; }
 .narrative-log::-webkit-scrollbar-thumb:hover { background: #555; }
+.input-area { flex-shrink: 0; padding: 20px; border-top: 1px solid var(--border-color); background-color: var(--bg-panel); box-shadow: 0 -4px 12px var(--shadow-color); }
+#prompt-question { font-size: 1.1em; font-weight: 600; color: var(--text-title); margin: 0 0 16px 0; }
+#action-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
+#action-options button { padding: 12px 16px; font-size: 1em; background-color: var(--bg-main); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; text-align: left; cursor: pointer; transition: all 0.2s ease; }
+#action-options button:hover { background-color: var(--accent-color); border-color: var(--accent-color); color: white; transform: translateY(-2px); }
+.custom-action-container { display: flex; gap: 10px; }
+#custom-action-input { flex-grow: 1; padding: 10px 14px; font-size: 1em; background-color: var(--bg-inset); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 8px; transition: border-color 0.2s, box-shadow 0.2s; }
+#custom-action-input:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.3); }
+.custom-action-container button { padding: 10px 20px; font-size: 1em; font-weight: 600; background-color: var(--accent-color); color: white; border: none; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; }
+.custom-action-container button:hover { background-color: var(--accent-color-hover); }
 
+/* --- 敘事文字實體樣式 (無變動) --- */
+.narrative-entity { font-weight: bold; cursor: pointer; padding: 2px 4px; border-radius: 4px; transition: background-color 0.2s; }
+.text-entity-npc { color: #fdd835; } .text-entity-item { color: #4fc3f7; } .text-entity-location { color: #9ccc65; }
+.narrative-entity:hover { background-color: rgba(255, 255, 255, 0.1); }
+body.theme-light .narrative-entity:hover { background-color: rgba(0, 0, 0, 0.05); }
 
-.input-area {
-    flex-shrink: 0;
-    padding: 20px;
-    border-top: 1px solid var(--border-color);
-    background-color: var(--bg-panel);
-    box-shadow: 0 -4px 12px var(--shadow-color);
-}
+/* --- Modal 彈出視窗 (無變動) --- */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s; z-index: 1000; }
+.modal-overlay:not(.hidden) { opacity: 1; visibility: visible; }
+body.theme-light .modal-overlay { background-color: rgba(36, 41, 46, 0.6); }
+.modal-content { background-color: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; padding: 24px; position: relative; transform: scale(0.95); transition: transform 0.3s; }
+.modal-overlay:not(.hidden) .modal-content { transform: scale(1); }
+.modal-close { position: absolute; top: 12px; right: 16px; font-size: 2em; font-weight: 200; color: var(--text-secondary); background: none; border: none; cursor: pointer; transition: color 0.2s; }
+.modal-close:hover { color: var(--text-primary); }
+#modal-title { font-size: 1.8em; font-weight: 600; color: var(--accent-color); margin: 0 0 20px 0; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); }
+.modal-body-content .info-grid { display: grid; grid-template-columns: 100px 1fr; gap: 12px 16px; margin-bottom: 20px; }
+.modal-body-content .info-grid strong { font-weight: 600; color: var(--text-secondary); text-align: right; }
+.modal-body-content .description-text { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color); font-style: italic; color: var(--text-secondary); line-height: 1.7; }
 
-#prompt-question {
-    font-size: 1.1em;
-    font-weight: 600;
-    color: var(--text-title);
-    margin: 0 0 16px 0;
-}
-
-#action-options {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px;
-    margin-bottom: 16px;
-}
-
-#action-options button {
-    padding: 12px 16px;
-    font-size: 1em;
-    background-color: var(--bg-main);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    text-align: left;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-#action-options button:hover {
-    background-color: var(--accent-color);
-    border-color: var(--accent-color);
-    color: white;
-    transform: translateY(-2px);
-}
-
-.custom-action-container {
-    display: flex;
-    gap: 10px;
-}
-
-#custom-action-input {
-    flex-grow: 1;
-    padding: 10px 14px;
-    font-size: 1em;
-    background-color: var(--bg-inset);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    border-radius: 8px;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-#custom-action-input:focus {
-    outline: none;
-    border-color: var(--accent-color);
-    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.3);
-}
-
-.custom-action-container button {
-    padding: 10px 20px;
-    font-size: 1em;
-    font-weight: 600;
-    background-color: var(--accent-color);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.custom-action-container button:hover {
-    background-color: var(--accent-color-hover);
-}
-
-
-/* --- 敘事文字實體樣式 --- */
-.narrative-entity {
-    font-weight: bold;
-    cursor: pointer;
-    padding: 2px 4px;
-    border-radius: 4px;
-    transition: background-color 0.2s;
-}
-.text-entity-npc { color: #fdd835; }
-.text-entity-item { color: #4fc3f7; }
-.text-entity-location { color: #9ccc65; }
-
-.narrative-entity:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-body.theme-light .narrative-entity:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-}
-
-
-/* --- Modal 彈出視窗 --- */
-.modal-overlay {
+/* --- 【新增】讀取遮罩與進度條樣式 --- */
+.loading-overlay {
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.8);
     display: flex;
     justify-content: center;
     align-items: center;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s, visibility 0.3s;
-    z-index: 1000;
+    z-index: 2000;
 }
-.modal-overlay:not(.hidden) {
+.loading-overlay:not(.hidden) {
     opacity: 1;
     visibility: visible;
 }
-body.theme-light .modal-overlay { background-color: rgba(36, 41, 46, 0.6); }
-
-.modal-content {
-    background-color: var(--bg-panel);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    width: 90%;
-    max-width: 600px;
-    max-height: 80vh;
-    overflow-y: auto;
-    padding: 24px;
-    position: relative;
-    transform: scale(0.95);
-    transition: transform 0.3s;
+.loading-content {
+    text-align: center;
+    color: white;
 }
-.modal-overlay:not(.hidden) .modal-content {
-    transform: scale(1);
-}
-
-.modal-close {
-    position: absolute;
-    top: 12px;
-    right: 16px;
-    font-size: 2em;
-    font-weight: 200;
-    color: var(--text-secondary);
-    background: none;
-    border: none;
-    cursor: pointer;
-    transition: color 0.2s;
-}
-.modal-close:hover { color: var(--text-primary); }
-
-#modal-title {
-    font-size: 1.8em;
-    font-weight: 600;
-    color: var(--accent-color);
-    margin: 0 0 20px 0;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border-color);
-}
-.modal-body-content .info-grid {
-    display: grid;
-    grid-template-columns: 100px 1fr;
-    gap: 12px 16px;
+#loading-text {
+    font-size: 1.2em;
     margin-bottom: 20px;
 }
-.modal-body-content .info-grid strong {
-    font-weight: 600;
-    color: var(--text-secondary);
-    text-align: right;
+.loading-bar-container {
+    width: 250px;
+    height: 8px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
 }
-.modal-body-content .description-text {
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border-color);
-    font-style: italic;
-    color: var(--text-secondary);
-    line-height: 1.7;
+.loading-bar {
+    width: 0%;
+    height: 100%;
+    background-color: var(--accent-color);
+    border-radius: 4px;
+    animation: loading-animation 2s infinite linear;
+}
+
+@keyframes loading-animation {
+    0% { width: 0%; }
+    50% { width: 100%; }
+    100% { width: 0%; transform: translateX(250px); }
 }

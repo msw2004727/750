@@ -1,14 +1,13 @@
-// main.js - 遊戲主邏輯入口
+// main.js - 遊戲主邏輯與 UI 控制器
 
-// ------------------- 模組導入 (未來) -------------------
-// 為了簡化初始設置，這裡先將功能寫在一起，未來可拆分。
-// import { updatePlayerPanel } from './ui/player-panel.js';
-// import { updateScenePanel } from './ui/scene-panel.js';
-// import { fetchInitialGameState, sendAction } from './services/game-state-service.js';
+// ------------------- 設定 -------------------
+// 您的 Render 後端服務 URL
+const BACKEND_URL = "https://md-server-main.onrender.com/api/generate_turn";
 
 // ------------------- DOM 元素獲取 -------------------
 const narrativeLog = document.getElementById('narrative-log');
 const actionOptionsContainer = document.getElementById('action-options');
+const promptQuestion = document.getElementById('prompt-question');
 
 // 玩家資料面板元素
 const playerNameEl = document.getElementById('player-name');
@@ -18,166 +17,223 @@ const playerMpEl = document.getElementById('player-mp');
 const playerCoordXEl = document.getElementById('player-coord-x');
 const playerCoordYEl = document.getElementById('player-coord-y');
 
-// 其他面板元素
+// 場景角色面板元素
 const sceneCharactersList = document.getElementById('scene-characters-list');
-const nearbyFacilitiesList = document.getElementById('nearby-facilities-list');
-const areaNameEl = document.getElementById('area-name');
-// ... 其他地區資訊元素 ...
 
-// ------------------- 遊戲狀態 (假數據) -------------------
-// 在真正連接 Firebase 前，我們先用假數據模擬
-let currentGameState = {
-    pc_data: {
-        basic_info: { name: "阿宅" },
-        conditions: { notes: "良好" },
-        core_status: {
-            hp: { current: 100, max: 100 },
-            mp: { current: 50, max: 50 },
-        },
-    },
-    map_data: {
-        locations: [
-            { id: "some_location_id", coordinates: { x: 10, y: 15 } }
-        ]
-    },
-    narrative: {
-        log: [
-            { type: 'system', content: '你睜開雙眼，發現自己身處於陰暗而陌生的巷弄之中。' },
-            { type: 'system', content: '一個位於山腳下的純樸小鎮，鎮上居民大多以務農和採集為生。一條清澈的小溪穿鎮而過，為此地帶來了無限生機。' },
-            { type: 'player', content: '> 始動' }
-        ],
-        options: [
-            { id: 'A', text: '檢查自身狀況' },
-            { id: 'B', text: '觀察四周環境' },
-            { id: 'C', text: '尋找水源' },
-        ]
-    },
-    scene: {
-        characters: [{ id: 'npc_li_si_01', name: '李四嫂 (路標)', status: '遠處走過' }],
-        facilities: [{ id: 'well_01', name: '一口古井' }]
-    },
-    area: {
-        name: '清溪鎮',
-        size: '15000平方公尺',
-        population: '約127人',
-        leader: '卓不凡 (鎮長)',
-        security: '正常',
-        prosperity: '普通',
-        products: '稻米、草藥、基礎礦石'
-    }
-};
+// 附近設施面板元素
+const nearbyFacilitiesList = document.getElementById('nearby-facilities-list');
+
+// 地區資訊面板元素
+const areaNameEl = document.getElementById('area-name');
+const areaSizeEl = document.getElementById('area-size');
+const areaPopulationEl = document.getElementById('area-population');
+const areaLeaderEl = document.getElementById('area-leader');
+const areaSecurityEl = document.getElementById('area-security');
+const areaProsperityEl = document.getElementById('area-prosperity');
+const areaProductsEl = document.getElementById('area-products');
+
 
 // ------------------- 核心功能函數 -------------------
 
 /**
- * 更新所有 UI 面板的數據
- * @param {object} gameState - 最新的遊戲狀態物件
+ * 解析 AI 回傳的完整文字敘述，並將其轉換為結構化的遊戲狀態物件
+ * @param {string} rawText - 從後端收到的完整文字回應
+ * @returns {object} 一個結構化的遊戲狀態物件
  */
-function updateUI(gameState) {
-    // 更新玩家資料
-    playerNameEl.textContent = gameState.pc_data.basic_info.name;
-    playerStatusEl.textContent = gameState.pc_data.conditions.notes;
-    playerHpEl.textContent = `${gameState.pc_data.core_status.hp.current}/${gameState.pc_data.core_status.hp.max}`;
-    playerMpEl.textContent = `${gameState.pc_data.core_status.mp.current}/${gameState.pc_data.core_status.mp.max}`;
-    playerCoordXEl.textContent = gameState.map_data.locations[0].coordinates.x;
-    playerCoordYEl.textContent = gameState.map_data.locations[0].coordinates.y;
+function parseNarrative(rawText) {
+    const gameState = {
+        header: {},
+        title: "",
+        narrative: "",
+        playerStatus: {},
+        sceneCharacters: [],
+        nearbyFacilities: [],
+        areaInfo: {},
+        actionOptions: []
+    };
 
-    // 更新場景角色
-    sceneCharactersList.innerHTML = ''; // 清空
-    gameState.scene.characters.forEach(char => {
-        const li = document.createElement('li');
-        li.textContent = `${char.name} - ${char.status}`;
-        li.dataset.id = char.id;
-        sceneCharactersList.appendChild(li);
-    });
+    // 使用正則表達式和字串分割來解析各區塊
+    const sections = rawText.split(/---|\*\*\*/).map(s => s.trim()).filter(Boolean);
+
+    // 基礎敘述部分
+    const mainNarrativeSection = sections.find(s => s.startsWith("【**") && s.includes("】"));
+    if (mainNarrativeSection) {
+        gameState.title = mainNarrativeSection.match(/【\*\*(.*?)\*\*】/)?.[1] || "劇情摘要";
+        // 提取標題之後到下一個分隔符前的所有內容作為主敘述
+        const narrativeStartIndex = rawText.indexOf(mainNarrativeSection) + mainNarrativeSection.length;
+        const narrativeEndIndex = rawText.indexOf("---", narrativeStartIndex);
+        gameState.narrative = rawText.substring(narrativeStartIndex, narrativeEndIndex > -1 ? narrativeEndIndex : undefined).trim();
+    } else {
+        // 如果沒有標準標題，將第一部分視為敘述
+        gameState.narrative = sections[0] || "無法解析劇情...";
+    }
     
-    // 更新附近設施
-    nearbyFacilitiesList.innerHTML = ''; // 清空
-    gameState.scene.facilities.forEach(fac => {
-        const li = document.createElement('li');
-        li.textContent = fac.name;
-        li.dataset.id = fac.id;
-        nearbyFacilitiesList.appendChild(li);
-    });
+    // 解析狀態速覽
+    const statusSection = sections.find(s => s.startsWith("📑 **狀態速覽**"));
+    if (statusSection) {
+        gameState.playerStatus.hp = statusSection.match(/❤️ HP: (.*?)\s*\|/)?.[1] || '--/--';
+        gameState.playerStatus.sta = statusSection.match(/💪 STA: (.*?)\s*\|/)?.[1] || '--/--';
+        gameState.playerStatus.mp = statusSection.match(/🧠 MP: (.*?)\s*\|/)?.[1] || '--/--';
+        gameState.playerStatus.san = statusSection.match(/✨ SAN: (.*?)\s*$/m)?.[1] || '--/--';
+        gameState.playerStatus.status = statusSection.match(/🤕 狀態: (.*?)\s*$/m)?.[1] || '良好';
+    }
 
-    // 更新地區資訊
-    areaNameEl.textContent = gameState.area.name;
-    // ... 更新其他地區資訊 ...
-
-    // 更新劇情日誌
-    narrativeLog.innerHTML = ''; // 清空
-    gameState.narrative.log.forEach(entry => {
-        const p = document.createElement('p');
-        p.textContent = entry.content;
-        if (entry.type === 'player') {
-            p.classList.add('player-prompt');
+    // 解析行動選項
+    const optionsSection = sections.find(s => s.startsWith('**你現在打算：**'));
+    if (optionsSection) {
+        const optionsRegex = /^([A-Z])\.\s*(.*)/gm;
+        let match;
+        while ((match = optionsRegex.exec(optionsSection)) !== null) {
+            gameState.actionOptions.push({ id: match[1], text: match[2].trim() });
         }
-        narrativeLog.appendChild(p);
-    });
-    // 自動滾動到底部
-    narrativeLog.scrollTop = narrativeLog.scrollHeight;
+    }
+
+    // 這裡可以繼續添加對「場景角色」、「地區資訊」等其他區塊的解析邏輯
+    // 範例：解析場景角色 (假設格式為【場景角色】\n李四 (狀態)\n王五 (狀態))
+    const charSection = sections.find(s => s.startsWith("👥 **在場**"));
+     if (charSection) {
+        const charLines = charSection.replace("👥 **在場**", "").trim().split('\n');
+        gameState.sceneCharacters = charLines.map(line => {
+            const parts = line.split(/\s*-\s*|\s*\(\s*|\s*\)\s*/); // 用 ' - ' 或 '(' 分割
+            return {
+                id: `npc_${parts[0]}`, // 簡易生成ID
+                name: parts[0] || '未知角色',
+                status: parts[1] || '站立著'
+            };
+        });
+    }
+
+    return gameState;
+}
 
 
-    // 更新行動選項
+/**
+ * 更新所有 UI 面板的數據
+ * @param {string} rawNarrative - 從後端收到的完整文字回應
+ */
+function updateUI(rawNarrative) {
+    const newState = parseNarrative(rawNarrative);
+
+    // 1. 更新主敘事窗口
+    narrativeLog.innerHTML = `<h3>${newState.title}</h3><p>${newState.narrative.replace(/\n/g, '<br>')}</p>`;
+    narrativeLog.scrollTop = narrativeLog.scrollHeight; // 自動滾動到底部
+
+    // 2. 更新玩家狀態面板
+    if (newState.playerStatus) {
+        playerHpEl.textContent = newState.playerStatus.hp || '--/--';
+        playerMpEl.textContent = newState.playerStatus.mp || '--/--';
+        playerStatusEl.textContent = newState.playerStatus.status || '未知';
+        // 可以在此處添加其他狀態值的更新...
+    }
+    
+    // 3. 更新場景角色 (此為範例，實際格式需與AI約定)
+    if(newState.sceneCharacters.length > 0) {
+        sceneCharactersList.innerHTML = ''; // 清空
+        newState.sceneCharacters.forEach(char => {
+            const li = document.createElement('li');
+            li.textContent = `${char.name} - ${char.status}`;
+            li.dataset.id = char.id;
+            sceneCharactersList.appendChild(li);
+        });
+    } else {
+        sceneCharactersList.innerHTML = '<li>此處無人。</li>';
+    }
+
+
+    // 4. 更新行動選項
+    promptQuestion.textContent = "你現在打算：";
     actionOptionsContainer.innerHTML = ''; // 清空
-    gameState.narrative.options.forEach(option => {
-        const button = document.createElement('button');
-        button.textContent = `${option.id}. ${option.text}`;
-        button.dataset.actionId = option.id;
-        button.addEventListener('click', handleActionSelect);
-        actionOptionsContainer.appendChild(button);
-    });
+    if (newState.actionOptions.length > 0) {
+        newState.actionOptions.forEach(option => {
+            const button = document.createElement('button');
+            button.textContent = `${option.id}. ${option.text}`;
+            button.dataset.actionId = option.id;
+            button.addEventListener('click', handleActionSelect);
+            actionOptionsContainer.appendChild(button);
+        });
+    } else {
+        actionOptionsContainer.innerHTML = '<p>劇情在此告一段落...</p>';
+    }
 }
 
 /**
  * 處理玩家選擇的行動
  * @param {Event} event - 點擊事件
  */
-function handleActionSelect(event) {
+async function handleActionSelect(event) {
     const actionId = event.target.dataset.actionId;
+    const actionText = event.target.textContent;
+
     console.log(`玩家選擇了行動: ${actionId}`);
 
-    // 顯示玩家的選擇
+    // 在日誌中追加顯示玩家的選擇
     const p = document.createElement('p');
-    p.textContent = `> ${event.target.textContent}`;
+    p.innerHTML = `<strong>> ${actionText}</strong>`;
     p.classList.add('player-prompt');
     narrativeLog.appendChild(p);
-    
+    narrativeLog.scrollTop = narrativeLog.scrollHeight;
+
     // 禁用所有按鈕，顯示等待狀態
-    actionOptionsContainer.innerHTML = '<p>AI 正在運算中...</p>';
-    
-    // **核心：在這裡發送 actionId 到後端 (Firebase Cloud Function)**
-    // 後端接收到後，會根據所有模組規則運算下一回合的 gameState
-    // 然後我們再接收新的 gameState 來更新 UI
-    // sendAction(actionId).then(newGameState => {
-    //    currentGameState = newGameState;
-    //    updateUI(currentGameState);
-    // });
-    
-    // 為了演示，我們這裡用 setTimeout 模擬一個延遲後返回的假數據
-    setTimeout(() => {
-        // 模擬 AI 回應
-        currentGameState.narrative.log.push({ type: 'system', content: `你選擇了「${event.target.textContent}」。AI正在處理你的決定...` });
-        currentGameState.narrative.options = [
-             { id: 'A', text: '選項更新了' },
-             { id: 'B', text: '這是新的選項' },
-        ];
-        updateUI(currentGameState);
-    }, 1500);
+    promptQuestion.textContent = "AI 正在運算中，請稍候...";
+    actionOptionsContainer.innerHTML = '<div class="loading-spinner"></div>';
+
+    try {
+        // 發送請求到 Render 後端
+        const response = await fetch(BACKEND_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                player_action: {
+                    id: actionId,
+                    text: actionText.substring(3).trim() // 去掉 "A. " 等前綴
+                },
+                // 未來可以在此處傳送整個遊戲狀態
+                // current_game_state: window.currentGameState 
+            }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `伺服器錯誤: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // 成功：用 AI 回傳的完整內容更新 UI
+        if (data.narrative) {
+            updateUI(data.narrative);
+        } else {
+            throw new Error("AI 回應格式不正確。");
+        }
+
+    } catch (error) {
+        console.error("請求失敗:", error);
+        promptQuestion.textContent = "發生錯誤！";
+        actionOptionsContainer.innerHTML = `<p style="color: red;">與伺服器連線失敗: ${error.message}</p><button onclick="location.reload()">重新載入</button>`;
+    }
 }
 
-
-// ------------------- 遊戲初始化 -------------------
+/**
+ * 遊戲初始化函數
+ */
 function initializeGame() {
     console.log("遊戲初始化...");
-    // 在真實情境下，這裡會是從 Firebase 獲取初始或最後的遊戲狀態
-    // fetchInitialGameState().then(initialState => {
-    //    currentGameState = initialState;
-    //    updateUI(currentGameState);
-    // });
     
-    // 目前使用假數據來初始化 UI
-    updateUI(currentGameState);
+    // 顯示初始歡迎訊息和開始按鈕
+    narrativeLog.innerHTML = `
+        <h2>文字江湖：黑風寨崛起</h2>
+        <p>一個基於深度模擬與 AI 驅動的武俠世界。</p>
+        <p>你的每一個選擇，都將銘刻在這個世界的歷史之中。</p>
+    `;
+    promptQuestion.textContent = "準備好開始你的傳奇了嗎？";
+    actionOptionsContainer.innerHTML = '<button id="start-game-btn">始動</button>';
+    
+    document.getElementById('start-game-btn').addEventListener('click', (e) => {
+         handleActionSelect({ target: { dataset: { actionId: 'START' }, textContent: '始動' } });
+    });
+
+    // 這裡可以預先填充一些靜態資訊，或保持為 "---"
+    playerNameEl.textContent = "阿宅";
 }
 
 // 當 DOM 載入完成後，啟動遊戲

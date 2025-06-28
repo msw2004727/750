@@ -1,5 +1,5 @@
 # 檔名: app.py
-# 版本: 2.2 - 引入AI指令解析器，實現數據驅動狀態更新
+# 版本: 2.3 - 實現敘事結構化，為前端超連結提供數據基礎
 
 import os
 import json
@@ -13,6 +13,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 # --- 初始化 (與之前版本相同) ---
 app = Flask(__name__)
+# ... (省略部分代碼以保持簡潔)
 CORS(app)
 db = None
 try:
@@ -32,60 +33,96 @@ DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY')
 if not DEEPSEEK_API_KEY:
     print("警告：環境變數 'DEEPSEEK_API_KEY' 未設定！AI 功能將無法使用。")
 
-# --- 【核心新增】AI 指令解析與執行函數 ---
+
+# --- AI 指令解析器 (與之前版本相同) ---
 def parse_and_execute_ai_commands(ai_raw_text, game_state_ref):
-    """
-    解析 AI 回應中的特殊指令標籤，並執行對應的資料庫操作。
-    返回一個清理過的、只給玩家看的敘述文本。
-    """
-    # 指令格式為 [COMMAND: {"key": "value"}]，例如: [UPDATE_PC_DATA: {"pc_data.core_status.hp.current": -10}]
+    # ... (省略部分代碼以保持簡潔)
     command_pattern = r'\[([A-Z_]+):\s*({.*?})\]'
-    
     cleaned_text = ai_raw_text
     commands_found = re.findall(command_pattern, ai_raw_text)
-
     for command_name, json_str in commands_found:
         try:
             data = json.loads(json_str)
-            print(f"解析到指令：{command_name}, 數據: {data}")
-
-            # --- 指令處理中心 ---
             if command_name == "UPDATE_PC_DATA":
-                # 這個指令用於更新玩家資料 (pc_data)
-                # 使用 Firestore 的 FieldPath 來更新巢狀欄位
                 update_data = {}
                 for key, value in data.items():
-                    # 處理增量更新 (例如HP-10)
                     if isinstance(value, str) and (value.startswith('+') or value.startswith('-')):
-                         # 將 "pc_data.core_status.hp.current" 這樣的字串轉換為 FieldPath
                         field_path = tuple(key.split('.'))
                         update_data[field_path] = firestore.Increment(int(value))
                     else:
-                        # 處理直接賦值
                         field_path = tuple(key.split('.'))
                         update_data[field_path] = value
-                
                 if update_data:
                     game_state_ref.update(update_data)
-                    print(f"已執行資料庫更新: {update_data}")
-
-            # 未來可以在此處添加更多指令，如 CREATE_NPC, UPDATE_INVENTORY 等
-            
-        except json.JSONDecodeError:
-            print(f"錯誤：無法解析指令中的 JSON 數據: {json_str}")
         except Exception as e:
             print(f"執行指令時發生錯誤: {e}")
-
-    # 從文本中移除所有指令標籤，返回乾淨的敘述
     cleaned_text = re.sub(command_pattern, '', cleaned_text).strip()
     return cleaned_text
 
+# --- 【核心新增】敘事實體解析器 ---
+def parse_narrative_entities(narrative_text, current_state):
+    """
+    解析敘述文本中的實體標籤(如<npc>, <item>)，並轉換為結構化列表。
+    """
+    # 匹配 <type id="some_id">text</type> 格式的標籤
+    entity_pattern = r'<(npc|item|location)\s+id="([^"]+)">([^<]+)</\1>'
+    
+    parts = []
+    last_end = 0
+
+    for match in re.finditer(entity_pattern, narrative_text):
+        # 1. 添加標籤前的純文字部分
+        start, end = match.span()
+        if start > last_end:
+            parts.append({
+                "type": "text",
+                "content": narrative_text[last_end:start]
+            })
+        
+        # 2. 添加解析到的實體部分
+        entity_type = match.group(1) # 'npc', 'item', or 'location'
+        entity_id = match.group(2)
+        entity_text = match.group(3)
+        
+        # 基礎實體物件
+        entity_obj = {
+            "type": entity_type,
+            "id": entity_id,
+            "text": entity_text,
+            "color_class": f"text-entity-{entity_type}" # 預設顏色
+        }
+        
+        # 【擴充】根據實體類型和數據決定顏色
+        if entity_type == 'npc':
+            # 假設NPC好感度在 state["npcs"][entity_id]["relationship"]["friendliness"]
+            # 這裡僅為示例，目前資料庫尚無此結構
+            friendliness = current_state.get("npcs", {}).get(entity_id, {}).get("relationship", {}).get("friendliness", 0)
+            if friendliness > 50:
+                entity_obj["color_class"] = "text-npc-friendly"
+            elif friendliness < -50:
+                entity_obj["color_class"] = "text-npc-hostile"
+
+        parts.append(entity_obj)
+        last_end = end
+
+    # 3. 添加最後一個標籤後剩餘的純文字部分
+    if last_end < len(narrative_text):
+        parts.append({
+            "type": "text",
+            "content": narrative_text[last_end:]
+        })
+        
+    # 如果沒有找到任何實體，則返回單一的純文字物件
+    if not parts:
+        return [{"type": "text", "content": narrative_text}]
+        
+    return parts
 
 # --- 註冊與登入 API (省略) ---
 # ...
 @app.route('/')
 def index():
-    return "文字江湖遊戲後端 v2.2 已啟動！(AI指令解析)"
+    return "文字江湖遊戲後端 v2.3 已啟動！(敘事結構化)"
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -182,123 +219,109 @@ def login():
     except Exception as e:
         return jsonify({"error": f"登入失敗: {str(e)}"}), 500
 
-
 # --- 【本次修改】主遊戲循環 API 端點 ---
 @app.route('/api/generate_turn', methods=['POST'])
 def generate_turn():
     if not db or not DEEPSEEK_API_KEY:
         # ... (錯誤處理與之前相同)
-        pass
+        return jsonify({"error": "服務未就緒"}), 503
         
     try:
-        # 1. 讀取請求與資料庫狀態 (與之前相同)
         data = request.get_json()
         session_id = data.get('session_id')
         player_action = data.get('player_action')
         game_state_ref = db.collection('game_sessions').document(session_id)
-        # ... (後續讀取邏輯與之前相同)
         game_state = game_state_ref.get()
         if not game_state.exists:
-            return jsonify({"error": "找不到對應的遊戲存檔。"}), 404
+            return jsonify({"error": "找不到遊戲存檔"}), 404
         current_state = game_state.to_dict()
 
-        # 處理 START action (與之前相同)
         if player_action and player_action.get('id') == 'START':
-            # ...
-            initial_narrative = "\n".join(current_state.get("narrative_log", []))
-            full_narrative = (
-                f"{initial_narrative}\n\n"
-                "你環顧四周，接下來你打算？\n"
+            initial_narrative_text = "\n".join(current_state.get("narrative_log", []))
+            # 初始劇情也結構化，雖然裡面只有純文字
+            structured_narrative = [{"type": "text", "content": initial_narrative_text}]
+            
+            # 選項依然保持原樣
+            options_text = (
+                "\n\n你環顧四周，接下來你打算？\n"
                 "<options>\n"
                 "A. 先檢查一下自身狀況。\n"
                 "B. 探索一下這個地方。\n"
                 "C. 靜觀其變，等待機會。\n"
                 "</options>"
             )
-            return jsonify({"narrative": full_narrative, "state": current_state})
+            # 在回傳的 narrative 中加入選項
+            structured_narrative.append({"type": "text", "content": options_text})
+            
+            # 【重要變更】回傳的 narrative 變成了一個列表
+            return jsonify({"narrative": structured_narrative, "state": current_state})
 
-
-        # 2. 【核心修改】更新給 AI 的 Prompt，教它使用指令
-        pc_info = current_state.get("pc_data", {}).get("basic_info", {})
-        pc_status = current_state.get("pc_data", {}).get("core_status", {})
-        world_info = current_state.get("world", {})
-        recent_log = "\n".join(current_state.get("narrative_log", [])[-5:])
-
+        # --- 更新 Prompt，教 AI 使用實體標籤 ---
         prompt_text = f"""
         你是一位頂尖的武俠小說家兼遊戲世界主持人(GM)。
-        請根據玩家資料和他的行動，生成一段約 150-250 字的、引人入勝的後續劇情。
         
         【重要規則】
         1. 你的回應必須是金庸武俠風格。
-        2. 如果劇情導致玩家的數據發生變化（例如受傷、消耗內力），你必須在劇情文字之外，單獨使用指令標籤 `[UPDATE_PC_DATA: {{...}}]` 來標註數據變化。
-        3. 數據路徑必須完整，例如 `"pc_data.core_status.hp.current"`。
-        4. 數值變化必須使用字串格式的增量值，例如 `"-10"` 或 `"+20"`。
-        5. 劇情最後必須提供 3-4 個合理的行動選項，並用 `<options>` 標籤包裹。
+        2. 如果劇情中出現了關鍵的NPC、物品或地點，你必須用標籤將它們包裹起來，格式為 `<類型 id="ID">名稱</類型>`。類型可以是 `npc`, `item`, `location`。ID必須是英文且獨一無二。
+        3. 如果劇情導致玩家數據變化，你必須使用指令標籤 `[UPDATE_PC_DATA: {{...}}]` 來標註。
+        4. 劇情最後必須提供3-4個合理的行動選項，並用 `<options>` 標籤包裹。
 
         [玩家資料]
-        姓名: {pc_info.get('name', '未知')}
-        性別: {pc_info.get('gender', '未知')}
-        個性: {pc_info.get('personality_trait', '中立')}
-        當前氣血: {pc_status.get('hp', {}).get('current', 100)} / {pc_status.get('hp', {}).get('max', 100)}
+        {json.dumps(current_state.get("pc_data", {}), indent=2, ensure_ascii=False)}
         
         [當前情境]
-        地點: {world_info.get('player_current_location_name', '未知地點')}
-        最近發生的事: 
-        {recent_log}
+        {json.dumps(current_state.get("world", {}), indent=2, ensure_ascii=False)}
         
         [玩家的行動]
         > {player_action.get('text', '無')}
         
         【範例回應】
-        你腳下一個踉蹌，不慎從石階上滑倒，雖然無甚大礙，但膝蓋卻是一陣劇痛。
-        [UPDATE_PC_DATA: {{"pc_data.core_status.hp.current": "-5"}}]
+        你遇到一位<npc id="old_monk_01">掃地老僧</npc>，他遞給你一本<item id="sutra_001">泛黃的經書</item>。這一切都發生在<location id="shaolin_temple_01">少林寺</location>的藏經閣前。
+        [UPDATE_PC_DATA: {{"pc_data.core_status.mp.current": "-10"}}]
         <options>
-        A. 揉揉膝蓋，繼續前行。
-        B. 找個地方坐下歇息。
-        C. 破口大罵這該死的石階。
+        A. 選項一
+        B. 選項二
         </options>
         """
 
-        # 3. 呼叫 DeepSeek API (與之前相同)
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {DEEPSEEK_API_KEY}"
-        }
+        # --- 呼叫 AI (與之前相同) ---
+        headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"}
         payload = {
             "model": "deepseek-chat",
             "messages": [
-                {"role": "system", "content": "你是一位頂尖的武俠小說家兼遊戲世界主持人(GM)，你需要根據規則生成劇情和數據指令。"},
+                {"role": "system", "content": "你是一位頂尖的武俠小說家兼遊戲世界主持人(GM)，你需要根據規則生成劇情、數據指令和實體標籤。"},
                 {"role": "user", "content": prompt_text}
             ],
-            "max_tokens": 1000,
-            "temperature": 0.8,
+            "max_tokens": 1000, "temperature": 0.8
         }
-        
         response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload)
         response.raise_for_status()
-        
         ai_response = response.json()
         ai_raw_narrative = ai_response['choices'][0]['message']['content']
 
-        # 4. 【核心修改】解析並執行指令，獲取乾淨的劇情文本
-        cleaned_narrative = parse_and_execute_ai_commands(ai_raw_narrative, game_state_ref)
-
-        # 5. 更新遊戲日誌並回傳
+        # --- 執行指令並解析實體 ---
+        # 1. 先執行指令並移除指令標籤
+        narrative_after_commands = parse_and_execute_ai_commands(ai_raw_narrative, game_state_ref)
+        # 2. 再解析實體標籤，生成結構化數據
+        structured_narrative = parse_narrative_entities(narrative_after_commands, current_state)
+        
+        # --- 更新日誌並回傳 ---
+        # 為了日誌的可讀性，我們存入不含標籤的純文字版本
+        plain_text_narrative = "".join([part.get("content", part.get("text", "")) for part in structured_narrative])
+        
         updated_log = current_state.get("narrative_log", [])
         updated_log.append(f"> {player_action.get('text', '')}")
-        # 將清理過的劇情存入日誌
-        updated_log.append(cleaned_narrative) 
+        updated_log.append(plain_text_narrative)
         
         game_state_ref.update({"narrative_log": updated_log})
-        
-        # 重新從資料庫讀取最新狀態，以確保前端能即時更新
         latest_state = game_state_ref.get().to_dict()
 
-        return jsonify({"narrative": cleaned_narrative, "state": latest_state})
+        # 【重要變更】回傳給前端的是包含實體標籤的結構化列表
+        return jsonify({"narrative": structured_narrative, "state": latest_state})
 
     except Exception as e:
-        # ... (錯誤處理與之前相同)
-        pass
+        print(f"在 generate_turn 中發生錯誤: {e}")
+        return jsonify({"error": f"伺服器內部發生未知錯誤: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))

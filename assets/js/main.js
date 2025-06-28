@@ -1,14 +1,13 @@
 // 檔案: assets/js/main.js
-// 版本: 2.4 - 實現點擊實體彈出資訊視窗功能
+// 版本: 2.5 - 美化資訊彈窗(Modal)的顯示方式
 
 // ------------------- 設定 -------------------
 const API_BASE_URL = "https://md-server-main.onrender.com";
 const TURN_URL = `${API_BASE_URL}/api/generate_turn`;
-const ENTITY_INFO_URL = `${API_BASE_URL}/api/get_entity_info`; // 新增的 API 路徑
+const ENTITY_INFO_URL = `${API_BASE_URL}/api/get_entity_info`;
 const currentGameSessionId = localStorage.getItem('game_session_id');
 
 // ------------------- DOM 元素獲取 -------------------
-// ... (與上一版相同) ...
 const narrativeLog = document.getElementById('narrative-log');
 const actionOptionsContainer = document.getElementById('action-options');
 const promptQuestion = document.getElementById('prompt-question');
@@ -20,17 +19,17 @@ const playerHp = document.getElementById('player-hp');
 const playerMp = document.getElementById('player-mp');
 const sceneCharactersList = document.getElementById('scene-characters-list');
 
-// 【新增】Modal 相關元素
+// Modal 相關元素
 const modal = document.getElementById('entity-modal');
 const modalCloseBtn = document.getElementById('modal-close-btn');
 const modalTitle = document.getElementById('modal-title');
-const modalDescription = document.getElementById('modal-description');
+const modalBody = document.getElementById('modal-body'); // 直接獲取 body 容器
 
 
 // ------------------- 核心功能函數 -------------------
 
 function updateUI(data) {
-    // ... (此函數與上一版完全相同，此處省略以保持簡潔)
+    // ... (此函數與版本 2.4 完全相同，此處省略以保持簡潔)
     const { narrative, state } = data;
     if (state) {
         infoRound.textContent = state.metadata?.round ?? '---';
@@ -86,7 +85,7 @@ function updateUI(data) {
 }
 
 async function handleActionSelect(event) {
-    // ... (此函數與上一版完全相同，只是 URL 變數名改變，此處省略)
+    // ... (此函數與版本 2.4 完全相同，此處省略以保持簡潔)
     const actionId = event.target.dataset.actionId;
     const actionText = event.target.textContent;
     const playerPromptP = document.createElement('p');
@@ -122,22 +121,19 @@ async function handleActionSelect(event) {
     }
 }
 
-// 【核心新增】處理點擊實體的函數
+// 【核心修改】處理點擊實體的函數，重寫內容渲染邏輯
 async function handleEntityClick(event) {
     const target = event.target;
-    // 確保點擊的是我們想要的實體 span
     if (!target.classList.contains('narrative-entity')) {
         return;
     }
 
     const { entityId, entityType } = target.dataset;
 
-    // 1. 顯示 Modal 並進入載入中狀態
     modal.classList.remove('hidden');
-    modalTitle.textContent = target.textContent; // 先用點擊的文字當標題
-    modalDescription.textContent = "正在從江湖密卷中查詢資料...";
+    modalTitle.textContent = target.textContent;
+    modalBody.innerHTML = '<div class="loading-spinner"></div><p>正在從江湖密卷中查詢資料...</p>'; // 載入中狀態
 
-    // 2. 呼叫後端 API
     try {
         const response = await fetch(ENTITY_INFO_URL, {
             method: 'POST',
@@ -148,26 +144,54 @@ async function handleEntityClick(event) {
         if (!response.ok || !result.success) {
             throw new Error(result.error || "查詢失敗");
         }
-        
-        // 3. 更新 Modal 內容
+
         const entityData = result.data;
         modalTitle.textContent = entityData.name || target.textContent;
-        // 簡單地將所有資訊轉為字串顯示，未來可以做得更精緻
-        let details = "";
-        for (const [key, value] of Object.entries(entityData)) {
-            if (typeof value !== 'object') {
-                 details += `<strong>${key}:</strong> ${value}<br>`;
+        
+        // --- 創建精美的內容版面 ---
+        let contentHtml = '<div class="info-grid">';
+
+        // 根據不同實體類型，顯示不同資訊
+        if (entityType === 'npc') {
+            contentHtml += `<strong>稱號:</strong><span>${entityData.name || '未知'}</span>`;
+            
+            if (entityData.mood) {
+                // 根據心情給予不同顏色
+                let moodColorClass = "mood-text-neutral";
+                const positiveMoods = ["開心", "友好", "興奮", "尊敬"];
+                const negativeMoods = ["憤怒", "憂慮", "敵對", "輕蔑"];
+                if (positiveMoods.includes(entityData.mood)) moodColorClass = "mood-text-positive";
+                if (negativeMoods.includes(entityData.mood)) moodColorClass = "mood-text-negative";
+                contentHtml += `<strong>心情:</strong><span class="${moodColorClass}">${entityData.mood}</span>`;
             }
+            if (entityData.relationship) {
+                contentHtml += `<strong>好感:</strong><span>${entityData.relationship.friendliness || 0}</span>`;
+                contentHtml += `<strong>敬意:</strong><span>${entityData.relationship.respect || 0}</span>`;
+            }
+
+        } else if (entityType === 'item') {
+            contentHtml += `<strong>名稱:</strong><span>${entityData.name || '未知'}</span>`;
+            if (entityData.type) contentHtml += `<strong>類型:</strong><span>${entityData.type}</span>`;
+            if (entityData.damage) contentHtml += `<strong>威力:</strong><span>${entityData.damage}</span>`;
+            if (entityData.weight) contentHtml += `<strong>重量:</strong><span>${entityData.weight}</span>`;
         }
-        modalDescription.innerHTML = entityData.description || details || "無更多資訊。";
+        
+        contentHtml += '</div>';
+
+        // 描述永遠放在最下方
+        if (entityData.description) {
+            contentHtml += `<p class="description-text">"${entityData.description}"</p>`;
+        }
+
+        modalBody.innerHTML = contentHtml;
 
     } catch (error) {
-        modalDescription.textContent = `查詢失敗: ${error.message}`;
+        modalBody.innerHTML = `<p>查詢失敗: ${error.message}</p>`;
     }
 }
 
 function initializeGame() {
-    // ... (登入檢查與始動按鈕與上一版相同) ...
+    // ... (此函數與版本 2.4 完全相同，此處省略)
     if (!currentGameSessionId) {
         alert("偵測到您尚未登入，將為您導向登入頁面。");
         window.location.href = 'login.html';
@@ -179,12 +203,9 @@ function initializeGame() {
     document.getElementById('start-game-btn').addEventListener('click', (e) => {
          handleActionSelect({ target: { dataset: { actionId: 'START' }, textContent: 'A. 載入遊戲 / 始動' } });
     });
-
-    // 【核心新增】為整個敘事日誌區塊和 Modal 新增事件監聽
     narrativeLog.addEventListener('click', handleEntityClick);
     modalCloseBtn.addEventListener('click', () => modal.classList.add('hidden'));
     modal.addEventListener('click', (e) => {
-        // 點擊背景蒙層也可以關閉視窗
         if (e.target === modal) {
             modal.classList.add('hidden');
         }

@@ -157,3 +157,71 @@ body {
 /* 特殊NPC顏色 (根據好感度) */
 .text-npc-friendly { color: #a5d6a7; } /* 友善 - 淡綠 */
 .text-npc-hostile { color: #ef9a9a; } /* 敵對 - 淡紅 */
+
+/* 【本次新增】彈出視窗 (Modal) 樣式 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.modal-overlay:not(.hidden) {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-content {
+    background-color: var(--primary-bg);
+    padding: 30px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    width: 90%;
+    max-width: 600px;
+    position: relative;
+    transform: scale(0.95);
+    transition: transform 0.3s ease-in-out;
+}
+
+.modal-overlay:not(.hidden) .modal-content {
+    transform: scale(1);
+}
+
+.modal-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 2.5em;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+}
+
+#modal-title {
+    color: var(--accent-color);
+    margin-top: 0;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-body-content p {
+    line-height: 1.8;
+    color: var(--text-secondary);
+}

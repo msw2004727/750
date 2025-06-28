@@ -1,5 +1,8 @@
 # 檔名: setup_firestore.py
-# 描述: 用於在 Render Shell 中一鍵初始化 Firestore 資料庫結構的腳本。
+# 版本: 2.0 - 極簡化初始結構
+# 描述: 根據「玩家創造世界」的核心理念，此腳本僅用於建立一個乾淨、空的資料庫基礎結構。
+#      它只會建立 `definitions` 集合，用於存放未來由 AI 動態生成的遊戲核心定義，
+#      而不會創建任何預設的遊戲存檔、場景或 NPC。
 
 import os
 import json
@@ -12,9 +15,10 @@ def initialize_firestore():
     返回一個 Firestore 客戶端物件。
     """
     try:
+        # 從 Render 的環境變數中讀取 JSON 格式的服務帳號金鑰
         firebase_creds_str = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY')
         if not firebase_creds_str:
-            raise ValueError("錯誤：環境變數 'FIREBASE_SERVICE_ACCOUNT_KEY' 未設定！")
+            raise ValueError("錯誤：環境變數 'FIREBASE_SERVICE_ACCOUNT_KEY' 未設定！請在 Render.com 的後台設定。")
         
         service_account_info = json.loads(firebase_creds_str)
         cred = credentials.Certificate(service_account_info)
@@ -33,108 +37,41 @@ def initialize_firestore():
 
 def setup_database_structure(db):
     """
-    建立遊戲所需的核心資料庫集合與文件結構。
+    建立遊戲所需的最基礎、空的集合與文件結構。
+    這就像是為圖書館準備好空的書架，等待 AI 和玩家來填滿書籍。
     """
     if not db:
         print("資料庫客戶端無效，無法執行設定。")
         return
 
-    print("開始建立資料庫結構...")
+    print("開始建立空的資料庫基礎結構...")
 
-    # --- 1. 建立靜態定義集合 (definitions) ---
+    # --- 建立靜態定義集合 (definitions) ---
+    # 這個集合將用來存放由 AI 在遊戲過程中動態創造的「世界規則」。
+    # 例如，當 AI 第一次創造出「九陽神功」時，可以將其詳細定義儲存在這裡，以供後續參考。
     print("正在建立 'definitions' 集合...")
     definitions_collection = db.collection('definitions')
 
-    # 建立幾個空的佔位符文件
-    static_docs = {
-        "skills": {"description": "存放所有技能的詳細定義。"},
-        "items": {"description": "存放所有物品與裝備的詳細定義。"},
-        "events": {"description": "存放所有隨機事件的模板。"},
-        "lore": {"description": "存放所有世界觀與傳說故事。"}
+    # 建立幾個空的「分類」文件作為書架的標示，裡面沒有任何內容。
+    definition_categories = {
+        "skills": "存放所有被創造出來的武功技能。",
+        "items": "存放所有被創造出來的物品與裝備。",
+        "events": "存放所有被創造出來的隨機事件模板。",
+        "lore": "存放所有被創造出來的世界觀與傳說故事。",
+        "locations": "存放所有被創造出來的地點模板。",
+        "npcs": "存放所有被創造出來的 NPC 模板。"
     }
 
-    for doc_name, data in static_docs.items():
+    for doc_name, description in definition_categories.items():
         doc_ref = definitions_collection.document(doc_name)
         if not doc_ref.get().exists:
-            doc_ref.set(data)
-            print(f"  - 文件 '{doc_name}' 已建立。")
+            doc_ref.set({"description": description, "entries": {}})
+            print(f"  - 空的分類 '{doc_name}' 已建立。")
         else:
-            print(f"  - 文件 '{doc_name}' 已存在，跳過。")
-
-    # --- 2. 建立主遊戲存檔 (game_sessions) ---
-    print("\n正在建立 'game_sessions' 集合與初始存檔...")
-    game_sessions_collection = db.collection('game_sessions')
-    main_session_ref = game_sessions_collection.document('session_azhai_main')
-
-    if main_session_ref.get().exists:
-        print("主遊戲存檔 'session_azhai_main' 已存在，將不會覆蓋。如需重置，請先手動刪除。")
-    else:
-        # 建立一個符合您設計的、詳細的初始世界狀態
-        initial_world_state = {
-            "metadata": {
-                "backup_id": "initial_setup",
-                "game_timestamp": "第一天 辰時",
-                "round": 0,
-            },
-            "pc_data": {
-                "basic_info": {
-                    "name": "阿宅",
-                    "background_summary": "意外穿越至此的異鄉人，一切都充滿未知。",
-                },
-                "core_status": {
-                    "hp": {"current": 100, "max": 100},
-                    "mp": {"current": 50, "max": 50},
-                    "sta": {"current": 100, "max": 100},
-                    "san": {"current": 100, "max": 100},
-                    "hunger": {"current": 20, "max": 100},
-                    "thirst": {"current": 20, "max": 100},
-                    "fatigue": {"current": 0, "max": 100}
-                },
-                "skills": [],
-                "inventory": {"carried": [], "stashed": []},
-                "reputation_and_alignment": {
-                    "morality_alignment": {"value": 0.0, "level": "中立"},
-                    "jianghu_fame": {"value": 0.0, "level": "默默無聞"},
-                    "faction_standing": []
-                },
-            },
-            "npcs": {
-                # 初始可以為空，或加入幾個關鍵NPC的初始狀態
-                "npc_qin_lan_01": {"name": "秦嵐", "current_location_id": "BWF_Infirmary_Temp_01", "mood": "擔憂"}
-            },
-            "fortress_state": {
-                "name": "黑風寨",
-                "population": {"total_estimated": 1}, # 只有玩家自己
-                "resources": {
-                    "food_grain": {"quantity": 10, "unit": "份"},
-                    "wood_dry": {"quantity": 5, "unit": "捆"}
-                },
-                "morale": {"level": "中立", "value": 50}
-            },
-            "world": {
-                "current_round": 0,
-                "in_game_time": "第一天 辰時",
-                "weather_and_environment": "天氣晴朗，山風和煦。"
-            },
-            "tracking": {
-                "active_clues": [],
-                "active_rumors": []
-            },
-            # 根據您的需求，繼續添加其他22個分類的初始空狀態...
-        }
-        
-        main_session_ref.set(initial_world_state)
-        print("  - 主遊戲存檔 'session_azhai_main' 已成功建立！")
-
-        # 同時建立一個空的 turn_logs 子集合
-        initial_turn_log_ref = main_session_ref.collection('turn_logs').document('turn_00000_init')
-        initial_turn_log_ref.set({
-            "round": 0,
-            "event": "遊戲世界初始化"
-        })
-        print("  - 'turn_logs' 子集合已初始化。")
-
-    print("\n資料庫結構初始化完成！")
+            print(f"  - 分類 '{doc_name}' 已存在，跳過。")
+            
+    print("\n資料庫基礎結構初始化完成！")
+    print("現在，您的江湖是一張白紙，等待著第一位玩家的筆觸。")
 
 if __name__ == "__main__":
     firestore_client = initialize_firestore()

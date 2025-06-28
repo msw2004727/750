@@ -1,8 +1,18 @@
 /* 基本樣式與字體設定 */
+:root {
+    --primary-bg: #1e1e1e;
+    --secondary-bg: #2c2c2c;
+    --border-color: #444;
+    --text-primary: #e0e0e0;
+    --text-secondary: #ccc;
+    --accent-color: #87ceeb;
+    --loading-color: #e0e0e0;
+}
+
 body {
     font-family: 'Microsoft JhengHei', '微軟正黑體', 'PingFang TC', sans-serif;
-    background-color: #2c2c2c;
-    color: #e0e0e0;
+    background-color: var(--secondary-bg);
+    color: var(--text-primary);
     margin: 0;
     padding: 20px;
     font-size: 16px;
@@ -22,18 +32,25 @@ body {
     flex: 3; /* 佔用較大空間 */
     display: flex;
     flex-direction: column;
-    background-color: #1e1e1e;
-    border: 1px solid #444;
+    background-color: var(--primary-bg);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 /* 劇情日誌 */
 .narrative-log {
     flex-grow: 1;
     padding: 20px;
-    overflow-y: auto; /* 當內容過多時顯示滾動條 */
-    line-height: 1.6;
+    overflow-y: auto;
+    line-height: 1.7;
+}
+
+.narrative-log h3 {
+    text-align: center;
+    color: var(--accent-color);
+    margin-top: 0;
 }
 
 .narrative-log p {
@@ -41,14 +58,15 @@ body {
 }
 
 /* 玩家提示樣式 */
-.player-prompt {
-    color: #87ceeb; /* 淡藍色 */
+.player-prompt strong {
+    color: var(--accent-color);
+    font-weight: normal;
 }
 
 /* 輸入與選項區域 */
 .input-area {
     padding: 20px;
-    border-top: 1px solid #444;
+    border-top: 1px solid var(--border-color);
     background-color: #252525;
 }
 
@@ -60,19 +78,21 @@ body {
 #action-options button {
     display: block;
     width: 100%;
-    padding: 10px;
+    padding: 12px 15px;
     margin-bottom: 8px;
     background-color: #3a3a3a;
-    color: #e0e0e0;
+    color: var(--text-primary);
     border: 1px solid #555;
     border-radius: 4px;
     text-align: left;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, border-color 0.2s;
+    font-size: 1em;
 }
 
 #action-options button:hover {
     background-color: #4f4f4f;
+    border-color: var(--accent-color);
 }
 
 /* 右側資訊欄 */
@@ -85,8 +105,8 @@ body {
 
 /* 資訊盒子統一樣式 */
 .info-box {
-    background-color: #1e1e1e;
-    border: 1px solid #444;
+    background-color: var(--primary-bg);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 15px;
 }
@@ -94,19 +114,34 @@ body {
 .info-title {
     margin: 0 0 10px 0;
     padding-bottom: 10px;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid var(--border-color);
     font-size: 1.1em;
-    color: #e0e0e0;
+    color: var(--text-primary);
 }
 
 .info-content p {
-    margin: 8px 0;
-    color: #ccc;
+    margin: 10px 0;
+    color: var(--text-secondary);
 }
 
 .info-content span {
     color: #fff;
-    font-weight: bold;
+    font-weight: normal;
+}
+
+/* 【新增】即時資訊欄的特殊樣式 */
+#real-time-info-box .info-content p {
+    margin: 8px 0;
+}
+#real-time-info-box .info-content strong {
+    color: var(--text-secondary);
+    min-width: 40px;
+    display: inline-block;
+}
+.info-divider {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 8px 0;
 }
 
 /* 列表樣式 (用於角色、設施) */
@@ -128,7 +163,23 @@ body {
 }
 
 .info-list li:hover {
-    color: #87ceeb;
+    color: var(--accent-color);
+}
+
+/* 載入中 Spinner */
+.loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--accent-color);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 10px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* 滾動條美化 (可選) */
@@ -137,7 +188,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-    background: #2c2c2c;
+    background: var(--secondary-bg);
 }
 
 ::-webkit-scrollbar-thumb {

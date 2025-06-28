@@ -1,5 +1,5 @@
 # 檔名: app.py
-# 版本: 2.12 - 強化解析器與Prompt，修復標籤與上下文連貫性問題
+# 版本: 2.13 - 強化數據一致性，新增別名與天氣系統支持
 
 import os
 import json
@@ -32,7 +32,7 @@ DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY')
 if not DEEPSEEK_API_KEY:
     print("警告：環境變數 'DEEPSEEK_API_KEY' 未設定！AI 功能將無法使用。")
 
-# --- 指令解析與輔助函數 (與上一版相同) ---
+# --- 指令解析與輔助函數 (與之前版本相同) ---
 def flatten_dict(d, parent_key='', sep='.'):
     items = []
     for k, v in d.items():
@@ -58,52 +58,37 @@ def parse_and_execute_ai_commands(ai_raw_text, game_state_ref):
                     full_key_path = f"pc_data.{key}" if not key.startswith("pc_data") else key
                     if isinstance(value, (int, float)): update_data[full_key_path] = firestore.Increment(value)
                     else: update_data[full_key_path] = value
-                if update_data:
-                    game_state_ref.update(update_data)
-                    print(f"  [成功] 已執行 UPDATE_PC_DATA: {update_data}")
+                if update_data: game_state_ref.update(update_data); print(f"  [成功] 已執行 UPDATE_PC_DATA: {update_data}")
             elif command_name == "UPDATE_NPC":
                 if (npc_id := data.pop("id", None)):
                     update_data = {f'npcs.{npc_id}.{key}': value for key, value in data.items()}
-                    if update_data:
-                        game_state_ref.update(update_data)
-                        print(f"  [成功] 已執行 UPDATE_NPC: 更新了 ID 為 {npc_id} 的 NPC。")
+                    if update_data: game_state_ref.update(update_data); print(f"  [成功] 已執行 UPDATE_NPC: 更新了 ID 為 {npc_id} 的 NPC。")
             elif command_name == "UPDATE_WORLD":
                 update_data = {f'world.{key}': value for key, value in data.items()}
-                if update_data:
-                    game_state_ref.update(update_data)
-                    print(f"  [成功] 已執行 UPDATE_WORLD: 更新了世界狀態。")
+                if update_data: game_state_ref.update(update_data); print(f"  [成功] 已執行 UPDATE_WORLD: 更新了世界狀態。")
             elif command_name == "CREATE_NPC":
                 if (npc_id := data.get("id")):
-                    game_state_ref.update({f'npcs.{npc_id}': data})
-                    print(f"  [成功] 已執行 CREATE_NPC: 創建了 ID 為 {npc_id} 的 NPC。")
+                    game_state_ref.update({f'npcs.{npc_id}': data}); print(f"  [成功] 已執行 CREATE_NPC: 創建了 ID 為 {npc_id} 的 NPC。")
             elif command_name == "CREATE_LOCATION":
                 if (loc_id := data.get("id")):
-                    game_state_ref.update({f'locations.{loc_id}': data})
-                    print(f"  [成功] 已執行 CREATE_LOCATION: 創建了 ID 為 {loc_id} 的地點。")
+                    game_state_ref.update({f'locations.{loc_id}': data}); print(f"  [成功] 已執行 CREATE_LOCATION: 創建了 ID 為 {loc_id} 的地點。")
             elif command_name == "ADD_ITEM":
                 if "name" in data and "id" in data:
-                    game_state_ref.update({'pc_data.inventory.carried': firestore.ArrayUnion([data])})
-                    print(f"  [成功] 已執行 ADD_ITEM: 將物品 {data['name']} 加入背包。")
+                    game_state_ref.update({'pc_data.inventory.carried': firestore.ArrayUnion([data])}); print(f"  [成功] 已執行 ADD_ITEM: 將物品 {data['name']} 加入背包。")
         except Exception as e:
             print(f"  [失敗] 執行指令 {command_name} 時發生錯誤: {e}")
     cleaned_text = re.sub(command_pattern, '', ai_raw_text, flags=re.DOTALL).strip()
     return cleaned_text
 
-# --- 【核心修改】讓實體解析器能識別中文標籤 ---
 def parse_narrative_entities(narrative_text, current_state):
-    # 擴充正則表達式，使其能識別中文和英文標籤
     entity_pattern = r'<(人物|物品|地點|npc|item|location)\s+id="([^"]+)">([^<]+)</\1>'
-    # 建立一個中英文標籤映射表
     tag_map = {'人物': 'npc', '物品': 'item', '地點': 'location', 'npc': 'npc', 'item': 'item', 'location': 'location'}
-    
     parts, last_end = [], 0
     for match in re.finditer(entity_pattern, narrative_text):
         start, end = match.span()
         if start > last_end: parts.append({"type": "text", "content": narrative_text[last_end:start]})
-        
         raw_tag_type, entity_id, entity_text = match.groups()
-        entity_type = tag_map.get(raw_tag_type, 'text') # 將中文標籤轉換為標準英文類型
-        
+        entity_type = tag_map.get(raw_tag_type, 'text')
         entity_obj = {"type": entity_type, "id": entity_id, "text": entity_text, "color_class": f"text-entity-{entity_type}"}
         if entity_type == 'npc':
             friendliness = current_state.get("npcs", {}).get(entity_id, {}).get("relationship", {}).get("friendliness", 0)
@@ -116,7 +101,7 @@ def parse_narrative_entities(narrative_text, current_state):
 
 @app.route('/')
 def index():
-    return "文字江湖遊戲後端 v2.12 已啟動！(上下文連貫性強化)"
+    return "文字江湖遊戲後端 v2.13 已啟動！(日夜主題支持)"
 
 # ... 其他路由 (register, login, get_entity_info, get_summary) 與上一版完全相同，此處省略 ...
 @app.route('/api/register', methods=['POST'])
@@ -137,7 +122,7 @@ def register():
         personality = data.get('personality', 'neutral')
         initial_morality = {'justice': 40.0, 'neutral': 0.0, 'evil': -40.0}.get(personality, 0.0)
         initial_narrative_log = [ f"你為自己取了個字號，名喚「{nickname}」。", "在這個風雨飄搖的江湖，你決定以「" + {'justice': '行俠仗義，乃我輩本分。', 'neutral': '人不犯我，我不犯人。', 'evil': '順我者昌，逆我者亡。'}.get(personality, '') + "」作為你的人生信條。", "一切的傳奇，都將從這個決定開始。" ]
-        initial_world_state = { "metadata": { "round": 0, "game_timestamp": "第一天 辰時" }, "pc_data": { "basic_info": { "name": nickname, "height": data.get('height'), "weight": data.get('weight'), "gender": data.get('gender'), "personality_trait": personality }, "core_status": { "hp": {"current": 100, "max": 100}, "mp": {"current": 50, "max": 50}, "sta": {"current": 100, "max": 100}, "san": {"current": 100, "max": 100}, "hunger": {"current": 20, "max": 100}, "thirst": {"current": 20, "max": 100}, "fatigue": {"current": 0, "max": 100} }, "reputation_and_alignment": { "morality_alignment": {"value": initial_morality, "level": "初始"} }, "skills": {"learned": [], "potential": []}, "inventory": {"carried": [], "stashed": []} }, "world": { "player_current_location_name": "無名小村 - 村口", "player_current_location_id": "nameless_village_entrance" }, "narrative_log": initial_narrative_log, "npcs": {}, "locations": {"nameless_village_entrance": {"id": "nameless_village_entrance", "name": "無名小村 - 村口", "description": "一個樸實無華的小村落入口，鋪著青石板路，旁邊有一棵老槐樹。"}}, "tracking": {"active_clues": [], "active_rumors": []} }
+        initial_world_state = { "metadata": { "round": 0, "game_timestamp": "第一天 辰時" }, "pc_data": { "basic_info": { "name": nickname, "height": data.get('height'), "weight": data.get('weight'), "gender": data.get('gender'), "personality_trait": personality }, "core_status": { "hp": {"current": 100, "max": 100}, "mp": {"current": 50, "max": 50}, "sta": {"current": 100, "max": 100}, "san": {"current": 100, "max": 100}, "hunger": {"current": 20, "max": 100}, "thirst": {"current": 20, "max": 100}, "fatigue": {"current": 0, "max": 100} }, "reputation_and_alignment": { "morality_alignment": {"value": initial_morality, "level": "初始"} }, "skills": {"learned": [], "potential": []}, "inventory": {"carried": [], "stashed": []} }, "world": { "player_current_location_name": "無名小村 - 村口", "player_current_location_id": "nameless_village_entrance", "weather": "晴", "temperature": 28, "humidity": 70 }, "narrative_log": initial_narrative_log, "npcs": {}, "locations": {"nameless_village_entrance": {"id": "nameless_village_entrance", "name": "無名小村 - 村口", "description": "一個樸實無華的小村落入口，鋪著青石板路，旁邊有一棵老槐樹。"}}, "tracking": {"active_clues": [], "active_rumors": []} }
         game_state_ref.set(initial_world_state)
         return jsonify({"message": "角色創建成功！", "session_id": session_id}), 201
     except Exception as e: return jsonify({"error": f"註冊失敗: {str(e)}"}), 500
@@ -203,7 +188,6 @@ def generate_turn():
         session_id, player_action = data.get('session_id'), data.get('player_action')
         game_state_ref = db.collection('game_sessions').document(session_id)
         current_state = game_state_ref.get().to_dict()
-
         if player_action and player_action.get('id') == 'START':
             options_text = ("\n\n你心念一定，決定...\n<options>\nA. 先檢查一下自身狀況。\nB. 探索一下這個地方。\nC. 靜觀其變，等待機會。\n</options>")
             return jsonify({"narrative": [{"type": "text", "content": options_text}], "state": current_state})
@@ -211,30 +195,27 @@ def generate_turn():
         # --- 【核心修改】重構 Prompt，使其更簡潔、更具指導性 ---
         pc_info = current_state.get('pc_data', {}).get('basic_info', {})
         world_info = current_state.get('world', {})
-        # 提取最近的5條日誌作為短期記憶
         recent_log = "\n".join(current_state.get("narrative_log", [])[-5:])
         
-        # 構造簡潔的上下文摘要
         context_summary = f"""
         [當前情境摘要]
-        玩家姓名: {pc_info.get('name', '你')}
-        目前地點: {world_info.get('player_current_location_name', '未知')}
+        玩家: {pc_info.get('name', '你')}
+        地點: {world_info.get('player_current_location_name', '未知')}
+        天氣: {world_info.get('weather', '未知')}，溫度約 {world_info.get('temperature', 25)} 度，濕度約 {world_info.get('humidity', 60)}%
         最近發生的事:
         {recent_log}
         """
 
         prompt_text = f"""
         你是一位頂尖的武俠小說家兼遊戲世界主持人(GM)。
-        
         【極重要規則】
-        1. 你的【首要任務】是根據[玩家的行動]來推進劇情，確保敘事連貫，絕對不要憑空捏造與玩家行動無關的場景。
-        2. 你的回應必須是金庸武俠風格。
-        3. 當劇情需要創建或更新數據時，【必須】使用對應的指令標籤 `[COMMAND: {{...}}]`。
-        4. 當劇情文字中提到關鍵實體時，【必須】用 `<類型 id="ID">名稱</類型>` 標籤包裹。類型可以是 `npc`, `item`, `location` 或中文 `人物`, `物品`, `地點`。
-        5. 劇情最後【必須】提供剛好 3 個合理的行動選項，並用 `<options>` 標籤包裹。選項必須以 A. B. C. 作為開頭。
+        1. 你的【首要任務】是根據[玩家的行動]來推進劇情，確保敘事連貫，【絕對禁止】憑空捏造與玩家行動無關的場景。
+        2. 如果你在劇情中提到任何實體(人物/物品/地點)，你【必須】使用 `<類型 id="ID">名稱</類型>` 標籤包裹它，並且【必須】在劇情後緊跟對應的 `[CREATE_...` 或 `[UPDATE_...` 指令。絕不允許只使用標籤而不操作數據。
+        3. 創建NPC的JSON中，`name`是稱號/身份(如'小乞丐')，`alias`是可選的暱稱/姓名(如'阿吉')。
+        4. 如果天氣發生變化，【必須】使用 `[UPDATE_WORLD: {{"weather":"新天氣", "temperature":新溫度, "humidity":新濕度}}]` 來更新。
+        5. 劇情最後【必須】提供剛好 3 個合理的行動選項，並用 `<options>` 標籤包裹。
 
         {context_summary}
-
         [玩家的行動]
         > {player_action.get('text', '無')}
         """

@@ -1,5 +1,5 @@
 // 檔案: assets/js/main.js
-// 版本: 4.3 - 修正選項按鈕解析邏輯，兼容數字與字母列表
+// 版本: 4.4 - 修復 ReferenceError，還原遺失的核心函數
 
 // --- 設定與 API URL (無變動) ---
 const API_BASE_URL = "https://md-server-main.onrender.com";
@@ -16,7 +16,7 @@ const actionOptionsContainer = document.getElementById('action-options');
 const promptQuestion = document.getElementById('prompt-question');
 const customActionForm = document.getElementById('custom-action-form');
 const customActionInput = document.getElementById('custom-action-input');
-const logoutBtn = document.getElementById('logout-btn-corner');
+const logoutBtn = document.getElementById('logout-btn-corner'); 
 const hpBar = document.getElementById('hp-bar'), mpBar = document.getElementById('mp-bar');
 const hpText = document.getElementById('hp-text'), mpText = document.getElementById('mp-text');
 const mobileTime = document.getElementById('game-time-clock-mobile');
@@ -47,61 +47,25 @@ let latestGameState = {};
 
 // --- 核心功能函數 ---
 
-function showLoading(text) {
-    if (loadingOverlay) { loadingText.textContent = text; loadingOverlay.classList.remove('hidden'); }
-}
-function hideLoading() {
-    if (loadingOverlay) { loadingOverlay.classList.add('hidden'); }
-}
-function setThemeByGameTime(gameTimestamp) {
-    if (!gameTimestamp) return;
-    const match = gameTimestamp.match(/([子丑寅卯辰巳午未申酉戌亥])時/);
-    if (!match) return;
-    const hourChar = match[1];
-    const nightHours = ['戌', '亥', '子', '丑', '寅'];
-    if (nightHours.includes(hourChar)) { document.body.classList.remove('theme-light'); } 
-    else { document.body.classList.add('theme-light'); }
-}
-function getReadableTime(gameTimestamp) {
-    if (!gameTimestamp) return { full: "---", short: "--時--刻", readable: "" };
-    const timePart = gameTimestamp.split(' ')[1] || '';
-    const hourMap = { '子': '23:00-01:00', '丑': '01:00-03:00', '寅': '03:00-05:00', '卯': '05:00-07:00', '辰': '07:00-09:00', '巳': '09:00-11:00', '午': '11:00-13:00', '未': '13:00-15:00', '申': '15:00-17:00', '酉': '17:00-19:00', '戌': '19:00-21:00', '亥': '21:00-23:00' };
-    const keMap = { '初刻': 0, '一刻': 15, '二刻': 30, '三刻': 45 };
-    const hourMatch = timePart.match(/([子丑寅卯辰巳午未申酉戌亥])時/);
-    const keMatch = timePart.match(/(初刻|一刻|二刻|三刻)/);
-    let readable = "";
-    if (hourMatch) {
-        const startHour = parseInt(hourMap[hourMatch[1]].split('-')[0], 10);
-        let approximateMinute = keMatch ? keMap[keMatch[1]] : 0;
-        const totalMinutes = startHour * 60 + approximateMinute;
-        const displayHour = String(Math.floor(totalMinutes / 60) % 24).padStart(2, '0');
-        const displayMinute = String(totalMinutes % 60).padStart(2, '0');
-        readable = `(約 ${displayHour}:${displayMinute})`;
-    }
-    return { full: gameTimestamp, short: timePart || "--時--刻", readable: readable };
-}
+function showLoading(text) { if (loadingOverlay) { loadingText.textContent = text; loadingOverlay.classList.remove('hidden'); } }
+function hideLoading() { if (loadingOverlay) { loadingOverlay.classList.add('hidden'); } }
+function setThemeByGameTime(gameTimestamp) { if (!gameTimestamp) return; const match = gameTimestamp.match(/([子丑寅卯辰巳午未申酉戌亥])時/); if (!match) return; const hourChar = match[1]; const nightHours = ['戌', '亥', '子', '丑', '寅']; if (nightHours.includes(hourChar)) { document.body.classList.remove('theme-light'); } else { document.body.classList.add('theme-light'); } }
+function getReadableTime(gameTimestamp) { if (!gameTimestamp) return { full: "---", short: "--時--刻", readable: "" }; const timePart = gameTimestamp.split(' ')[1] || ''; const hourMap = { '子': '23:00-01:00', '丑': '01:00-03:00', '寅': '03:00-05:00', '卯': '05:00-07:00', '辰': '07:00-09:00', '巳': '09:00-11:00', '午': '11:00-13:00', '未': '13:00-15:00', '申': '15:00-17:00', '酉': '17:00-19:00', '戌': '19:00-21:00', '亥': '21:00-23:00' }; const keMap = { '初刻': 0, '一刻': 15, '二刻': 30, '三刻': 45 }; const hourMatch = timePart.match(/([子丑寅卯辰巳午未申酉戌亥])時/); const keMatch = timePart.match(/(初刻|一刻|二刻|三刻)/); let readable = ""; if (hourMatch) { const startHour = parseInt(hourMap[hourMatch[1]].split('-')[0], 10); let approximateMinute = keMatch ? keMap[keMatch[1]] : 0; const totalMinutes = startHour * 60 + approximateMinute; const displayHour = String(Math.floor(totalMinutes / 60) % 24).padStart(2, '0'); const displayMinute = String(totalMinutes % 60).padStart(2, '0'); readable = `(約 ${displayHour}:${displayMinute})`; } return { full: gameTimestamp, short: timePart || "--時--刻", readable: readable }; }
 
-// 【核心修改】updateUI 函數
 function updateUI(data, isFromCache = false) {
     if (data.state) latestGameState = data.state;
     if (!isFromCache) { sessionStorage.setItem('cachedGameState', JSON.stringify(data)); }
-
     const { narrative, state } = data;
     const { pc_data = {}, world = {}, metadata = {}, npcs = {}, locations = {} } = state;
     const { core_status = {}, basic_info = {} } = pc_data;
     const gameTimestamp = metadata?.game_timestamp;
-
     setThemeByGameTime(gameTimestamp);
     const timeInfo = getReadableTime(gameTimestamp);
-    
-    // --- 更新UI元素 (無變動) ---
-    // (此處省略未變動的UI更新代碼以保持簡潔)
     const hpPercent = (core_status.hp?.current / core_status.hp?.max) * 100 || 0;
     const mpPercent = (core_status.mp?.current / core_status.mp?.max) * 100 || 0;
     const weatherEmojiMap = { "晴": "☀️", "陰": "☁️", "雨": "🌧️", "雪": "❄️", "霧": "🌫️" };
     const weatherEmoji = weatherEmojiMap[world.weather] || '';
-    if(hpBar) hpBar.style.width = `${hpPercent}%`;
-    if(mpBar) mpBar.style.width = `${mpPercent}%`;
+    if(hpBar) hpBar.style.width = `${hpPercent}%`; if(mpBar) mpBar.style.width = `${mpPercent}%`;
     if(hpText) hpText.textContent = `${core_status.hp?.current ?? '--'}/${core_status.hp?.max ?? '--'}`;
     if(mpText) mpText.textContent = `${core_status.mp?.current ?? '--'}/${core_status.mp?.max ?? '--'}`;
     if(mobileTime) mobileTime.textContent = timeInfo.short;
@@ -115,20 +79,7 @@ function updateUI(data, isFromCache = false) {
     if(sidePlayerName) sidePlayerName.textContent = basic_info.name ?? '---';
     if(sidePlayerHp) sidePlayerHp.textContent = `${core_status.hp?.current ?? '--'}/${core_status.hp?.max ?? '--'}`;
     if(sidePlayerMp) sidePlayerMp.textContent = `${core_status.mp?.current ?? '--'}/${core_status.mp?.max ?? '--'}`;
-    if(sideSceneCharactersList){
-        const playerLocationId = world.player_current_location_id;
-        const charactersInScene = Object.values(npcs).filter(npc => npc.current_location_id === playerLocationId);
-        sideSceneCharactersList.innerHTML = '';
-        if (charactersInScene.length > 0) {
-            charactersInScene.forEach(npc => {
-                const li = document.createElement('li');
-                li.className = 'narrative-entity text-entity-npc';
-                li.dataset.entityId = npc.id; li.dataset.entityType = 'npc';
-                li.textContent = npc.alias || npc.name; 
-                sideSceneCharactersList.appendChild(li);
-            });
-        } else { sideSceneCharactersList.innerHTML = '<li>此地似乎空無一人。</li>'; }
-    }
+    if(sideSceneCharactersList){ const playerLocationId = world.player_current_location_id; const charactersInScene = Object.values(npcs).filter(npc => npc.current_location_id === playerLocationId); sideSceneCharactersList.innerHTML = ''; if (charactersInScene.length > 0) { charactersInScene.forEach(npc => { const li = document.createElement('li'); li.className = 'narrative-entity text-entity-npc'; li.dataset.entityId = npc.id; li.dataset.entityType = 'npc'; li.textContent = npc.alias || npc.name; sideSceneCharactersList.appendChild(li); }); } else { sideSceneCharactersList.innerHTML = '<li>此地似乎空無一人。</li>'; } }
     const currentLocation = locations[world.player_current_location_id] || {};
     if (sceneDesc) sceneDesc.textContent = currentLocation.description || "探索中...";
     if (sceneSize) sceneSize.textContent = currentLocation.size || "未知";
@@ -137,98 +88,58 @@ function updateUI(data, isFromCache = false) {
     if (sceneSpecialty) sceneSpecialty.textContent = currentLocation.specialty || "未知";
     if (sceneFaction) sceneFaction.textContent = currentLocation.faction || "未知";
     if (sceneReligion) sceneReligion.textContent = currentLocation.religion || "未知";
-    // --- UI更新結束 ---
 
     if (!isFromCache) {
         const optionsRegex = /<options>([\s\S]*?)<\/options>/;
-        let optionsContent = '';
-        let narrativeHtml = "";
-
+        let optionsContent = ''; let narrativeHtml = "";
         (narrative || []).forEach(part => {
             if (!part.content) return;
             if (part.type === 'text') {
                 let processedContent = part.content.replace(/\n/g, '<br>');
-                if (optionsRegex.test(processedContent)) {
-                    optionsContent = processedContent.match(optionsRegex)[1].trim();
-                    processedContent = processedContent.replace(optionsRegex, '').trim();
-                }
+                if (optionsRegex.test(processedContent)) { optionsContent = processedContent.match(optionsRegex)[1].trim(); processedContent = processedContent.replace(optionsRegex, '').trim(); }
                 narrativeHtml += processedContent;
-            } else {
-                narrativeHtml += `<span class="narrative-entity ${part.color_class || ''}" data-entity-id="${part.id}" data-entity-type="${part.type}">${part.text}</span>`;
-            }
+            } else { narrativeHtml += `<span class="narrative-entity ${part.color_class || ''}" data-entity-id="${part.id}" data-entity-type="${part.type}">${part.text}</span>`; }
         });
-
-        if (narrativeHtml.trim()) {
-            const p = document.createElement('p');
-p.innerHTML = narrativeHtml;
-narrativeLog.appendChild(p);
-        }
-        
+        if (narrativeHtml.trim()) { const p = document.createElement('p'); p.innerHTML = narrativeHtml; narrativeLog.appendChild(p); }
         actionOptionsContainer.innerHTML = '';
         if (optionsContent) {
-            promptQuestion.style.display = 'block';
-            customActionForm.style.display = 'flex';
+            promptQuestion.style.display = 'block'; customActionForm.style.display = 'flex';
             promptQuestion.textContent = "接下來你打算？";
-
-            // 【修改】使用更靈活的正規表示式來解析選項
             const optionLineRegex = /^(?:[A-Z]|\d+)\..*$/m;
             const options = optionsContent.replace(/<br>/g, '\n').split('\n').filter(line => line.trim().match(optionLineRegex));
-
             options.forEach(opt => {
                 const match = opt.trim().match(/^(?:([A-Z])|(\d+))\.\s*(.*)/);
                 if (match) {
-                    const actionId = match[1] || match[2]; // 優先使用字母，否則用數字
-                    const textContent = match[3];
-                    
+                    const actionId = match[1] || match[2]; const textContent = match[3];
                     const button = document.createElement('button');
-                    button.dataset.actionId = actionId;
-                    button.textContent = textContent;
+                    button.dataset.actionId = actionId; button.textContent = textContent;
                     button.addEventListener('click', handleActionSelect);
                     actionOptionsContainer.appendChild(button);
                 }
             });
-        } else {
-            promptQuestion.style.display = 'none';
-            customActionForm.style.display = 'none';
-        }
+        } else { promptQuestion.style.display = 'none'; customActionForm.style.display = 'none'; }
         narrativeLog.scrollTop = narrativeLog.scrollHeight;
     }
 }
 
+// --- 【還原】核心互動函數 ---
 async function handleActionSelect(event) {
     const button = event.currentTarget;
     const actionText = button.dataset.actionId === 'CUSTOM' ? button.textContent : button.textContent;
-    
     showLoading("AI 正在運算中，請稍候...");
     actionOptionsContainer.innerHTML = '';
     promptQuestion.style.display = 'none';
     customActionForm.style.display = 'none';
-
     try {
         const response = await fetch(TURN_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                session_id: currentGameSessionId,
-                player_action: {
-                    id: button.dataset.actionId,
-                    text: actionText
-                }
-            })
+            body: JSON.stringify({ session_id: currentGameSessionId, player_action: { id: button.dataset.actionId, text: actionText } })
         });
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `HTTP 錯誤: ${response.status}`);
-        }
-
+        if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || `HTTP 錯誤: ${response.status}`); }
         const data = await response.json();
-        if (data.narrative && data.state) {
-            updateUI(data);
-        } else {
-            throw new Error("AI 回應格式不正確。");
-        }
-
+        if (data.narrative && data.state) { updateUI(data); }
+        else { throw new Error("AI 回應格式不正確。"); }
     } catch (error) {
         narrativeLog.innerHTML += `<p style="color: var(--danger-color);">與伺服器連線失敗: ${error.message}</p>`;
     } finally {
@@ -236,23 +147,56 @@ async function handleActionSelect(event) {
     }
 }
 
+function handleCustomActionSubmit(event) {
+    event.preventDefault();
+    const actionText = customActionInput.value.trim();
+    if (!actionText) return;
+    customActionInput.value = '';
+    const customButton = { dataset: { actionId: 'CUSTOM' }, textContent: actionText };
+    handleActionSelect({ currentTarget: customButton });
+}
+
+async function handleEntityClick(event) {
+    const target = event.target.closest('.narrative-entity');
+    if (!target) return;
+    const { entityId, entityType } = target.dataset;
+    if (!entityId || !entityType) return;
+    modalTitle.textContent = target.textContent;
+    modalBody.innerHTML = '<div class="loading-spinner"></div><p>正在查詢資料...</p>';
+    modal.classList.remove('hidden');
+    try {
+        const response = await fetch(ENTITY_INFO_URL, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: currentGameSessionId, entity_id: entityId, entity_type: entityType }),
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) { throw new Error(result.error || "查詢失敗"); }
+        const entityData = result.data;
+        modalTitle.textContent = entityData.alias || entityData.name || target.textContent;
+        let contentHtml = '<div class="info-grid">';
+        if (entityType === 'npc') {
+            if (entityData.name) contentHtml += `<strong>稱號:</strong><span>${entityData.name}</span>`;
+            if (entityData.alias) contentHtml += `<strong>姓名:</strong><span>${entityData.alias}</span>`;
+            if (entityData.mood) contentHtml += `<strong>心情:</strong><span>${entityData.mood}</span>`;
+        } else if (entityType === 'item') {
+            contentHtml += `<strong>名稱:</strong><span>${entityData.name || '未知'}</span>`;
+            if (entityData.type) contentHtml += `<strong>類型:</strong><span>${entityData.type}</span>`;
+        }
+        contentHtml += '</div>';
+        if (entityData.description) { contentHtml += `<p class="description-text">"${entityData.description}"</p>`; }
+        modalBody.innerHTML = contentHtml;
+    } catch (error) {
+        modalBody.innerHTML = `<p style="color: var(--danger-color);">查詢失敗: ${error.message}</p>`;
+    }
+}
 
 function handleModalClose() { modal.classList.add('hidden'); }
 function handleLogout() { if (confirm("確定要退出江湖，返回登入畫面嗎？")) { localStorage.removeItem('game_session_id'); sessionStorage.removeItem('cachedGameState'); window.location.href = 'login.html'; } }
-function toggleCollapse(event) {
-    const title = event.currentTarget;
-    const content = title.nextElementSibling;
-    if (content && content.classList.contains('collapsible-content')) { title.classList.toggle('collapsed'); content.classList.toggle('collapsed'); }
-}
-function handleCustomActionSubmit(event) { /* ... (無變動) ... */ }
-async function handleEntityClick(event) { /* ... (無變動) ... */ }
-
+function toggleCollapse(event) { const title = event.currentTarget; const content = title.nextElementSibling; if (content && content.classList.contains('collapsible-content')) { title.classList.toggle('collapsed'); content.classList.toggle('collapsed'); } }
 
 // --- 遊戲初始化函數 (無變動) ---
 async function initializeGame() {
     if (!currentGameSessionId) { window.location.href = 'login.html'; return; }
-
-    // --- 事件監聽 ---
     customActionForm.addEventListener('submit', handleCustomActionSubmit);
     narrativeLog.addEventListener('click', handleEntityClick);
     modalCloseBtn.addEventListener('click', handleModalClose);
@@ -271,8 +215,6 @@ async function initializeGame() {
     if(contactsBtn) contactsBtn.addEventListener('click', () => alert('「人脈」功能開發中...'));
     if(attributesBtn) attributesBtn.addEventListener('click', () => alert('「數值」功能開發中...'));
     if(inventoryBtn) inventoryBtn.addEventListener('click', () => alert('「行囊」功能開發中...'));
-
-    // --- 頁面載入邏輯 (包含快取檢查) ---
     const cachedData = sessionStorage.getItem('cachedGameState');
     if (cachedData) {
         try {
@@ -280,37 +222,25 @@ async function initializeGame() {
             narrativeLog.innerHTML = parsedData.state?.narrative_log?.map(line => `<p>${line.replace(/\n/g, '<br>')}</p>`).join('') || '';
             updateUI(parsedData, true);
             narrativeLog.scrollTop = narrativeLog.scrollHeight;
-        } catch (e) {
-            console.error("解析快取失敗:", e);
-            sessionStorage.removeItem('cachedGameState');
-        }
+        } catch (e) { console.error("解析快取失敗:", e); sessionStorage.removeItem('cachedGameState'); }
     }
-    
-    if (!cachedData) {
-        showLoading("正在載入您的江湖傳說...");
-        narrativeLog.innerHTML = `<p style="color: var(--text-secondary)">正在連接伺服器...</p>`;
-    }
-    
+    if (!cachedData) { showLoading("正在載入您的江湖傳說..."); narrativeLog.innerHTML = `<p style="color: var(--text-secondary)">正在連接伺服器...</p>`; }
     try {
         const isFirstLoad = !cachedData;
         const playerAction = isFirstLoad ? { id: 'START', text: '繼續旅程' } : { id: 'REFRESH', text: '刷新頁面' };
-        
         if (isFirstLoad) {
             const summaryResponse = await fetch(SUMMARY_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: currentGameSessionId }) });
             const summaryResult = await summaryResponse.json();
             if (!summaryResponse.ok) throw new Error(summaryResult.error || "獲取前情提要失敗");
             const summaryP = document.createElement('p');
-            summaryP.style.fontStyle = 'italic';
-            summaryP.style.color = 'var(--text-secondary)';
+            summaryP.style.fontStyle = 'italic'; summaryP.style.color = 'var(--text-secondary)';
             summaryP.innerHTML = summaryResult.summary.replace(/\n/g, '<br>');
             narrativeLog.innerHTML = '';
             narrativeLog.appendChild(summaryP);
         }
-
         const turnResponse = await fetch(TURN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: currentGameSessionId, player_action: playerAction }) });
         const turnResult = await turnResponse.json();
         if (!turnResponse.ok) throw new Error(turnResult.error || "獲取回合數據失敗");
-        
         if (isFirstLoad) { updateUI(turnResult); } 
         else {
             latestGameState = turnResult.state;

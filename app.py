@@ -1,5 +1,5 @@
 # 檔名: app.py
-# 版本: 2.14 - 導入「平民崛起」核心，重塑AI敘事與開局狀態
+# 版本: 2.15 - 修正 get_summary 崩潰問題，增加存檔校驗
 
 import os
 import json
@@ -99,11 +99,11 @@ def parse_narrative_entities(narrative_text, current_state):
     if last_end < len(narrative_text): parts.append({"type": "text", "content": narrative_text[last_end:]})
     return parts if parts else [{"type": "text", "content": narrative_text}]
 
+
 @app.route('/')
 def index():
-    return "文字江湖遊戲後端 v2.14 已啟動！(平民崛起模式)"
+    return "文字江湖遊戲後端 v2.15 已啟動！(平民崛起模式)"
 
-# 【核心修改】註冊函數
 @app.route('/api/register', methods=['POST'])
 def register():
     if not db: return jsonify({"error": "資料庫服務未初始化"}), 500
@@ -123,7 +123,6 @@ def register():
         session_id = f"session_{user_id}"
         game_state_ref = db.collection('game_sessions').document(session_id)
         
-        # 新的初始日誌，強調平民開局
         initial_narrative_log = [
             f"你為自己取了個字號，名喚「{nickname}」。",
             "你在一陣劇痛中醒來，發現自己身處一個全然陌生的古裝世界。",
@@ -131,35 +130,15 @@ def register():
             "但這副身體卻虛弱無比，手無縛雞之力。當務之急，是如何在這地方活下去。"
         ]
 
-        # 新的初始世界狀態，包含預留的數值系統
         initial_world_state = {
-            "metadata": {
-                "round": 0,
-                "game_timestamp": "第一天 辰時"
-            },
+            "metadata": { "round": 0, "game_timestamp": "第一天 辰時" },
             "pc_data": {
                 "basic_info": { "name": nickname, "height": data.get('height'), "weight": data.get('weight'), "gender": data.get('gender') },
                 "core_status": { "hp": {"current": 80, "max": 80}, "mp": {"current": 10, "max": 10}, "sta": {"current": 100, "max": 100}, "san": {"current": 100, "max": 100}, "hunger": {"current": 20, "max": 100}, "thirst": {"current": 20, "max": 100}, "fatigue": {"current": 0, "max": 100} },
                 "reputation_and_alignment": { "morality_alignment": {"value": 0.0, "level": "初始"} },
                 "inventory": {"carried": [], "stashed": []},
-                
-                # --- 為未來數值系統預留的結構 ---
-                "attributes": {
-                    "str": 5, # 蠻力 (Brute Force)
-                    "agi": 5, # 速度 (Speed)
-                    "int": 8, # 智力 (Intelligence)
-                    "cha": 6, # 魅力 (Charisma)
-                    "lck": 7, # 幸運 (Luck)
-                    "wux": 10 # 悟性 (Comprehension) - 因現代知識而較高
-                },
-                "proficiencies": {
-                    "fist": {"level": 0, "exp": 0},      # 拳頭
-                    "blade": {"level": 0, "exp": 0},     # 刀
-                    "sword": {"level": 0, "exp": 0},     # 劍
-                    "hammer": {"level": 0, "exp": 0},    # 槌
-                    "hidden_weapon": {"level": 0, "exp": 0} # 暗器
-                }
-                # ------------------------------------
+                "attributes": { "str": 5, "agi": 5, "int": 8, "cha": 6, "lck": 7, "wux": 10 },
+                "proficiencies": { "fist": {"level": 0, "exp": 0}, "blade": {"level": 0, "exp": 0}, "sword": {"level": 0, "exp": 0}, "hammer": {"level": 0, "exp": 0}, "hidden_weapon": {"level": 0, "exp": 0} }
             },
             "world": { "player_current_location_name": "無名小村 - 破舊的茅草屋", "player_current_location_id": "nameless_village_hut", "weather": "晴", "temperature": 22, "humidity": 65 },
             "narrative_log": initial_narrative_log,
@@ -203,6 +182,7 @@ def get_entity_info():
         return jsonify({"success": True, "data": entity_data}), 200
     except Exception as e: return jsonify({"error": f"伺服器內部發生未知錯誤: {str(e)}"}), 500
     
+# 【核心修改】獲取前情提要函數
 @app.route('/api/get_summary', methods=['POST'])
 def get_summary():
     if not db or not DEEPSEEK_API_KEY:
@@ -211,9 +191,20 @@ def get_summary():
         data = request.get_json()
         session_id = data.get('session_id')
         if not session_id: return jsonify({"error": "請求缺少 session_id。"}), 400
-        game_state = db.collection('game_sessions').document(session_id).get().to_dict()
+        
+        game_state_doc = db.collection('game_sessions').document(session_id).get()
+        
+        # 【新增】保護性檢查
+        if not game_state_doc.exists:
+            print(f"警告：在 get_summary 中找不到 Session ID 為 {session_id} 的遊戲存檔。")
+            return jsonify({"error": f"找不到 Session ID 為 {session_id} 的遊戲存檔。"}), 404
+            
+        game_state = game_state_doc.to_dict()
         narrative_log = game_state.get("narrative_log", [])
-        if len(narrative_log) <= 4: return jsonify({"summary": "你從昏沉中醒來，在這個陌生的世界裡，一切才剛剛開始..."})
+        
+        if len(narrative_log) <= 4: 
+            return jsonify({"summary": "你從昏沉中醒來，在這個陌生的世界裡，一切才剛剛開始..."})
+            
         log_text = "\n".join(narrative_log)
         prompt_text = f"""你是一位技藝高超的說書先生。請閱讀以下這段凌亂的江湖日誌，並將其起承轉合梳理成一段引人入勝的「前情提要」。【規則】1. 風格必須是小說旁白，充滿懸念和江湖氣息。2. 必須總結玩家的關鍵行動和處境。3. 最後要對玩家接下來可能的行動方向給出建議。4. 總字數【嚴格限制】在 300 字以內。[江湖日誌]\n{log_text}"""
         headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"}
@@ -222,9 +213,10 @@ def get_summary():
         response.raise_for_status()
         summary_text = response.json()['choices'][0]['message']['content']
         return jsonify({"summary": summary_text})
-    except Exception as e: return jsonify({"error": f"生成前情提要時發生錯誤: {str(e)}"}), 500
+    except Exception as e: 
+        print(f"生成前情提要時發生嚴重錯誤: {str(e)}")
+        return jsonify({"error": f"生成前情提要時發生錯誤: {str(e)}"}), 500
 
-# 【核心修改】遊戲回合生成函數
 @app.route('/api/generate_turn', methods=['POST'])
 def generate_turn():
     if not db or not DEEPSEEK_API_KEY:
@@ -235,6 +227,9 @@ def generate_turn():
         game_state_ref = db.collection('game_sessions').document(session_id)
         current_state = game_state_ref.get().to_dict()
         
+        if not current_state:
+             return jsonify({"error": f"找不到 Session ID 為 {session_id} 的遊戲存檔，無法生成回合。"}), 404
+
         if player_action and player_action.get('id') == 'START':
             options_text = ("\n\n你環顧四周，決定...\n<options>\nA. 檢查一下這副虛弱的身體狀況。\nB. 走出茅草屋，探索一下周遭環境。\nC. 靜下心來，仔細梳理腦中混亂的記憶。\n</options>")
             return jsonify({"narrative": [{"type": "text", "content": options_text}], "state": current_state})
@@ -251,12 +246,10 @@ def generate_turn():
         最近發生的事: {recent_log}
         """
 
-        # 全新的AI核心指令
         prompt_text = f"""
         你是一個頂級的真實人生模擬器，專門描寫小人物在古代世界的奮鬥史。
         【核心世界觀】
         玩家是一個擁有21世紀現代知識的普通人，穿越到了一個類似中國古代的架空世界，附身在一個極其虛弱的平民少年身上。他的旅程核心是【生存】與【成長】，而非開場就是英雄。
-
         【敘事規則】
         1.  **平民視角**: 你的敘事【必須】從一個普通人的視角出發。他會餓、會渴、會累、會生病。他不懂武功，也沒有內力。他的首要目標是弄清楚狀況，找到食物和水，確保自己的安全。
         2.  **放緩節奏**: 劇情推進【必須】緩慢且合乎邏輯。專注於細節描寫，例如環境的氣味、身體的感受、與普通村民的互動。不要有任何突然的、都合主義的劇情跳躍。
@@ -269,12 +262,10 @@ def generate_turn():
             * 知識/分析/推理: `[智力判定]`
             * 武學/技能相關: `[基礎拳法判定]`, `[基礎劍法判定]` 等。
             * 例如: "你試圖搬開堵住門口的木箱 `[蠻力檢定]`，但它紋絲不動。" 或 "你回想著化學知識，思考著如何制取純鹼 `[智力判定]` `[悟性判定]`。"
-
         【AI數據指令規則】
         * 你【必須】使用 `<類型 id="ID">名稱</類型>` 標籤包裹所有實體。
         * 你【必須】在劇情後用 `[COMMAND: {{...}}]` 來更新數據。
         * 劇情最後【必須】提供剛好 3 個符合當前平民處境的、合理的行動選項，並用 `<options>` 標籤包裹。
-
         {context_summary}
         [玩家的行動]
         > {player_action.get('text', '無')}

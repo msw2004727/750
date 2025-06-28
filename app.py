@@ -1,5 +1,5 @@
 # 檔名: app.py
-# 版本: 2.9 - 採用全新指令解析器，徹底修復指令洩漏BUG
+# 版本: 2.10 - 修復實體創建指令偶發性失敗的BUG
 
 import os
 import json
@@ -43,26 +43,26 @@ def flatten_dict(d, parent_key='', sep='.'):
             items.append((new_key, v))
     return dict(items)
 
-# --- 【核心修改】重寫為更穩健的指令解析與執行函數 ---
+# --- 【核心修改】再次重寫指令解析器以提高穩定性 ---
 def parse_and_execute_ai_commands(ai_raw_text, game_state_ref):
     command_pattern = r'\[([A-Z_]+):\s*({.*?})\]'
-    text_to_clean = ai_raw_text
     
-    # 使用 while 循環來確保所有指令都被處理
-    while True:
-        match = re.search(command_pattern, text_to_clean, flags=re.DOTALL)
-        if not match:
-            break # 如果找不到更多指令，就跳出循環
+    commands_to_execute = []
+    # 第一次遍歷：僅提取所有指令
+    for match in re.finditer(command_pattern, ai_raw_text, flags=re.DOTALL):
+        commands_to_execute.append({
+            "name": match.group(1),
+            "json_str": match.group(2)
+        })
 
-        full_match_text = match.group(0)
-        command_name = match.group(1)
-        json_str = match.group(2)
-        
+    # 第二次遍歷：執行提取出的指令
+    for cmd in commands_to_execute:
+        command_name = cmd["name"]
+        json_str = cmd["json_str"]
         try:
             data = json.loads(json_str)
-            print(f"解析到指令：{command_name}, 數據: {data}")
+            print(f"準備執行指令：{command_name}, 數據: {data}")
 
-            # --- 指令處理中心 ---
             if command_name == "UPDATE_PC_DATA":
                 update_data = {}
                 flattened_data = flatten_dict(data)
@@ -74,25 +74,25 @@ def parse_and_execute_ai_commands(ai_raw_text, game_state_ref):
                         update_data[full_key_path] = value
                 if update_data:
                     game_state_ref.update(update_data)
-                    print(f"已執行 UPDATE_PC_DATA: {update_data}")
+                    print(f"  [成功] 已執行 UPDATE_PC_DATA: {update_data}")
 
             elif command_name == "CREATE_NPC":
                 if (npc_id := data.get("id")):
                     game_state_ref.update({f'npcs.{npc_id}': data})
-                    print(f"已執行 CREATE_NPC: 創建了 ID 為 {npc_id} 的 NPC。")
+                    print(f"  [成功] 已執行 CREATE_NPC: 創建了 ID 為 {npc_id} 的 NPC。")
 
             elif command_name == "ADD_ITEM":
                 if "name" in data and "id" in data:
                     game_state_ref.update({'pc_data.inventory.carried': firestore.ArrayUnion([data])})
-                    print(f"已執行 ADD_ITEM: 將物品 {data['name']} 加入背包。")
+                    print(f"  [成功] 已執行 ADD_ITEM: 將物品 {data['name']} 加入背包。")
             
         except Exception as e:
-            print(f"執行指令 {command_name} 時發生錯誤: {e}")
-            
-        # 從文本中移除剛剛處理過的這一個指令
-        text_to_clean = text_to_clean.replace(full_match_text, '', 1)
+            print(f"  [失敗] 執行指令 {command_name} 時發生錯誤: {e}")
 
-    return text_to_clean.strip()
+    # 最後一步：從原始文本中刪除所有指令標籤
+    cleaned_text = re.sub(command_pattern, '', ai_raw_text, flags=re.DOTALL).strip()
+    return cleaned_text
+
 
 def parse_narrative_entities(narrative_text, current_state):
     # ... (此函數與上一版完全相同)
@@ -101,8 +101,7 @@ def parse_narrative_entities(narrative_text, current_state):
     last_end = 0
     for match in re.finditer(entity_pattern, narrative_text):
         start, end = match.span()
-        if start > last_end:
-            parts.append({"type": "text", "content": narrative_text[last_end:start]})
+        if start > last_end: parts.append({"type": "text", "content": narrative_text[last_end:start]})
         entity_type, entity_id, entity_text = match.groups()
         entity_obj = {"type": entity_type, "id": entity_id, "text": entity_text, "color_class": f"text-entity-{entity_type}"}
         if entity_type == 'npc':
@@ -111,13 +110,12 @@ def parse_narrative_entities(narrative_text, current_state):
             elif friendliness < -50: entity_obj["color_class"] = "text-npc-hostile"
         parts.append(entity_obj)
         last_end = end
-    if last_end < len(narrative_text):
-        parts.append({"type": "text", "content": narrative_text[last_end:]})
+    if last_end < len(narrative_text): parts.append({"type": "text", "content": narrative_text[last_end:]})
     return parts if parts else [{"type": "text", "content": narrative_text}]
 
 @app.route('/')
 def index():
-    return "文字江湖遊戲後端 v2.9 已啟動！(BUG修復與三選項)"
+    return "文字江湖遊戲後端 v2.10 已啟動！(BUG修復)"
 
 # ... 其他路由 (register, login, get_entity_info, get_summary) 與上一版完全相同，此處省略 ...
 @app.route('/api/register', methods=['POST'])
@@ -137,13 +135,7 @@ def register():
         game_state_ref = db.collection('game_sessions').document(session_id)
         personality = data.get('personality', 'neutral')
         initial_morality = {'justice': 40.0, 'neutral': 0.0, 'evil': -40.0}.get(personality, 0.0)
-        initial_narrative_log = [
-            f"你為自己取了個字號，名喚「{nickname}」。",
-            "在這個風雨飄搖的江湖，你決定以「" + 
-            {'justice': '行俠仗義，乃我輩本分。', 'neutral': '人不犯我，我不犯人。', 'evil': '順我者昌，逆我者亡。'}.get(personality, '') +
-            "」作為你的人生信條。",
-            "一切的傳奇，都將從這個決定開始。"
-        ]
+        initial_narrative_log = [ f"你為自己取了個字號，名喚「{nickname}」。", "在這個風雨飄搖的江湖，你決定以「" + {'justice': '行俠仗義，乃我輩本分。', 'neutral': '人不犯我，我不犯人。', 'evil': '順我者昌，逆我者亡。'}.get(personality, '') + "」作為你的人生信條。", "一切的傳奇，都將從這個決定開始。" ]
         initial_world_state = { "metadata": { "round": 0, "game_timestamp": "第一天 辰時" }, "pc_data": { "basic_info": { "name": nickname, "height": data.get('height'), "weight": data.get('weight'), "gender": data.get('gender'), "personality_trait": personality }, "core_status": { "hp": {"current": 100, "max": 100}, "mp": {"current": 50, "max": 50}, "sta": {"current": 100, "max": 100}, "san": {"current": 100, "max": 100}, "hunger": {"current": 20, "max": 100}, "thirst": {"current": 20, "max": 100}, "fatigue": {"current": 0, "max": 100} }, "reputation_and_alignment": { "morality_alignment": {"value": initial_morality, "level": "初始"} }, "skills": {"learned": [], "potential": []}, "inventory": {"carried": [], "stashed": []} }, "world": { "player_current_location_name": "無名小村 - 村口", "in_game_time": "第一天 辰時" }, "narrative_log": initial_narrative_log, "npcs": {}, "locations": {}, "tracking": {"active_clues": [], "active_rumors": []} }
         game_state_ref.set(initial_world_state)
         return jsonify({"message": "角色創建成功！", "session_id": session_id}), 201
@@ -191,35 +183,19 @@ def get_summary():
     try:
         data = request.get_json()
         session_id = data.get('session_id')
-        if not session_id:
-            return jsonify({"error": "請求缺少 session_id。"}), 400
-        game_state_ref = db.collection('game_sessions').document(session_id)
-        game_state = game_state_ref.get().to_dict()
+        if not session_id: return jsonify({"error": "請求缺少 session_id。"}), 400
+        game_state = db.collection('game_sessions').document(session_id).get().to_dict()
         narrative_log = game_state.get("narrative_log", [])
-        if len(narrative_log) <= 3:
-            return jsonify({"summary": "書接上回，你剛踏入這個風雲變幻的江湖..."})
+        if len(narrative_log) <= 3: return jsonify({"summary": "書接上回，你剛踏入這個風雲變幻的江湖..."})
         log_text = "\n".join(narrative_log)
-        prompt_text = f"""
-        你是一位技藝高超的說書先生。請閱讀以下這段凌亂的江湖日誌，並將其起承轉合梳理成一段引人入勝的「前情提要」。
-        你的目標是幫助一位久未歸來的玩家快速回憶起劇情。
-        【規則】
-        1. 風格必須是小說旁白，充滿懸念和江湖氣息。
-        2. 必須總結玩家的關鍵行動和處境。
-        3. 最後要對玩家接下來可能的行動方向給出建議。
-        4. 總字數【嚴格限制】在 300 字以內。
-        [江湖日誌]
-        {log_text}
-        """
+        prompt_text = f"""你是一位技藝高超的說書先生。請閱讀以下這段凌亂的江湖日誌，並將其起承轉合梳理成一段引人入勝的「前情提要」。【規則】1. 風格必須是小說旁白，充滿懸念和江湖氣息。2. 必須總結玩家的關鍵行動和處境。3. 最後要對玩家接下來可能的行動方向給出建議。4. 總字數【嚴格限制】在 300 字以內。[江湖日誌]\n{log_text}"""
         headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"}
         payload = {"model": "deepseek-chat", "messages": [{"role": "system", "content": "你是一位技藝高超的說書先生，擅長總結故事並引導後續。"}, {"role": "user", "content": prompt_text}], "max_tokens": 500, "temperature": 0.7}
         response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload)
         response.raise_for_status()
         summary_text = response.json()['choices'][0]['message']['content']
         return jsonify({"summary": summary_text})
-    except Exception as e:
-        print(f"生成前情提要時發生錯誤: {e}")
-        return jsonify({"error": f"生成前情提要時發生錯誤: {str(e)}"}), 500
-
+    except Exception as e: return jsonify({"error": f"生成前情提要時發生錯誤: {str(e)}"}), 500
 
 @app.route('/api/generate_turn', methods=['POST'])
 def generate_turn():
@@ -227,56 +203,32 @@ def generate_turn():
         return jsonify({"error": "服務未就緒"}), 503
     try:
         data = request.get_json()
-        session_id = data.get('session_id')
-        player_action = data.get('player_action')
+        session_id, player_action = data.get('session_id'), data.get('player_action')
         game_state_ref = db.collection('game_sessions').document(session_id)
         game_state = game_state_ref.get()
-        if not game_state.exists:
-            return jsonify({"error": "找不到遊戲存檔"}), 404
+        if not game_state.exists: return jsonify({"error": "找不到遊戲存檔"}), 404
         current_state = game_state.to_dict()
-
         if player_action and player_action.get('id') == 'START':
-            # 我們不再在這裡生成開場白，因為前情提要功能已取代它
-            # 現在 START 只是用來獲取第一組選項
             options_text = ("\n\n你心念一定，決定...\n<options>\nA. 先檢查一下自身狀況。\nB. 探索一下這個地方。\nC. 靜觀其變，等待機會。\n</options>")
-            structured_narrative = [{"type": "text", "content": options_text}]
-            return jsonify({"narrative": structured_narrative, "state": current_state})
+            return jsonify({"narrative": [{"type": "text", "content": options_text}], "state": current_state})
 
-        prompt_text = f"""
-        你是一位頂尖的武俠小說家兼遊戲世界主持人(GM)。
-        【重要規則】
-        1. 你的回應必須是金庸武俠風格。
-        2. 如果劇情中【首次】出現關鍵NPC或物品，你【必須】使用 `[CREATE_NPC: {{...}}]` 或 `[ADD_ITEM: {{...}}]` 指令來創建數據。
-        3. 當你創建了實體，劇情中的對應名詞【必須】用 `<類型 id="ID">名稱</類型>` 標籤包裹。
-        4. 如果只是玩家狀態數值變化，使用 `[UPDATE_PC_DATA: {{...}}]` 指令。
-        5. 劇情最後【必須】提供剛好 3 個合理的行動選項，並用 `<options>` 標籤包裹。選項必須以 A. B. C. 作為開頭。
-
-        [當前玩家與世界狀態]
-        {json.dumps(current_state, indent=2, ensure_ascii=False)}
-        [玩家的行動]
-        > {player_action.get('text', '無')}
-        """
+        prompt_text = f"""你是一位頂尖的武俠小說家兼遊戲世界主持人(GM)。【重要規則】1. 你的回應必須是金庸武俠風格。2. 如果劇情中【首次】出現關鍵NPC或物品，你【必須】使用 `[CREATE_NPC: {{...}}]` 或 `[ADD_ITEM: {{...}}]` 指令來創建數據。3. 當你創建了實體，劇情中的對應名詞【必須】用 `<類型 id="ID">名稱</類型>` 標籤包裹。4. 如果只是玩家狀態數值變化，使用 `[UPDATE_PC_DATA: {{...}}]` 指令。5. 劇情最後【必須】提供剛好 3 個合理的行動選項，並用 `<options>` 標籤包裹。選項必須以 A. B. C. 作為開頭。[當前玩家與世界狀態]\n{json.dumps(current_state, indent=2, ensure_ascii=False)}\n[玩家的行動]\n> {player_action.get('text', '無')}"""
         headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"}
         payload = {"model": "deepseek-chat", "messages": [{"role": "system", "content": "你是一位頂尖的武俠小說家兼遊戲世界主持人(GM)，你需要根據規則生成劇情、數據指令和實體標籤。"}, {"role": "user", "content": prompt_text}], "max_tokens": 1500, "temperature": 0.8}
         response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload)
         response.raise_for_status()
-        ai_response = response.json()
-        ai_raw_narrative = ai_response['choices'][0]['message']['content']
+        ai_raw_narrative = response.json()['choices'][0]['message']['content']
         
         narrative_after_commands = parse_and_execute_ai_commands(ai_raw_narrative, game_state_ref)
+        
         latest_state_doc = game_state_ref.get()
-        structured_narrative = parse_narrative_entities(narrative_after_commands, latest_state_doc.to_dict())
+        latest_state = latest_state_doc.to_dict()
+        structured_narrative = parse_narrative_entities(narrative_after_commands, latest_state)
         
         plain_text_narrative = "".join([part.get("content", part.get("text", "")) for part in structured_narrative])
+        game_state_ref.update({"narrative_log": firestore.ArrayUnion([f"> {player_action.get('text', '')}", plain_text_narrative])})
         
-        game_state_ref.update({
-            "narrative_log": firestore.ArrayUnion([f"> {player_action.get('text', '')}", plain_text_narrative])
-        })
-        
-        latest_state = latest_state_doc.to_dict()
-
         return jsonify({"narrative": structured_narrative, "state": latest_state})
-
     except Exception as e:
         print(f"在 generate_turn 中發生錯誤: {e}")
         return jsonify({"error": f"伺服器內部發生未知錯誤: {str(e)}"}), 500

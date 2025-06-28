@@ -1,69 +1,316 @@
-/* 版本: 3.1 - 響應式佈局 (寬窄兩版) */
+/* 基本樣式與字體設定 */
 :root {
-    --primary-bg: #1e1e1e; --secondary-bg: #2c2c2c; --border-color: #444;
-    --text-primary: #e0e0e0; --text-secondary: #ccc; --accent-color: #87ceeb;
-    --hp-color: #e57373; --mp-color: #64b5f6;
+    --primary-bg: #1e1e1e;
+    --secondary-bg: #2c2c2c;
+    --border-color: #444;
+    --text-primary: #e0e0e0;
+    --text-secondary: #ccc;
+    --accent-color: #87ceeb;
+    --loading-color: #e0e0e0;
 }
 
-html, body {
-    height: 100%; margin: 0; overflow: hidden;
-    font-family: 'Microsoft JhengHei', '微軟正黑體', sans-serif;
+body {
+    font-family: 'Microsoft JhengHei', '微軟正黑體', 'PingFang TC', sans-serif;
+    background-color: var(--secondary-bg);
+    color: var(--text-primary);
+    margin: 0;
+    padding: 20px;
+    font-size: 16px;
+}
+
+.game-container {
+    display: flex;
+    gap: 20px;
+    max-width: 1400px;
+    margin: auto;
+    height: calc(100vh - 40px);
+}
+
+.main-panel {
+    flex: 3;
+    display: flex;
+    flex-direction: column;
     background-color: var(--primary-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
-.game-container { display: flex; height: 100%; width: 100%; }
-.main-panel { display: flex; flex-direction: column; flex-grow: 1; }
-.sidebar-panel { display: none; /* 窄版時預設隱藏 */ }
-
-/* --- 窄版佈局 (寬度 <= 800px) --- */
-@media (max-width: 800px) {
-    .main-panel { height: 100%; }
-    .top-bar { padding: 10px; background-color: var(--secondary-bg); border-bottom: 1px solid var(--border-color); }
-    .top-status-bars { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
-    .status-bar-container { display: flex; align-items: center; gap: 8px; }
-    .status-bar-label { flex-shrink: 0; width: 40px; color: var(--text-secondary); text-align: right; }
-    .status-bar-bg { flex-grow: 1; background-color: #111; border-radius: 4px; height: 18px; padding: 2px; }
-    .status-bar { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
-    .status-bar.hp { background-color: var(--hp-color); }
-    .status-bar.mp { background-color: var(--mp-color); }
-    .status-bar-text { font-size: 0.8em; color: var(--text-primary); min-width: 60px; }
-    .top-buttons { display: flex; justify-content: space-around; }
-    .top-bar-btn { background: none; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 8px 15px; border-radius: 20px; cursor: pointer; flex-grow: 1; margin: 0 5px; }
+.narrative-log {
+    flex-grow: 1;
+    padding: 20px;
+    overflow-y: auto;
+    line-height: 1.7;
 }
 
-/* --- 寬版佈局 (寬度 > 800px) --- */
-@media (min-width: 801px) {
-    .game-container { max-width: 1400px; margin: auto; padding: 20px; gap: 20px; height: calc(100% - 40px); }
-    .main-panel { background-color: var(--primary-bg); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.3); flex-basis: 70%; }
-    .top-bar { display: none; /* 寬版時隱藏頂部欄 */ }
-    .sidebar-panel { display: flex; flex-direction: column; gap: 20px; flex-basis: 30%; }
-    .info-box { background-color: var(--primary-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 15px; }
-    .info-title { margin: 0 0 10px 0; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); font-size: 1.1em; color: var(--text-primary); }
-    .info-content p { margin: 10px 0; color: var(--text-secondary); }
-    .info-content span { color: #fff; }
-    .info-list { list-style: none; padding: 0; margin: 0; }
-    .info-list li { padding: 8px 0; border-bottom: 1px solid #333; cursor: pointer; transition: color 0.2s; }
-    .info-list li:hover { color: var(--accent-color); }
-    #area-info-content p { margin: 0; font-style: italic; color: var(--text-secondary); }
+.narrative-log h3 {
+    text-align: center;
+    color: var(--accent-color);
+    margin-top: 0;
 }
 
-/* --- 通用樣式 --- */
-.narrative-log { flex-grow: 1; padding: 20px; overflow-y: auto; line-height: 1.7; color: var(--text-primary); }
 .narrative-log p { margin: 0 0 1em 0; }
-.player-prompt strong { color: var(--accent-color); }
-.input-area { flex-shrink: 0; padding: 15px; border-top: 1px solid var(--border-color); background-color: #252525; }
-#action-options button { display: flex; width: 100%; padding: 12px 20px; margin-bottom: 8px; background-color: #3a3a3a; border: 1px solid #555; border-radius: 4px; align-items: center; gap: 0.7em; cursor: pointer; }
-#custom-action-form { display: flex; gap: 10px; margin-top: 15px; }
-#custom-action-input { flex-grow: 1; background-color: #3a3a3a; border: 1px solid #555; color: var(--text-primary); border-radius: 4px; padding: 10px 15px; }
-.custom-action-container button { background-color: var(--accent-color); color: #111; border: none; padding: 0 20px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+.player-prompt strong { color: var(--accent-color); font-weight: normal; }
 
-/* 實體 & Modal 樣式 (與之前類似) */
-.narrative-entity { font-weight: bold; cursor: pointer; }
-.text-entity-npc { color: #fdd835; } .text-entity-item { color: #4fc3f7; } .text-entity-location { color: #9ccc65; }
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 1; transition: opacity 0.3s; }
-.modal-overlay.hidden { opacity: 0; pointer-events: none; }
-.modal-content { background-color: var(--primary-bg); padding: 30px; border-radius: 8px; border: 1px solid var(--border-color); width: 90%; max-width: 600px; }
-.modal-close { position: absolute; top: 10px; right: 15px; background: none; border: none; color: var(--text-secondary); font-size: 2.5em; cursor: pointer; }
-#modal-title { color: var(--accent-color); margin: 0 0 15px 0; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
-.modal-body-content .info-grid { display: grid; grid-template-columns: 100px 1fr; gap: 12px 20px; }
-.modal-body-content .info-grid strong { text-align: right; }
+.input-area {
+    padding: 20px;
+    border-top: 1px solid var(--border-color);
+    background-color: #252525;
+}
+
+#prompt-question { color: #aaa; margin: 0 0 10px 0; }
+
+#action-options button {
+    display: block;
+    width: 100%;
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    background-color: #3a3a3a;
+    color: var(--text-primary);
+    border: 1px solid #555;
+    border-radius: 4px;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+    font-size: 1em;
+}
+
+#action-options button:hover {
+    background-color: #4f4f4f;
+    border-color: var(--accent-color);
+}
+
+.sidebar-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.info-box {
+    background-color: var(--primary-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.info-title {
+    margin: 0 0 10px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 1.1em;
+    color: var(--text-primary);
+}
+
+.info-content p { margin: 10px 0; color: var(--text-secondary); }
+.info-content span { color: #fff; font-weight: normal; }
+
+#real-time-info-box .info-content p { margin: 8px 0; }
+#real-time-info-box .info-content strong { color: var(--text-secondary); min-width: 40px; display: inline-block; }
+.info-divider { border: none; border-top: 1px solid var(--border-color); margin: 8px 0; }
+
+.info-list { list-style: none; padding: 0; margin: 0; }
+.info-list li { padding: 8px 0; border-bottom: 1px solid #333; cursor: pointer; transition: color 0.2s; }
+.info-list li:last-child { border-bottom: none; }
+.info-list li:hover { color: var(--accent-color); }
+
+/* 距離樣式 */
+.distance { color: #999; font-size: 0.9em; margin-left: 8px; }
+
+/* 載入中 Spinner */
+.loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--accent-color);
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 10px auto;
+}
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* 滾動條美化 */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--secondary-bg); }
+::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #666; }
+
+/* 【本次新增】文字實體樣式 */
+.narrative-entity {
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.narrative-entity:hover {
+    text-decoration: underline;
+    filter: brightness(1.2);
+}
+
+/* 預設實體顏色 */
+.text-entity-npc { color: #fdd835; } /* 黃色 */
+.text-entity-item { color: #4fc3f7; } /* 藍色 */
+.text-entity-location { color: #9ccc65; } /* 綠色 */
+
+/* 特殊NPC顏色 (根據好感度) */
+.text-npc-friendly { color: #a5d6a7; } /* 友善 - 淡綠 */
+.text-npc-hostile { color: #ef9a9a; } /* 敵對 - 淡紅 */
+
+/* 【本次新增】彈出視窗 (Modal) 樣式 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.modal-overlay:not(.hidden) {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-content {
+    background-color: var(--primary-bg);
+    padding: 30px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    width: 90%;
+    max-width: 600px;
+    position: relative;
+    transform: scale(0.95);
+    transition: transform 0.3s ease-in-out;
+}
+
+.modal-overlay:not(.hidden) .modal-content {
+    transform: scale(1);
+}
+
+.modal-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 2.5em;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+}
+
+#modal-title {
+    color: var(--accent-color);
+    margin-top: 0;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-body-content p {
+    line-height: 1.8;
+    color: var(--text-secondary);
+}
+/* 【本次新增】Modal 內部內容的美化樣式 */
+.modal-body-content .info-grid {
+    display: grid;
+    grid-template-columns: 100px 1fr; /* 標籤和內容的寬度 */
+    gap: 12px 20px;
+}
+
+.modal-body-content .info-grid strong {
+    color: var(--text-secondary);
+    font-weight: bold;
+    text-align: right;
+}
+
+.modal-body-content .info-grid span {
+    color: var(--text-primary);
+}
+
+.modal-body-content .description-text {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    line-height: 1.8;
+    font-style: italic; /* 斜體以區分描述文字 */
+}
+
+/* 針對不同心情的特殊顏色 */
+.mood-text-positive { color: #a5d6a7; } /* 友善 - 淡綠 */
+.mood-text-negative { color: #ef9a9a; } /* 敵對 - 淡紅 */
+.mood-text-neutral { color: #fdd835; } /* 中立 - 黃色 */
+
+/* 【本次新增】自訂行動輸入框樣式 */
+.custom-action-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+#custom-action-input {
+    flex-grow: 1;
+    background-color: #3a3a3a;
+    border: 1px solid #555;
+    color: var(--text-primary);
+    border-radius: 4px;
+    padding: 10px 15px;
+    font-size: 1em;
+}
+
+#custom-action-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.custom-action-container button {
+    background-color: var(--accent-color);
+    color: #111;
+    border: none;
+    padding: 0 20px;
+    border-radius: 4px;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.custom-action-container button:hover {
+    background-color: #a0d8f5;
+}
+/* 【本次新增】行動選項按鈕美化 */
+#action-options button {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: all 0.2s ease-out;
+    display: flex; /* 為了讓 emoji 和文字對齊 */
+    align-items: center;
+    gap: 0.7em; /* emoji 和文字的間距 */
+    padding-left: 20px;
+}
+
+#action-options button:hover {
+    transform: translateY(-2px); /* 向上浮動效果 */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+/* 【本次新增】地區資訊面板樣式 */
+#area-info-content p {
+    margin: 0;
+    font-style: italic;
+    color: var(--text-secondary);
+}

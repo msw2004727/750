@@ -1,5 +1,5 @@
 # 檔名: app.py
-# 版本: 2.7 - 限制 AI 生成的選項數量為三個
+# 版本: 2.8 - 新增讀取舊存檔時生成「前情提要」的API
 
 import os
 import json
@@ -100,7 +100,7 @@ def parse_narrative_entities(narrative_text, current_state):
 
 @app.route('/')
 def index():
-    return "文字江湖遊戲後端 v2.7 已啟動！(三選項模式)"
+    return "文字江湖遊戲後端 v2.8 已啟動！(前情提要功能)"
 
 # ... 其他路由 (register, login, get_entity_info) 與上一版完全相同，此處省略以保持版面簡潔 ...
 @app.route('/api/register', methods=['POST'])
@@ -167,8 +167,60 @@ def get_entity_info():
         return jsonify({"success": True, "data": entity_data}), 200
     except Exception as e: return jsonify({"error": f"伺服器內部發生未知錯誤: {str(e)}"}), 500
 
+# --- 【核心新增】生成前情提要的 API 端點 ---
+@app.route('/api/get_summary', methods=['POST'])
+def get_summary():
+    if not db or not DEEPSEEK_API_KEY:
+        return jsonify({"error": "服務未就緒"}), 503
+    try:
+        data = request.get_json()
+        session_id = data.get('session_id')
+        if not session_id:
+            return jsonify({"error": "請求缺少 session_id。"}), 400
+
+        game_state_ref = db.collection('game_sessions').document(session_id)
+        game_state = game_state_ref.get().to_dict()
+        
+        narrative_log = game_state.get("narrative_log", [])
+        
+        # 如果日誌太短，不需要總結，直接返回歡迎訊息
+        if len(narrative_log) <= 3:
+            return jsonify({"summary": "書接上回，你剛踏入這個風雲變幻的江湖..."})
+
+        # 將日誌拼接成一個長字串
+        log_text = "\n".join(narrative_log)
+
+        prompt_text = f"""
+        你是一位技藝高超的說書先生。請閱讀以下這段凌亂的江湖日誌，並將其起承轉合梳理成一段引人入勝的「前情提要」。
+        你的目標是幫助一位久未歸來的玩家快速回憶起劇情。
+        
+        【規則】
+        1. 風格必須是小說旁白，充滿懸念和江湖氣息。
+        2. 必須總結玩家的關鍵行動和處境。
+        3. 最後要對玩家接下來可能的行動方向給出建議。
+        4. 總字數【嚴格限制】在 300 字以內。
+        
+        [江湖日誌]
+        {log_text}
+        """
+
+        headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"}
+        payload = {"model": "deepseek-chat", "messages": [{"role": "system", "content": "你是一位技藝高超的說書先生，擅長總結故事並引導後續。"}, {"role": "user", "content": prompt_text}], "max_tokens": 500, "temperature": 0.7}
+        response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload)
+        response.raise_for_status()
+        
+        summary_text = response.json()['choices'][0]['message']['content']
+        
+        return jsonify({"summary": summary_text})
+
+    except Exception as e:
+        print(f"生成前情提要時發生錯誤: {e}")
+        return jsonify({"error": f"生成前情提要時發生錯誤: {str(e)}"}), 500
+
+
 @app.route('/api/generate_turn', methods=['POST'])
 def generate_turn():
+    # ... (此函數與上一版完全相同，此處省略以保持簡潔)
     if not db or not DEEPSEEK_API_KEY:
         return jsonify({"error": "服務未就緒"}), 503
     try:
@@ -188,7 +240,6 @@ def generate_turn():
             structured_narrative.append({"type": "text", "content": options_text})
             return jsonify({"narrative": structured_narrative, "state": current_state})
 
-        # --- 【核心修改】將選項數量固定為 3 個 ---
         prompt_text = f"""
         你是一位頂尖的武俠小說家兼遊戲世界主持人(GM)。
         【重要規則】
@@ -204,7 +255,6 @@ def generate_turn():
         [玩家的行動]
         > {player_action.get('text', '無')}
         """
-
         headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"}
         payload = {"model": "deepseek-chat", "messages": [{"role": "system", "content": "你是一位頂尖的武俠小說家兼遊戲世界主持人(GM)，你需要根據規則生成劇情、數據指令和實體標籤。"}, {"role": "user", "content": prompt_text}], "max_tokens": 1500, "temperature": 0.8}
         response = requests.post(DEEPSEEK_API_URL, headers=headers, json=payload)
@@ -218,7 +268,6 @@ def generate_turn():
         
         plain_text_narrative = "".join([part.get("content", part.get("text", "")) for part in structured_narrative])
         
-        # 使用 FieldValue.array_union 來安全地添加日誌，避免重複
         game_state_ref.update({
             "narrative_log": firestore.ArrayUnion([f"> {player_action.get('text', '')}", plain_text_narrative])
         })

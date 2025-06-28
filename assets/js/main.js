@@ -1,5 +1,5 @@
 // 檔案: assets/js/main.js
-// 版本: 2.6 - 動態填充側邊欄的場景角色列表
+// 版本: 2.7 - 新增自訂行動輸入框功能
 
 // ------------------- 設定 -------------------
 const API_BASE_URL = "https://md-server-main.onrender.com";
@@ -12,6 +12,10 @@ const narrativeLog = document.getElementById('narrative-log');
 const actionOptionsContainer = document.getElementById('action-options');
 const promptQuestion = document.getElementById('prompt-question');
 
+// 【新增】自訂行動表單元素
+const customActionForm = document.getElementById('custom-action-form');
+const customActionInput = document.getElementById('custom-action-input');
+
 // UI 面板元素
 const infoRound = document.getElementById('info-round');
 const infoTime = document.getElementById('info-time');
@@ -19,7 +23,7 @@ const infoLocation = document.getElementById('info-location');
 const playerName = document.getElementById('player-name');
 const playerHp = document.getElementById('player-hp');
 const playerMp = document.getElementById('player-mp');
-const sceneCharactersList = document.getElementById('scene-characters-list'); // << 我們要操作的目標
+const sceneCharactersList = document.getElementById('scene-characters-list');
 
 // Modal 相關元素
 const modal = document.getElementById('entity-modal');
@@ -30,43 +34,30 @@ const modalBody = document.getElementById('modal-body');
 
 // ------------------- 核心功能函數 -------------------
 
-/**
- * 【核心改造】更新整個遊戲介面 (UI)
- * @param {object} data - 從後端接收到的完整響應數據，包含 narrative 和 state
- */
 function updateUI(data) {
+    // ... (此函數與版本 2.6 完全相同，此處省略以保持簡潔)
     const { narrative, state } = data;
-
-    // 1. 更新側邊欄的玩家與世界資訊
     if (state) {
-        // 世界資訊
         const metadata = state.metadata || {};
         const world = state.world || {};
         infoRound.textContent = metadata.round ?? '---';
         infoTime.textContent = metadata.game_timestamp ?? '---';
         infoLocation.textContent = world.player_current_location_name ?? '---';
-        
-        // 玩家資訊
         const pc_data = state.pc_data;
         if (pc_data) {
             playerName.textContent = pc_data.basic_info?.name ?? '---';
             playerHp.textContent = `${pc_data.core_status?.hp?.current ?? '--'}/${pc_data.core_status?.hp?.max ?? '--'}`;
             playerMp.textContent = `${pc_data.core_status?.mp?.current ?? '--'}/${pc_data.core_status?.mp?.max ?? '--'}`;
         }
-
-        // 【本次新增】更新場景角色列表
-        sceneCharactersList.innerHTML = ''; // 先清空舊列表
+        sceneCharactersList.innerHTML = '';
         const allNpcs = state.npcs || {};
         const playerLocation = world.player_current_location_name;
-
         const charactersInScene = Object.values(allNpcs).filter(npc => npc.current_location_name === playerLocation);
-
         if (charactersInScene.length > 0) {
             charactersInScene.forEach(npc => {
                 const li = document.createElement('li');
                 li.textContent = npc.name;
-                // 同樣讓列表中的名字可以點擊
-                li.className = 'narrative-entity text-entity-npc'; // 借用已有的樣式
+                li.className = 'narrative-entity text-entity-npc';
                 li.dataset.entityId = npc.id;
                 li.dataset.entityType = 'npc';
                 sceneCharactersList.appendChild(li);
@@ -75,8 +66,6 @@ function updateUI(data) {
             sceneCharactersList.innerHTML = '<li>此地似乎空無一人。</li>';
         }
     }
-
-    // 2. 處理並渲染主敘事區塊 (與上一版相同)
     actionOptionsContainer.innerHTML = '';
     promptQuestion.textContent = '...';
     const optionsRegex = /<options>([\s\S]*?)<\/options>/;
@@ -102,8 +91,6 @@ function updateUI(data) {
         }
     });
     narrativeLog.appendChild(p);
-    
-    // 3. 渲染行動選項 (與上一版相同)
     if (optionsContent) {
         promptQuestion.textContent = "接下來你打算？";
         const options = optionsContent.split('\n').filter(line => line.trim() !== '');
@@ -118,13 +105,11 @@ function updateUI(data) {
     } else {
         promptQuestion.textContent = "劇情正在發展中...";
     }
-
     narrativeLog.scrollTop = narrativeLog.scrollHeight;
 }
 
-
 async function handleActionSelect(event) {
-    // ... (此函數與版本 2.5 完全相同)
+    // ... (此函數與版本 2.6 完全相同，此處省略以保持簡潔)
     const actionId = event.target.dataset.actionId;
     const actionText = event.target.textContent;
     const playerPromptP = document.createElement('p');
@@ -161,7 +146,7 @@ async function handleActionSelect(event) {
 }
 
 async function handleEntityClick(event) {
-    // ... (此函數與版本 2.5 完全相同)
+    // ... (此函數與版本 2.6 完全相同，此處省略以保持簡潔)
     const target = event.target;
     if (!target.classList.contains('narrative-entity')) {
         return;
@@ -213,8 +198,31 @@ async function handleEntityClick(event) {
     }
 }
 
+// 【核心新增】處理自訂行動提交的函數
+function handleCustomActionSubmit(event) {
+    event.preventDefault(); // 防止表單重新載入頁面
+    const actionText = customActionInput.value.trim();
+
+    if (!actionText) {
+        return; // 如果沒輸入內容，則不執行任何操作
+    }
+
+    // 清空輸入框
+    customActionInput.value = '';
+
+    // 手動觸發 handleActionSelect 函數
+    // 我們模擬一個按鈕點擊事件，但使用自訂的文字內容
+    handleActionSelect({
+        target: {
+            dataset: { actionId: 'CUSTOM' }, // 給一個特殊 ID 以示區別
+            textContent: `> ${actionText}` // 模擬的按鈕文字
+        }
+    });
+}
+
+
 function initializeGame() {
-    // ... (此函數與版本 2.5 完全相同，但為完整性而保留)
+    // ... (登入檢查與始動按鈕與上一版相同)
     if (!currentGameSessionId) {
         alert("偵測到您尚未登入，將為您導向登入頁面。");
         window.location.href = 'login.html';
@@ -226,11 +234,13 @@ function initializeGame() {
     document.getElementById('start-game-btn').addEventListener('click', (e) => {
          handleActionSelect({ target: { dataset: { actionId: 'START' }, textContent: 'A. 載入遊戲 / 始動' } });
     });
-    
-    // 將場景角色列表的點擊也委派給 handleEntityClick 處理
+
+    // 【核心新增】為自訂行動表單新增 submit 事件監聽
+    customActionForm.addEventListener('submit', handleCustomActionSubmit);
+
+    // 事件委派監聽 (與上一版相同)
     sceneCharactersList.addEventListener('click', handleEntityClick);
     narrativeLog.addEventListener('click', handleEntityClick);
-    
     modalCloseBtn.addEventListener('click', () => modal.classList.add('hidden'));
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {

@@ -1,10 +1,11 @@
 // 檔案: assets/js/main.js
-// 版本: 2.8 - BUG修復與UI美化(按鈕Emoji)
+// 版本: 2.9 - 實現載入遊戲時顯示「前情提要」
 
 // ------------------- 設定 -------------------
 const API_BASE_URL = "https://md-server-main.onrender.com";
 const TURN_URL = `${API_BASE_URL}/api/generate_turn`;
 const ENTITY_INFO_URL = `${API_BASE_URL}/api/get_entity_info`;
+const SUMMARY_URL = `${API_BASE_URL}/api/get_summary`; // 新增的 API 路徑
 const currentGameSessionId = localStorage.getItem('game_session_id');
 
 // ------------------- DOM 元素獲取 -------------------
@@ -26,13 +27,12 @@ const modalCloseBtn = document.getElementById('modal-close-btn');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
 
-
 // ------------------- 核心功能函數 -------------------
 
 function updateUI(data) {
+    // ... (此函數與上一版完全相同，此處省略)
     const { narrative, state } = data;
     if (state) {
-        // ... (更新側邊欄資訊的邏輯與上一版相同)
         const metadata = state.metadata || {};
         const world = state.world || {};
         infoRound.textContent = metadata.round ?? '---';
@@ -61,24 +61,18 @@ function updateUI(data) {
             sceneCharactersList.innerHTML = '<li>此地似乎空無一人。</li>';
         }
     }
-    
-    // --- 敘事區渲染邏輯 (與上一版相同) ---
     const optionsRegex = /<options>([\s\S]*?)<\/options>/;
     let optionsContent = '';
-    // 遍歷 narrative 陣列來安全地移除 options
     for (let i = narrative.length - 1; i >= 0; i--) {
         const part = narrative[i];
         if (part.type === 'text' && optionsRegex.test(part.content)) {
             const match = part.content.match(optionsRegex);
             optionsContent = match[1].trim();
             part.content = part.content.replace(optionsRegex, '').trim();
-            if (part.content === '') { // 如果移除後為空，則刪除這個物件
-                narrative.splice(i, 1);
-            }
-            break; // 找到並處理後就跳出
+            if (part.content === '') { narrative.splice(i, 1); }
+            break;
         }
     }
-    
     const p = document.createElement('p');
     narrative.forEach(part => {
         if (part.type === 'text') {
@@ -93,25 +87,16 @@ function updateUI(data) {
         }
     });
     narrativeLog.appendChild(p);
-    
-    // --- 【核心修改】行動選項渲染邏輯 ---
     actionOptionsContainer.innerHTML = '';
     if (optionsContent) {
         promptQuestion.textContent = "接下來你打算？";
-        // 定義 emoji 映射表
-        const emojiMap = {
-            'A': '🤔', 'B': '🗺️', 'C': '🗣️', 'D': '⚔️',
-            '1': '1️⃣', '2': '2️⃣', '3': '3️⃣', '4': '4️⃣'
-        };
+        const emojiMap = { 'A': '🤔', 'B': '🗺️', 'C': '🗣️', 'D': '⚔️' };
         const options = optionsContent.split('\n').filter(line => line.trim() !== '');
-        
         options.forEach(opt => {
             const button = document.createElement('button');
             const actionId = opt.substring(0, 1);
-            const emoji = emojiMap[actionId] || '👉'; // 如果沒有對應的emoji，使用預設值
-            
+            const emoji = emojiMap[actionId] || '👉';
             button.dataset.actionId = actionId;
-            // 格式: emoji + 選項文字
             button.innerHTML = `<span class="emoji">${emoji}</span><span>${opt}</span>`;
             button.addEventListener('click', handleActionSelect);
             actionOptionsContainer.appendChild(button);
@@ -119,42 +104,30 @@ function updateUI(data) {
     } else {
         promptQuestion.textContent = "劇情正在發展中...";
     }
-
     narrativeLog.scrollTop = narrativeLog.scrollHeight;
 }
 
-
 async function handleActionSelect(event) {
-    // 使用 .currentTarget 來確保事件綁定在按鈕上
+    // ... (此函數與上一版完全相同，此處省略)
     const button = event.currentTarget;
     const actionId = button.dataset.actionId;
-    // 直接取用按鈕的完整文字，而不是從 event.target
     const actionText = button.textContent;
-
     const playerPromptP = document.createElement('p');
-    // 顯示時，也包含 emoji
     playerPromptP.innerHTML = `<strong>> ${actionText}</strong>`;
     playerPromptP.classList.add('player-prompt');
     narrativeLog.appendChild(playerPromptP);
     narrativeLog.scrollTop = narrativeLog.scrollHeight;
-    
     promptQuestion.textContent = "AI 正在運算中，請稍候...";
     actionOptionsContainer.innerHTML = '<div class="loading-spinner"></div>';
-    
     try {
         const response = await fetch(TURN_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 session_id: currentGameSessionId,
-                player_action: {
-                    id: actionId,
-                    // 【核心修改】更穩健地提取純文字
-                    text: actionText.replace(/^[^\w]+/, '').trim() // 移除開頭所有非文字字元
-                },
+                player_action: { id: actionId, text: actionText.replace(/^[^\w]+/, '').trim() },
             }),
         });
-
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || `伺服器錯誤: ${response.status}`);
@@ -173,10 +146,9 @@ async function handleActionSelect(event) {
 }
 
 async function handleEntityClick(event) {
-    // ... (此函數與版本 2.7 完全相同)
-    const target = event.target.closest('.narrative-entity'); // 更穩健的目標選擇
+    // ... (此函數與上一版完全相同，此處省略)
+    const target = event.target.closest('.narrative-entity');
     if (!target) return;
-
     const { entityId, entityType } = target.dataset;
     modal.classList.remove('hidden');
     modalTitle.textContent = target.textContent;
@@ -189,7 +161,6 @@ async function handleEntityClick(event) {
         });
         const result = await response.json();
         if (!response.ok || !result.success) throw new Error(result.error || "查詢失敗");
-        
         const entityData = result.data;
         modalTitle.textContent = entityData.name || target.textContent;
         let contentHtml = '<div class="info-grid">';
@@ -220,31 +191,69 @@ async function handleEntityClick(event) {
 }
 
 function handleCustomActionSubmit(event) {
-    // ... (此函數與版本 2.7 完全相同)
+    // ... (此函數與上一版完全相同，此處省略)
     event.preventDefault();
     const actionText = customActionInput.value.trim();
     if (!actionText) return;
     customActionInput.value = '';
     handleActionSelect({
-        currentTarget: { // 使用 currentTarget 以匹配 handleActionSelect 的期望
+        currentTarget: {
             dataset: { actionId: 'CUSTOM' },
             textContent: `> ${actionText}`
         }
     });
 }
 
-function initializeGame() {
+// 【核心修改】遊戲初始化與讀取存檔的邏輯
+async function initializeGame() {
     if (!currentGameSessionId) {
         alert("偵測到您尚未登入，將為您導向登入頁面。");
         window.location.href = 'login.html';
         return;
     }
-    narrativeLog.innerHTML = `<h2>文字江湖</h2><p>正在載入您的江湖傳說...</p>`;
+
+    narrativeLog.innerHTML = `<h2>文字江湖</h2>`;
     promptQuestion.textContent = "準備開始您的冒險...";
-    actionOptionsContainer.innerHTML = '<button id="start-game-btn">載入遊戲 / 始動</button>';
-    document.getElementById('start-game-btn').addEventListener('click', (e) => {
-         handleActionSelect({ currentTarget: e.currentTarget, target: e.target, textContent: e.target.textContent, dataset: e.target.dataset });
-    });
+    actionOptionsContainer.innerHTML = '<div class="loading-spinner"></div> <p>正在載入您的江湖傳說...</p>';
+
+    try {
+        // 1. 獲取前情提要
+        const summaryResponse = await fetch(SUMMARY_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: currentGameSessionId }),
+        });
+        const summaryResult = await summaryResponse.json();
+        if (!summaryResponse.ok) throw new Error(summaryResult.error || "獲取前情提要失敗");
+        
+        // 2. 顯示前情提要
+        const summaryP = document.createElement('p');
+        summaryP.style.fontStyle = 'italic';
+        summaryP.style.color = '#ccc';
+        summaryP.textContent = summaryResult.summary;
+        narrativeLog.appendChild(summaryP);
+        
+        // 3. 獲取第一個回合的行動選項
+        const turnResponse = await fetch(TURN_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                session_id: currentGameSessionId,
+                player_action: { id: 'START' } // 使用保留的 START ID
+            }),
+        });
+        const turnResult = await turnResponse.json();
+        if (!turnResponse.ok) throw new Error(turnResult.error || "載入遊戲回合失敗");
+
+        // 4. 使用 updateUI 來渲染第一個回合
+        updateUI(turnResult);
+        
+    } catch (error) {
+        console.error("遊戲初始化失敗:", error);
+        actionOptionsContainer.innerHTML = `<p style="color: red;">遊戲初始化失敗: ${error.message}</p><button onclick="location.reload()">重新載入</button>`;
+    }
+
+    // 事件監聽 (與上一版相同)
     customActionForm.addEventListener('submit', handleCustomActionSubmit);
     sceneCharactersList.addEventListener('click', handleEntityClick);
     narrativeLog.addEventListener('click', handleEntityClick);

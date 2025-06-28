@@ -2,37 +2,16 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文字江湖</title>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
     <div class="game-container">
         <div class="main-panel">
-            <div class="top-bar">
-                <div class="top-status-bars">
-                    <div class="status-bar-container">
-                        <div class="status-bar-label">氣血</div>
-                        <div class="status-bar-bg"><div id="hp-bar" class="status-bar hp"></div></div>
-                        <div id="hp-text" class="status-bar-text">--/--</div>
-                    </div>
-                    <div class="status-bar-container">
-                        <div class="status-bar-label">內力</div>
-                        <div class="status-bar-bg"><div id="mp-bar" class="status-bar mp"></div></div>
-                        <div id="mp-text" class="status-bar-text">--/--</div>
-                    </div>
-                </div>
-                <div class="top-buttons">
-                    <button id="status-btn-mobile" class="top-bar-btn">狀態</button>
-                    <button id="inventory-btn-mobile" class="top-bar-btn">行囊</button>
-                    <button id="map-btn-mobile" class="top-bar-btn">地區</button>
-                </div>
-            </div>
-
             <div id="narrative-log" class="narrative-log"></div>
-
             <div class="input-area">
-                <p id="prompt-question">接下來你打算？</p>
+                <p id="prompt-question">你想要做什麼...</p>
                 <div id="action-options"></div>
                 <form id="custom-action-form" class="custom-action-container">
                     <input type="text" id="custom-action-input" placeholder="或在此輸入你想做的事...">
@@ -40,7 +19,6 @@
                 </form>
             </div>
         </div>
-
         <div class="sidebar-panel">
             <div class="info-box" id="real-time-info-box">
                 <div class="info-content">
@@ -64,16 +42,19 @@
             </div>
             <div class="info-box" id="nearby-facilities-box">
                 <h3 class="info-title">地區資訊</h3>
-                <div class="info-content" id="area-info-content"></div>
+                <div class="info-content" id="area-info-content">
+                    </div>
             </div>
         </div>
     </div>
 
-    <div id="info-modal" class="modal-overlay hidden">
+    <div id="entity-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <button id="modal-close-btn" class="modal-close">&times;</button>
             <h2 id="modal-title">---</h2>
-            <div id="modal-body" class="modal-body-content"></div>
+            <div id="modal-body" class="modal-body-content">
+                <p id="modal-description">正在載入資訊...</p>
+            </div>
         </div>
     </div>
 

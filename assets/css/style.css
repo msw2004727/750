@@ -136,3 +136,24 @@ body {
 ::-webkit-scrollbar-track { background: var(--secondary-bg); }
 ::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #666; }
+
+/* 【本次新增】文字實體樣式 */
+.narrative-entity {
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.narrative-entity:hover {
+    text-decoration: underline;
+    filter: brightness(1.2);
+}
+
+/* 預設實體顏色 */
+.text-entity-npc { color: #fdd835; } /* 黃色 */
+.text-entity-item { color: #4fc3f7; } /* 藍色 */
+.text-entity-location { color: #9ccc65; } /* 綠色 */
+
+/* 特殊NPC顏色 (根據好感度) */
+.text-npc-friendly { color: #a5d6a7; } /* 友善 - 淡綠 */
+.text-npc-hostile { color: #ef9a9a; } /* 敵對 - 淡紅 */

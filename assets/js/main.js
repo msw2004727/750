@@ -1,11 +1,11 @@
 // 檔案: assets/js/main.js
-// 版本: 2.9 - 實現載入遊戲時顯示「前情提要」
+// 版本: 2.10 - 強制選項按鈕數量為3個
 
 // ------------------- 設定 -------------------
 const API_BASE_URL = "https://md-server-main.onrender.com";
 const TURN_URL = `${API_BASE_URL}/api/generate_turn`;
 const ENTITY_INFO_URL = `${API_BASE_URL}/api/get_entity_info`;
-const SUMMARY_URL = `${API_BASE_URL}/api/get_summary`; // 新增的 API 路徑
+const SUMMARY_URL = `${API_BASE_URL}/api/get_summary`;
 const currentGameSessionId = localStorage.getItem('game_session_id');
 
 // ------------------- DOM 元素獲取 -------------------
@@ -30,9 +30,9 @@ const modalBody = document.getElementById('modal-body');
 // ------------------- 核心功能函數 -------------------
 
 function updateUI(data) {
-    // ... (此函數與上一版完全相同，此處省略)
     const { narrative, state } = data;
     if (state) {
+        // ... (更新側邊欄資訊的邏輯與上一版相同)
         const metadata = state.metadata || {};
         const world = state.world || {};
         infoRound.textContent = metadata.round ?? '---';
@@ -61,6 +61,8 @@ function updateUI(data) {
             sceneCharactersList.innerHTML = '<li>此地似乎空無一人。</li>';
         }
     }
+    
+    // --- 敘事區渲染邏輯 (與上一版相同) ---
     const optionsRegex = /<options>([\s\S]*?)<\/options>/;
     let optionsContent = '';
     for (let i = narrative.length - 1; i >= 0; i--) {
@@ -73,25 +75,36 @@ function updateUI(data) {
             break;
         }
     }
-    const p = document.createElement('p');
-    narrative.forEach(part => {
-        if (part.type === 'text') {
-            p.appendChild(document.createTextNode(part.content));
-        } else {
-            const span = document.createElement('span');
-            span.className = `narrative-entity ${part.color_class}`;
-            span.textContent = part.text;
-            span.dataset.entityId = part.id;
-            span.dataset.entityType = part.type;
-            p.appendChild(span);
-        }
-    });
-    narrativeLog.appendChild(p);
+    
+    // 只有在真的有 narrative 內容時才創建 p 標籤
+    if (narrative.some(part => part.content && part.content.trim() !== '')) {
+        const p = document.createElement('p');
+        narrative.forEach(part => {
+            if (part.type === 'text') {
+                p.appendChild(document.createTextNode(part.content));
+            } else {
+                const span = document.createElement('span');
+                span.className = `narrative-entity ${part.color_class}`;
+                span.textContent = part.text;
+                span.dataset.entityId = part.id;
+                span.dataset.entityType = part.type;
+                p.appendChild(span);
+            }
+        });
+        narrativeLog.appendChild(p);
+    }
+    
+    // --- 行動選項渲染邏輯 ---
     actionOptionsContainer.innerHTML = '';
     if (optionsContent) {
         promptQuestion.textContent = "接下來你打算？";
         const emojiMap = { 'A': '🤔', 'B': '🗺️', 'C': '🗣️', 'D': '⚔️' };
-        const options = optionsContent.split('\n').filter(line => line.trim() !== '');
+        
+        // 【核心修改】使用 slice(0, 3) 強制只取前三個選項
+        const options = optionsContent.split('\n')
+                                      .filter(line => line.trim() !== '')
+                                      .slice(0, 3);
+        
         options.forEach(opt => {
             const button = document.createElement('button');
             const actionId = opt.substring(0, 1);
@@ -104,11 +117,13 @@ function updateUI(data) {
     } else {
         promptQuestion.textContent = "劇情正在發展中...";
     }
+
     narrativeLog.scrollTop = narrativeLog.scrollHeight;
 }
 
+
 async function handleActionSelect(event) {
-    // ... (此函數與上一版完全相同，此處省略)
+    // ... (與上一版完全相同)
     const button = event.currentTarget;
     const actionId = button.dataset.actionId;
     const actionText = button.textContent;
@@ -146,7 +161,7 @@ async function handleActionSelect(event) {
 }
 
 async function handleEntityClick(event) {
-    // ... (此函數與上一版完全相同，此處省略)
+    // ... (與上一版完全相同)
     const target = event.target.closest('.narrative-entity');
     if (!target) return;
     const { entityId, entityType } = target.dataset;
@@ -191,7 +206,7 @@ async function handleEntityClick(event) {
 }
 
 function handleCustomActionSubmit(event) {
-    // ... (此函數與上一版完全相同，此處省略)
+    // ... (與上一版完全相同)
     event.preventDefault();
     const actionText = customActionInput.value.trim();
     if (!actionText) return;
@@ -204,20 +219,17 @@ function handleCustomActionSubmit(event) {
     });
 }
 
-// 【核心修改】遊戲初始化與讀取存檔的邏輯
 async function initializeGame() {
+    // ... (與上一版完全相同)
     if (!currentGameSessionId) {
         alert("偵測到您尚未登入，將為您導向登入頁面。");
         window.location.href = 'login.html';
         return;
     }
-
     narrativeLog.innerHTML = `<h2>文字江湖</h2>`;
     promptQuestion.textContent = "準備開始您的冒險...";
     actionOptionsContainer.innerHTML = '<div class="loading-spinner"></div> <p>正在載入您的江湖傳說...</p>';
-
     try {
-        // 1. 獲取前情提要
         const summaryResponse = await fetch(SUMMARY_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -226,34 +238,29 @@ async function initializeGame() {
         const summaryResult = await summaryResponse.json();
         if (!summaryResponse.ok) throw new Error(summaryResult.error || "獲取前情提要失敗");
         
-        // 2. 顯示前情提要
         const summaryP = document.createElement('p');
         summaryP.style.fontStyle = 'italic';
         summaryP.style.color = '#ccc';
         summaryP.textContent = summaryResult.summary;
         narrativeLog.appendChild(summaryP);
         
-        // 3. 獲取第一個回合的行動選項
         const turnResponse = await fetch(TURN_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 session_id: currentGameSessionId,
-                player_action: { id: 'START' } // 使用保留的 START ID
+                player_action: { id: 'START' }
             }),
         });
         const turnResult = await turnResponse.json();
         if (!turnResponse.ok) throw new Error(turnResult.error || "載入遊戲回合失敗");
 
-        // 4. 使用 updateUI 來渲染第一個回合
         updateUI(turnResult);
         
     } catch (error) {
         console.error("遊戲初始化失敗:", error);
         actionOptionsContainer.innerHTML = `<p style="color: red;">遊戲初始化失敗: ${error.message}</p><button onclick="location.reload()">重新載入</button>`;
     }
-
-    // 事件監聽 (與上一版相同)
     customActionForm.addEventListener('submit', handleCustomActionSubmit);
     sceneCharactersList.addEventListener('click', handleEntityClick);
     narrativeLog.addEventListener('click', handleEntityClick);

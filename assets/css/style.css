@@ -67,3 +67,68 @@ html, body {
 #modal-title { color: var(--accent-color); margin: 0 0 15px 0; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
 .modal-body-content .info-grid { display: grid; grid-template-columns: 100px 1fr; gap: 12px 20px; }
 .modal-body-content .info-grid strong { text-align: right; }
+
+/* 【本次新增】全螢幕載入動畫樣式 */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85); /* 背景更深，凸顯載入資訊 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000; /* 確保在最頂層 */
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.loading-content {
+    text-align: center;
+    color: var(--text-secondary);
+    width: 80%;
+    max-width: 400px;
+}
+
+.loading-content p {
+    font-size: 1.1em;
+    margin-bottom: 20px;
+}
+
+.loading-bar-container {
+    width: 100%;
+    height: 8px;
+    background-color: #111;
+    border-radius: 4px;
+    overflow: hidden; /* 隱藏超出部分的動畫 */
+}
+
+.loading-bar {
+    width: 100%;
+    height: 100%;
+    background-color: var(--accent-color);
+    animation: loading-animation 2s linear infinite;
+}
+
+@keyframes loading-animation {
+    0% {
+        transform: translateX(-100%);
+    }
+    50% {
+        transform: translateX(0%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* 移除舊的 Spinner，因為被全螢幕載入取代 */
+.loading-spinner {
+    display: none;
+}

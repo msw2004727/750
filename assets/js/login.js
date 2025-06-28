@@ -1,6 +1,10 @@
-// login.js - 處理登入與註冊頁面的前端邏輯
+// 檔案: assets/js/login.js
+// 版本: 1.1 - 整合後端 API 串接與頁面跳轉
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 您的 Render 後端服務 URL
+    const API_BASE_URL = "https://md-server-main.onrender.com";
+
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
     const messageArea = document.getElementById('message-area');
@@ -14,11 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 處理按鈕組的單選邏輯
     function handleButtonGroupClick(group, variableSetter, event) {
         if (event.target.tagName === 'BUTTON') {
-            // 移除同組所有按鈕的 'selected' class
             [...group.children].forEach(btn => btn.classList.remove('selected'));
-            // 為被點擊的按鈕加上 'selected' class
             event.target.classList.add('selected');
-            // 更新選擇的變數
             variableSetter(event.target.dataset.value);
         }
     }
@@ -27,25 +28,55 @@ document.addEventListener('DOMContentLoaded', () => {
     personalityGroup.addEventListener('click', (e) => handleButtonGroupClick(personalityGroup, (val) => selectedPersonality = val, e));
 
 
-    // 登入表單提交
+    // [核心升級] 登入表單提交
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        showMessage('正在登入...', 'normal');
-        // ... 登入邏輯 ...
+        showMessage('正在登入，請稍候...', 'normal');
+
+        const loginData = {
+            nickname: document.getElementById('login-nickname').value,
+            password: document.getElementById('login-password').value
+        };
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(loginData),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || `伺服器錯誤: ${response.status}`);
+            }
+            
+            showMessage('登入成功！正在進入江湖...', 'success');
+
+            // 將 session_id 存入 localStorage
+            localStorage.setItem('game_session_id', data.session_id); 
+            
+            setTimeout(() => {
+                window.location.href = 'index.html'; // 跳轉到遊戲主頁
+            }, 1500);
+
+        } catch (error) {
+            showMessage(`登入失敗: ${error.message}`, 'error');
+        }
     });
 
-    // 註冊表單提交
+    // [核心升級] 註冊表單提交
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         if (!selectedGender || !selectedPersonality) {
-            showMessage('請選擇性別與人生信條！', 'error');
+            showMessage('請選擇您的性別與人生信條！', 'error');
             return;
         }
 
-        showMessage('正在創建角色...', 'normal');
+        showMessage('正在創建角色，請稍候...', 'normal');
 
-        const userData = {
+        const registerData = {
             nickname: document.getElementById('register-nickname').value,
             password: document.getElementById('register-password').value,
             height: document.getElementById('register-height').value,
@@ -55,17 +86,22 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            // 未來這裡會呼叫後端 API
-            // const response = await fetch('/api/register', { ... });
-            // const data = await response.json();
+            const response = await fetch(`${API_BASE_URL}/api/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(registerData),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || `伺服器錯誤: ${response.status}`);
+            }
             
-            // 模擬成功
-            console.log("發送到後端的註冊資料:", userData);
             showMessage('角色創建成功！正在進入江湖...', 'success');
 
-            // 創建成功後，將 session_id 存入 localStorage 並跳轉
-            // localStorage.setItem('game_session_id', data.session_id); 
-            localStorage.setItem('game_session_id', `session_${userData.nickname}`); // 暫時用暱稱做ID
+            // 將 session_id 存入 localStorage
+            localStorage.setItem('game_session_id', data.session_id); 
             
             setTimeout(() => {
                 window.location.href = 'index.html'; // 跳轉到遊戲主頁
@@ -78,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showMessage(msg, type) {
         messageArea.textContent = msg;
-        messageArea.className = 'message-area'; // Reset class
+        messageArea.className = 'message-area';
         if (type) {
             messageArea.classList.add(type);
         }

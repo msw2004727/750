@@ -7,18 +7,14 @@
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
-
     <div class="game-container">
         <div class="main-panel">
-            <div id="narrative-log" class="narrative-log">
-                </div>
+            <div id="narrative-log" class="narrative-log"></div>
             <div class="input-area">
                 <p id="prompt-question">你想要做什麼...</p>
-                <div id="action-options">
-                    </div>
+                <div id="action-options"></div>
             </div>
         </div>
-
         <div class="sidebar-panel">
             <div class="info-box" id="real-time-info-box">
                 <div class="info-content">
@@ -29,7 +25,6 @@
                     <p><strong>天氣：</strong><span id="info-weather">---</span></p>
                 </div>
             </div>
-            
             <div class="info-box" id="player-info-box">
                 <h3 class="info-title">玩家資料</h3>
                 <div class="info-content">
@@ -39,21 +34,17 @@
                     <p>內力：<span id="player-mp">--/--</span></p>
                 </div>
             </div>
-
             <div class="info-box" id="scene-characters-box">
                 <h3 class="info-title">場景角色</h3>
-                <ul id="scene-characters-list" class="info-list">
-                    </ul>
+                <ul id="scene-characters-list" class="info-list"></ul>
             </div>
-
             <div class="info-box" id="nearby-facilities-box">
-                <h3 class="info-title">附近設施</h3>
-                <ul id="nearby-facilities-list" class="info-list">
-                    </ul>
+                <h3 class="info-title">地區資訊</h3>
+                <div class="info-content" id="area-info-content">
+                    </div>
             </div>
         </div>
     </div>
-
     <script src="assets/js/main.js" type="module"></script>
 </body>
 </html>

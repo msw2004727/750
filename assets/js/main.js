@@ -1,5 +1,5 @@
 // 檔案: assets/js/main.js
-// 版本: 2.5 - 美化資訊彈窗(Modal)的顯示方式
+// 版本: 2.6 - 動態填充側邊欄的場景角色列表
 
 // ------------------- 設定 -------------------
 const API_BASE_URL = "https://md-server-main.onrender.com";
@@ -11,37 +11,72 @@ const currentGameSessionId = localStorage.getItem('game_session_id');
 const narrativeLog = document.getElementById('narrative-log');
 const actionOptionsContainer = document.getElementById('action-options');
 const promptQuestion = document.getElementById('prompt-question');
+
+// UI 面板元素
 const infoRound = document.getElementById('info-round');
 const infoTime = document.getElementById('info-time');
 const infoLocation = document.getElementById('info-location');
 const playerName = document.getElementById('player-name');
 const playerHp = document.getElementById('player-hp');
 const playerMp = document.getElementById('player-mp');
-const sceneCharactersList = document.getElementById('scene-characters-list');
+const sceneCharactersList = document.getElementById('scene-characters-list'); // << 我們要操作的目標
 
 // Modal 相關元素
 const modal = document.getElementById('entity-modal');
 const modalCloseBtn = document.getElementById('modal-close-btn');
 const modalTitle = document.getElementById('modal-title');
-const modalBody = document.getElementById('modal-body'); // 直接獲取 body 容器
+const modalBody = document.getElementById('modal-body');
 
 
 // ------------------- 核心功能函數 -------------------
 
+/**
+ * 【核心改造】更新整個遊戲介面 (UI)
+ * @param {object} data - 從後端接收到的完整響應數據，包含 narrative 和 state
+ */
 function updateUI(data) {
-    // ... (此函數與版本 2.4 完全相同，此處省略以保持簡潔)
     const { narrative, state } = data;
+
+    // 1. 更新側邊欄的玩家與世界資訊
     if (state) {
-        infoRound.textContent = state.metadata?.round ?? '---';
-        infoTime.textContent = state.metadata?.game_timestamp ?? '---';
-        infoLocation.textContent = state.world?.player_current_location_name ?? '---';
+        // 世界資訊
+        const metadata = state.metadata || {};
+        const world = state.world || {};
+        infoRound.textContent = metadata.round ?? '---';
+        infoTime.textContent = metadata.game_timestamp ?? '---';
+        infoLocation.textContent = world.player_current_location_name ?? '---';
+        
+        // 玩家資訊
         const pc_data = state.pc_data;
         if (pc_data) {
             playerName.textContent = pc_data.basic_info?.name ?? '---';
             playerHp.textContent = `${pc_data.core_status?.hp?.current ?? '--'}/${pc_data.core_status?.hp?.max ?? '--'}`;
             playerMp.textContent = `${pc_data.core_status?.mp?.current ?? '--'}/${pc_data.core_status?.mp?.max ?? '--'}`;
         }
+
+        // 【本次新增】更新場景角色列表
+        sceneCharactersList.innerHTML = ''; // 先清空舊列表
+        const allNpcs = state.npcs || {};
+        const playerLocation = world.player_current_location_name;
+
+        const charactersInScene = Object.values(allNpcs).filter(npc => npc.current_location_name === playerLocation);
+
+        if (charactersInScene.length > 0) {
+            charactersInScene.forEach(npc => {
+                const li = document.createElement('li');
+                li.textContent = npc.name;
+                // 同樣讓列表中的名字可以點擊
+                li.className = 'narrative-entity text-entity-npc'; // 借用已有的樣式
+                li.dataset.entityId = npc.id;
+                li.dataset.entityType = 'npc';
+                sceneCharactersList.appendChild(li);
+            });
+        } else {
+            sceneCharactersList.innerHTML = '<li>此地似乎空無一人。</li>';
+        }
     }
+
+    // 2. 處理並渲染主敘事區塊 (與上一版相同)
     actionOptionsContainer.innerHTML = '';
     promptQuestion.textContent = '...';
     const optionsRegex = /<options>([\s\S]*?)<\/options>/;
@@ -67,6 +102,8 @@ function updateUI(data) {
         }
     });
     narrativeLog.appendChild(p);
+    
+    // 3. 渲染行動選項 (與上一版相同)
     if (optionsContent) {
         promptQuestion.textContent = "接下來你打算？";
         const options = optionsContent.split('\n').filter(line => line.trim() !== '');
@@ -81,11 +118,13 @@ function updateUI(data) {
     } else {
         promptQuestion.textContent = "劇情正在發展中...";
     }
+
     narrativeLog.scrollTop = narrativeLog.scrollHeight;
 }
 
+
 async function handleActionSelect(event) {
-    // ... (此函數與版本 2.4 完全相同，此處省略以保持簡潔)
+    // ... (此函數與版本 2.5 完全相同)
     const actionId = event.target.dataset.actionId;
     const actionText = event.target.textContent;
     const playerPromptP = document.createElement('p');
@@ -121,19 +160,16 @@ async function handleActionSelect(event) {
     }
 }
 
-// 【核心修改】處理點擊實體的函數，重寫內容渲染邏輯
 async function handleEntityClick(event) {
+    // ... (此函數與版本 2.5 完全相同)
     const target = event.target;
     if (!target.classList.contains('narrative-entity')) {
         return;
     }
-
     const { entityId, entityType } = target.dataset;
-
     modal.classList.remove('hidden');
     modalTitle.textContent = target.textContent;
-    modalBody.innerHTML = '<div class="loading-spinner"></div><p>正在從江湖密卷中查詢資料...</p>'; // 載入中狀態
-
+    modalBody.innerHTML = '<div class="loading-spinner"></div><p>正在從江湖密卷中查詢資料...</p>';
     try {
         const response = await fetch(ENTITY_INFO_URL, {
             method: 'POST',
@@ -144,19 +180,12 @@ async function handleEntityClick(event) {
         if (!response.ok || !result.success) {
             throw new Error(result.error || "查詢失敗");
         }
-
         const entityData = result.data;
         modalTitle.textContent = entityData.name || target.textContent;
-        
-        // --- 創建精美的內容版面 ---
         let contentHtml = '<div class="info-grid">';
-
-        // 根據不同實體類型，顯示不同資訊
         if (entityType === 'npc') {
             contentHtml += `<strong>稱號:</strong><span>${entityData.name || '未知'}</span>`;
-            
             if (entityData.mood) {
-                // 根據心情給予不同顏色
                 let moodColorClass = "mood-text-neutral";
                 const positiveMoods = ["開心", "友好", "興奮", "尊敬"];
                 const negativeMoods = ["憤怒", "憂慮", "敵對", "輕蔑"];
@@ -168,30 +197,24 @@ async function handleEntityClick(event) {
                 contentHtml += `<strong>好感:</strong><span>${entityData.relationship.friendliness || 0}</span>`;
                 contentHtml += `<strong>敬意:</strong><span>${entityData.relationship.respect || 0}</span>`;
             }
-
         } else if (entityType === 'item') {
             contentHtml += `<strong>名稱:</strong><span>${entityData.name || '未知'}</span>`;
             if (entityData.type) contentHtml += `<strong>類型:</strong><span>${entityData.type}</span>`;
             if (entityData.damage) contentHtml += `<strong>威力:</strong><span>${entityData.damage}</span>`;
             if (entityData.weight) contentHtml += `<strong>重量:</strong><span>${entityData.weight}</span>`;
         }
-        
         contentHtml += '</div>';
-
-        // 描述永遠放在最下方
         if (entityData.description) {
             contentHtml += `<p class="description-text">"${entityData.description}"</p>`;
         }
-
         modalBody.innerHTML = contentHtml;
-
     } catch (error) {
         modalBody.innerHTML = `<p>查詢失敗: ${error.message}</p>`;
     }
 }
 
 function initializeGame() {
-    // ... (此函數與版本 2.4 完全相同，此處省略)
+    // ... (此函數與版本 2.5 完全相同，但為完整性而保留)
     if (!currentGameSessionId) {
         alert("偵測到您尚未登入，將為您導向登入頁面。");
         window.location.href = 'login.html';
@@ -203,7 +226,11 @@ function initializeGame() {
     document.getElementById('start-game-btn').addEventListener('click', (e) => {
          handleActionSelect({ target: { dataset: { actionId: 'START' }, textContent: 'A. 載入遊戲 / 始動' } });
     });
+    
+    // 將場景角色列表的點擊也委派給 handleEntityClick 處理
+    sceneCharactersList.addEventListener('click', handleEntityClick);
     narrativeLog.addEventListener('click', handleEntityClick);
+    
     modalCloseBtn.addEventListener('click', () => modal.classList.add('hidden'));
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {

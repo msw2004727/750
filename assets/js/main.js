@@ -1,5 +1,5 @@
 // 檔案: assets/js/main.js
-// 版本: 2.10 - 強制選項按鈕數量為3個
+// 版本: 2.12 - 正式渲染場景角色與地區資訊
 
 // ------------------- 設定 -------------------
 const API_BASE_URL = "https://md-server-main.onrender.com";
@@ -9,7 +9,6 @@ const SUMMARY_URL = `${API_BASE_URL}/api/get_summary`;
 const currentGameSessionId = localStorage.getItem('game_session_id');
 
 // ------------------- DOM 元素獲取 -------------------
-// ... (與上一版相同)
 const narrativeLog = document.getElementById('narrative-log');
 const actionOptionsContainer = document.getElementById('action-options');
 const promptQuestion = document.getElementById('prompt-question');
@@ -22,6 +21,7 @@ const playerName = document.getElementById('player-name');
 const playerHp = document.getElementById('player-hp');
 const playerMp = document.getElementById('player-mp');
 const sceneCharactersList = document.getElementById('scene-characters-list');
+const areaInfoContent = document.getElementById('area-info-content'); // << 新增地區資訊面板的獲取
 const modal = document.getElementById('entity-modal');
 const modalCloseBtn = document.getElementById('modal-close-btn');
 const modalTitle = document.getElementById('modal-title');
@@ -31,23 +31,29 @@ const modalBody = document.getElementById('modal-body');
 
 function updateUI(data) {
     const { narrative, state } = data;
+
+    // 1. 更新所有側邊欄資訊
     if (state) {
-        // ... (更新側邊欄資訊的邏輯與上一版相同)
         const metadata = state.metadata || {};
         const world = state.world || {};
+        const pc_data = state.pc_data || {};
+
+        // 基本資訊
         infoRound.textContent = metadata.round ?? '---';
         infoTime.textContent = metadata.game_timestamp ?? '---';
-        infoLocation.textContent = world.player_current_location_name ?? '---';
-        const pc_data = state.pc_data;
-        if (pc_data) {
-            playerName.textContent = pc_data.basic_info?.name ?? '---';
-            playerHp.textContent = `${pc_data.core_status?.hp?.current ?? '--'}/${pc_data.core_status?.hp?.max ?? '--'}`;
-            playerMp.textContent = `${pc_data.core_status?.mp?.current ?? '--'}/${pc_data.core_status?.mp?.max ?? '--'}`;
-        }
-        sceneCharactersList.innerHTML = '';
+        infoLocation.textContent = world.player_current_location_name ?? '未知之地';
+        
+        // 玩家狀態
+        playerName.textContent = pc_data.basic_info?.name ?? '---';
+        playerHp.textContent = `${pc_data.core_status?.hp?.current ?? '--'}/${pc_data.core_status?.hp?.max ?? '--'}`;
+        playerMp.textContent = `${pc_data.core_status?.mp?.current ?? '--'}/${pc_data.core_status?.mp?.max ?? '--'}`;
+
+        // 【核心修改】更新場景角色列表
+        sceneCharactersList.innerHTML = ''; // 清空
         const allNpcs = state.npcs || {};
-        const playerLocation = world.player_current_location_name;
-        const charactersInScene = Object.values(allNpcs).filter(npc => npc.current_location_name === playerLocation);
+        const playerLocationId = world.player_current_location_id; // 使用 ID 進行比對
+        const charactersInScene = Object.values(allNpcs).filter(npc => npc.current_location_id === playerLocationId);
+        
         if (charactersInScene.length > 0) {
             charactersInScene.forEach(npc => {
                 const li = document.createElement('li');
@@ -60,9 +66,19 @@ function updateUI(data) {
         } else {
             sceneCharactersList.innerHTML = '<li>此地似乎空無一人。</li>';
         }
+
+        // 【核心修改】更新地區資訊
+        const allLocations = state.locations || {};
+        const currentLocationData = allLocations[playerLocationId];
+        
+        if (currentLocationData && currentLocationData.description) {
+            areaInfoContent.innerHTML = `<p>"${currentLocationData.description}"</p>`;
+        } else {
+            areaInfoContent.innerHTML = '<p>"你對此地一無所知，只覺得周遭的景物有些陌生。"</p>';
+        }
     }
-    
-    // --- 敘事區渲染邏輯 (與上一版相同) ---
+
+    // 2. 處理並渲染主敘事區塊 (與上一版相同)
     const optionsRegex = /<options>([\s\S]*?)<\/options>/;
     let optionsContent = '';
     for (let i = narrative.length - 1; i >= 0; i--) {
@@ -76,7 +92,6 @@ function updateUI(data) {
         }
     }
     
-    // 只有在真的有 narrative 內容時才創建 p 標籤
     if (narrative.some(part => part.content && part.content.trim() !== '')) {
         const p = document.createElement('p');
         narrative.forEach(part => {
@@ -94,17 +109,12 @@ function updateUI(data) {
         narrativeLog.appendChild(p);
     }
     
-    // --- 行動選項渲染邏輯 ---
+    // 3. 渲染行動選項 (與上一版相同)
     actionOptionsContainer.innerHTML = '';
     if (optionsContent) {
         promptQuestion.textContent = "接下來你打算？";
         const emojiMap = { 'A': '🤔', 'B': '🗺️', 'C': '🗣️', 'D': '⚔️' };
-        
-        // 【核心修改】使用 slice(0, 3) 強制只取前三個選項
-        const options = optionsContent.split('\n')
-                                      .filter(line => line.trim() !== '')
-                                      .slice(0, 3);
-        
+        const options = optionsContent.split('\n').filter(line => line.trim() !== '').slice(0, 3);
         options.forEach(opt => {
             const button = document.createElement('button');
             const actionId = opt.substring(0, 1);
@@ -122,8 +132,8 @@ function updateUI(data) {
 }
 
 
+// ... 其他函數 (handleActionSelect, handleEntityClick, handleCustomActionSubmit, initializeGame) 與上一版完全相同，此處省略以保持簡潔 ...
 async function handleActionSelect(event) {
-    // ... (與上一版完全相同)
     const button = event.currentTarget;
     const actionId = button.dataset.actionId;
     const actionText = button.textContent;
@@ -161,7 +171,6 @@ async function handleActionSelect(event) {
 }
 
 async function handleEntityClick(event) {
-    // ... (與上一版完全相同)
     const target = event.target.closest('.narrative-entity');
     if (!target) return;
     const { entityId, entityType } = target.dataset;
@@ -206,7 +215,6 @@ async function handleEntityClick(event) {
 }
 
 function handleCustomActionSubmit(event) {
-    // ... (與上一版完全相同)
     event.preventDefault();
     const actionText = customActionInput.value.trim();
     if (!actionText) return;
@@ -220,7 +228,6 @@ function handleCustomActionSubmit(event) {
 }
 
 async function initializeGame() {
-    // ... (與上一版完全相同)
     if (!currentGameSessionId) {
         alert("偵測到您尚未登入，將為您導向登入頁面。");
         window.location.href = 'login.html';

@@ -1,16 +1,17 @@
 // 檔案: assets/js/main.js
-// 版本: 2.3 - 實現結構化敘事渲染與UI面板更新
+// 版本: 2.4 - 實現點擊實體彈出資訊視窗功能
 
 // ------------------- 設定 -------------------
-const BACKEND_URL = "https://md-server-main.onrender.com/api/generate_turn";
+const API_BASE_URL = "https://md-server-main.onrender.com";
+const TURN_URL = `${API_BASE_URL}/api/generate_turn`;
+const ENTITY_INFO_URL = `${API_BASE_URL}/api/get_entity_info`; // 新增的 API 路徑
 const currentGameSessionId = localStorage.getItem('game_session_id');
 
 // ------------------- DOM 元素獲取 -------------------
+// ... (與上一版相同) ...
 const narrativeLog = document.getElementById('narrative-log');
 const actionOptionsContainer = document.getElementById('action-options');
 const promptQuestion = document.getElementById('prompt-question');
-
-// UI 面板元素
 const infoRound = document.getElementById('info-round');
 const infoTime = document.getElementById('info-time');
 const infoLocation = document.getElementById('info-location');
@@ -19,24 +20,22 @@ const playerHp = document.getElementById('player-hp');
 const playerMp = document.getElementById('player-mp');
 const sceneCharactersList = document.getElementById('scene-characters-list');
 
+// 【新增】Modal 相關元素
+const modal = document.getElementById('entity-modal');
+const modalCloseBtn = document.getElementById('modal-close-btn');
+const modalTitle = document.getElementById('modal-title');
+const modalDescription = document.getElementById('modal-description');
+
 
 // ------------------- 核心功能函數 -------------------
 
-/**
- * 【核心改造】更新整個遊戲介面 (UI)
- * @param {object} data - 從後端接收到的完整響應數據，包含 narrative 和 state
- */
 function updateUI(data) {
+    // ... (此函數與上一版完全相同，此處省略以保持簡潔)
     const { narrative, state } = data;
-
-    // 1. 更新側邊欄的玩家與世界資訊
     if (state) {
-        // 世界資訊
         infoRound.textContent = state.metadata?.round ?? '---';
         infoTime.textContent = state.metadata?.game_timestamp ?? '---';
         infoLocation.textContent = state.world?.player_current_location_name ?? '---';
-        
-        // 玩家資訊
         const pc_data = state.pc_data;
         if (pc_data) {
             playerName.textContent = pc_data.basic_info?.name ?? '---';
@@ -44,47 +43,31 @@ function updateUI(data) {
             playerMp.textContent = `${pc_data.core_status?.mp?.current ?? '--'}/${pc_data.core_status?.mp?.max ?? '--'}`;
         }
     }
-
-    // 2. 處理並渲染主敘事區塊
-    // 先清空舊的行動選項
     actionOptionsContainer.innerHTML = '';
     promptQuestion.textContent = '...';
-
-    // 從 narrative 陣列中分離出 <options>
     const optionsRegex = /<options>([\s\S]*?)<\/options>/;
     let optionsContent = '';
     let narrativeParts = narrative;
-
-    // 在 narrative 的最後一個元素中尋找 options
     const lastPart = narrative[narrative.length - 1];
     if (lastPart.type === 'text' && optionsRegex.test(lastPart.content)) {
         const match = lastPart.content.match(optionsRegex);
         optionsContent = match[1].trim();
-        // 從原文中移除 options
         lastPart.content = lastPart.content.replace(optionsRegex, '').trim();
     }
-    
-    // 建立一個段落 <p> 來容納本次的敘事
     const p = document.createElement('p');
-
     narrativeParts.forEach(part => {
         if (part.type === 'text') {
-            // 如果是純文字，直接附加
             p.appendChild(document.createTextNode(part.content));
         } else {
-            // 如果是實體 (npc, item, etc.)
             const span = document.createElement('span');
             span.className = `narrative-entity ${part.color_class}`;
             span.textContent = part.text;
-            span.dataset.entityId = part.id; // 將ID存入data屬性，備用
+            span.dataset.entityId = part.id;
             span.dataset.entityType = part.type;
             p.appendChild(span);
         }
     });
-
     narrativeLog.appendChild(p);
-    
-    // 3. 渲染行動選項
     if (optionsContent) {
         promptQuestion.textContent = "接下來你打算？";
         const options = optionsContent.split('\n').filter(line => line.trim() !== '');
@@ -99,55 +82,39 @@ function updateUI(data) {
     } else {
         promptQuestion.textContent = "劇情正在發展中...";
     }
-
-    // 保持滾動條在最底部
     narrativeLog.scrollTop = narrativeLog.scrollHeight;
 }
 
-
-/**
- * 處理玩家選擇的行動
- */
 async function handleActionSelect(event) {
+    // ... (此函數與上一版完全相同，只是 URL 變數名改變，此處省略)
     const actionId = event.target.dataset.actionId;
     const actionText = event.target.textContent;
-
     const playerPromptP = document.createElement('p');
     playerPromptP.innerHTML = `<strong>> ${actionText}</strong>`;
     playerPromptP.classList.add('player-prompt');
     narrativeLog.appendChild(playerPromptP);
     narrativeLog.scrollTop = narrativeLog.scrollHeight;
-    
     promptQuestion.textContent = "AI 正在運算中，請稍候...";
     actionOptionsContainer.innerHTML = '<div class="loading-spinner"></div>';
-
     try {
-        const response = await fetch(BACKEND_URL, {
+        const response = await fetch(TURN_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 session_id: currentGameSessionId,
-                player_action: {
-                    id: actionId,
-                    text: actionText.substring(3).trim()
-                },
+                player_action: { id: actionId, text: actionText.substring(3).trim() },
             }),
         });
-
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || `伺服器錯誤: ${response.status}`);
         }
-
         const data = await response.json();
-        
         if (data.narrative && data.state) {
-            // 使用新的UI更新函數
             updateUI(data);
         } else {
             throw new Error("AI 回應格式不正確。");
         }
-
     } catch (error) {
         console.error("請求失敗:", error);
         promptQuestion.textContent = "發生錯誤！";
@@ -155,26 +122,72 @@ async function handleActionSelect(event) {
     }
 }
 
-/**
- * 遊戲初始化函數
- */
-function initializeGame() {
-    console.log("正在初始化遊戲...");
+// 【核心新增】處理點擊實體的函數
+async function handleEntityClick(event) {
+    const target = event.target;
+    // 確保點擊的是我們想要的實體 span
+    if (!target.classList.contains('narrative-entity')) {
+        return;
+    }
 
+    const { entityId, entityType } = target.dataset;
+
+    // 1. 顯示 Modal 並進入載入中狀態
+    modal.classList.remove('hidden');
+    modalTitle.textContent = target.textContent; // 先用點擊的文字當標題
+    modalDescription.textContent = "正在從江湖密卷中查詢資料...";
+
+    // 2. 呼叫後端 API
+    try {
+        const response = await fetch(ENTITY_INFO_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: currentGameSessionId, entity_id: entityId, entity_type: entityType }),
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || "查詢失敗");
+        }
+        
+        // 3. 更新 Modal 內容
+        const entityData = result.data;
+        modalTitle.textContent = entityData.name || target.textContent;
+        // 簡單地將所有資訊轉為字串顯示，未來可以做得更精緻
+        let details = "";
+        for (const [key, value] of Object.entries(entityData)) {
+            if (typeof value !== 'object') {
+                 details += `<strong>${key}:</strong> ${value}<br>`;
+            }
+        }
+        modalDescription.innerHTML = entityData.description || details || "無更多資訊。";
+
+    } catch (error) {
+        modalDescription.textContent = `查詢失敗: ${error.message}`;
+    }
+}
+
+function initializeGame() {
+    // ... (登入檢查與始動按鈕與上一版相同) ...
     if (!currentGameSessionId) {
         alert("偵測到您尚未登入，將為您導向登入頁面。");
         window.location.href = 'login.html';
         return;
     }
-    
-    console.log(`已載入存檔 ID: ${currentGameSessionId}`);
-
     narrativeLog.innerHTML = `<h2>文字江湖</h2><p>正在載入您的江湖傳說...</p>`;
     promptQuestion.textContent = "準備開始您的冒險...";
     actionOptionsContainer.innerHTML = '<button id="start-game-btn">載入遊戲 / 始動</button>';
-    
     document.getElementById('start-game-btn').addEventListener('click', (e) => {
          handleActionSelect({ target: { dataset: { actionId: 'START' }, textContent: 'A. 載入遊戲 / 始動' } });
+    });
+
+    // 【核心新增】為整個敘事日誌區塊和 Modal 新增事件監聽
+    narrativeLog.addEventListener('click', handleEntityClick);
+    modalCloseBtn.addEventListener('click', () => modal.classList.add('hidden'));
+    modal.addEventListener('click', (e) => {
+        // 點擊背景蒙層也可以關閉視窗
+        if (e.target === modal) {
+            modal.classList.add('hidden');
+        }
     });
 }
 

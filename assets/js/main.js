@@ -1,5 +1,5 @@
 // 檔案: assets/js/main.js
-// 版本: 4.5 - 新增選項安全網，防止AI未提供選項時卡關 (100%完整內容)
+// 版本: 4.6 - 修正可收展面板滾動軸功能
 
 // --- 設定與 API URL ---
 const API_BASE_URL = "https://md-server-main.onrender.com";
@@ -109,27 +109,22 @@ function updateUI(data, isFromCache = false) {
     if (!isFromCache) {
         sessionStorage.setItem('cachedGameState', JSON.stringify(data));
     }
-
     const { narrative, state } = data;
     const { pc_data = {}, world = {}, metadata = {}, npcs = {}, locations = {} } = state;
     const { core_status = {}, basic_info = {} } = pc_data;
     const gameTimestamp = metadata?.game_timestamp;
-
     setThemeByGameTime(gameTimestamp);
     const timeInfo = getReadableTime(gameTimestamp);
-    
     const hpPercent = (core_status.hp?.current / core_status.hp?.max) * 100 || 0;
     const mpPercent = (core_status.mp?.current / core_status.mp?.max) * 100 || 0;
     const weatherEmojiMap = { "晴": "☀️", "陰": "☁️", "雨": "🌧️", "雪": "❄️", "霧": "🌫️" };
     const weatherEmoji = weatherEmojiMap[world.weather] || '';
-    
     if(hpBar) hpBar.style.width = `${hpPercent}%`;
     if(mpBar) mpBar.style.width = `${mpPercent}%`;
     if(hpText) hpText.textContent = `${core_status.hp?.current ?? '--'}/${core_status.hp?.max ?? '--'}`;
     if(mpText) mpText.textContent = `${core_status.mp?.current ?? '--'}/${core_status.mp?.max ?? '--'}`;
     if(mobileTime) mobileTime.textContent = timeInfo.short;
     if(mobileWeather) mobileWeather.textContent = `${weatherEmoji} ${world.temperature ?? '--'}°C`;
-
     if(sideInfoTime) sideInfoTime.textContent = timeInfo.full;
     if(sideInfoTimeReadable) sideInfoTimeReadable.textContent = timeInfo.readable;
     if(sideInfoLocation) sideInfoLocation.textContent = world.player_current_location_name ?? '未知';
@@ -139,7 +134,6 @@ function updateUI(data, isFromCache = false) {
     if(sidePlayerName) sidePlayerName.textContent = basic_info.name ?? '---';
     if(sidePlayerHp) sidePlayerHp.textContent = `${core_status.hp?.current ?? '--'}/${core_status.hp?.max ?? '--'}`;
     if(sidePlayerMp) sidePlayerMp.textContent = `${core_status.mp?.current ?? '--'}/${core_status.mp?.max ?? '--'}`;
-    
     if(sideSceneCharactersList){
         const playerLocationId = world.player_current_location_id;
         const charactersInScene = Object.values(npcs).filter(npc => npc.current_location_id === playerLocationId);
@@ -157,7 +151,6 @@ function updateUI(data, isFromCache = false) {
             sideSceneCharactersList.innerHTML = '<li>此地似乎空無一人。</li>';
         }
     }
-    
     const currentLocation = locations[world.player_current_location_id] || {};
     if (sceneDesc) sceneDesc.textContent = currentLocation.description || "探索中...";
     if (sceneSize) sceneSize.textContent = currentLocation.size || "未知";
@@ -171,7 +164,6 @@ function updateUI(data, isFromCache = false) {
         const optionsRegex = /<options>([\s\S]*?)<\/options>/;
         let optionsContent = '';
         let narrativeHtml = "";
-
         (narrative || []).forEach(part => {
             if (!part.content) return;
             if (part.type === 'text') {
@@ -185,28 +177,23 @@ function updateUI(data, isFromCache = false) {
                 narrativeHtml += `<span class="narrative-entity ${part.color_class || ''}" data-entity-id="${part.id}" data-entity-type="${part.type}">${part.text}</span>`;
             }
         });
-
         if (narrativeHtml.trim()) {
             const p = document.createElement('p');
             p.innerHTML = narrativeHtml;
             narrativeLog.appendChild(p);
         }
-        
         actionOptionsContainer.innerHTML = '';
         promptQuestion.style.display = 'block';
         customActionForm.style.display = 'flex';
-        
         if (optionsContent) {
             promptQuestion.textContent = "接下來你打算？";
             const optionLineRegex = /^(?:[A-Z]|\d+)\..*$/m;
             const options = optionsContent.replace(/<br>/g, '\n').split('\n').filter(line => line.trim().match(optionLineRegex));
-
             options.forEach(opt => {
                 const match = opt.trim().match(/^(?:([A-Z])|(\d+))\.\s*(.*)/);
                 if (match) {
                     const actionId = match[1] || match[2];
                     const textContent = match[3];
-                    
                     const button = document.createElement('button');
                     button.dataset.actionId = actionId;
                     button.textContent = textContent;
@@ -236,12 +223,10 @@ function updateUI(data, isFromCache = false) {
 async function handleActionSelect(event) {
     const button = event.currentTarget;
     const actionText = button.dataset.actionId === 'CUSTOM' ? button.textContent : button.textContent;
-    
     showLoading("AI 正在運算中，請稍候...");
     actionOptionsContainer.innerHTML = '';
     promptQuestion.style.display = 'none';
     customActionForm.style.display = 'none';
-
     try {
         const response = await fetch(TURN_URL, {
             method: 'POST',
@@ -254,19 +239,16 @@ async function handleActionSelect(event) {
                 }
             })
         });
-        
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || `HTTP 錯誤: ${response.status}`);
         }
-
         const data = await response.json();
         if (data.narrative && data.state) {
             updateUI(data);
         } else {
             throw new Error("AI 回應格式不正確。");
         }
-
     } catch (error) {
         narrativeLog.innerHTML += `<p style="color: var(--danger-color);">與伺服器連線失敗: ${error.message}</p>`;
     } finally {
@@ -279,7 +261,6 @@ function handleCustomActionSubmit(event) {
     const actionText = customActionInput.value.trim();
     if (!actionText) return;
     customActionInput.value = '';
-
     const customButton = {
         dataset: { actionId: 'CUSTOM' },
         textContent: actionText
@@ -290,14 +271,11 @@ function handleCustomActionSubmit(event) {
 async function handleEntityClick(event) {
     const target = event.target.closest('.narrative-entity');
     if (!target) return;
-
     const { entityId, entityType } = target.dataset;
     if (!entityId || !entityType) return;
-    
     modalTitle.textContent = target.textContent;
     modalBody.innerHTML = '<div class="loading-spinner"></div><p>正在查詢資料...</p>';
     modal.classList.remove('hidden');
-
     try {
         const response = await fetch(ENTITY_INFO_URL, {
             method: 'POST',
@@ -312,10 +290,8 @@ async function handleEntityClick(event) {
         if (!response.ok || !result.success) {
             throw new Error(result.error || "查詢失敗");
         }
-        
         const entityData = result.data;
         modalTitle.textContent = entityData.alias || entityData.name || target.textContent;
-
         let contentHtml = '<div class="info-grid">';
         if (entityType === 'npc') {
             if (entityData.name) contentHtml += `<strong>稱號:</strong><span>${entityData.name}</span>`;
@@ -326,12 +302,10 @@ async function handleEntityClick(event) {
             if (entityData.type) contentHtml += `<strong>類型:</strong><span>${entityData.type}</span>`;
         }
         contentHtml += '</div>';
-
         if (entityData.description) {
             contentHtml += `<p class="description-text">"${entityData.description}"</p>`;
         }
         modalBody.innerHTML = contentHtml;
-
     } catch (error) {
         modalBody.innerHTML = `<p style="color: var(--danger-color);">查詢失敗: ${error.message}</p>`;
     }
@@ -349,12 +323,28 @@ function handleLogout() {
     }
 }
 
+// 【核心修改】收展面板功能
 function toggleCollapse(event) {
     const title = event.currentTarget;
     const content = title.nextElementSibling;
     if (content && content.classList.contains('collapsible-content')) {
-        title.classList.toggle('collapsed');
-        content.classList.toggle('collapsed');
+        const isCollapsed = content.classList.contains('collapsed');
+        if (isCollapsed) {
+            // 如果是收合的，就展開它
+            content.classList.remove('collapsed');
+            title.classList.remove('collapsed');
+            // 為了讓滾動條正常工作，我們在展開後添加 'expanded' class
+            // 使用 setTimeout 確保在 max-height 動畫完成後再添加 overflow
+            setTimeout(() => {
+                content.classList.add('expanded');
+            }, 300); // 動畫時間約 0.4s，設 0.3s 確保流暢
+        } else {
+            // 如果是展開的，就收合它
+            content.classList.remove('expanded'); // 先移除 overflow
+            content.classList.add('collapsed');
+
+            title.classList.add('collapsed');
+        }
     }
 }
 
@@ -363,7 +353,6 @@ async function initializeGame() {
         window.location.href = 'login.html';
         return;
     }
-
     // --- 事件監聽 ---
     customActionForm.addEventListener('submit', handleCustomActionSubmit);
     narrativeLog.addEventListener('click', handleEntityClick);
@@ -373,13 +362,13 @@ async function initializeGame() {
     });
     if (sideSceneCharactersList) sideSceneCharactersList.addEventListener('click', handleEntityClick);
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
-
+    
     document.querySelectorAll('.collapsible-title').forEach(title => {
         title.addEventListener('click', toggleCollapse);
         // 預設收合
-        title.classList.add('collapsed');
         const content = title.nextElementSibling;
-        if (content && content.classList.contains('collapsible-content')) {
+        if (!content.classList.contains('expanded')) {
+            title.classList.add('collapsed');
             content.classList.add('collapsed');
         }
     });
@@ -390,7 +379,6 @@ async function initializeGame() {
     if(contactsBtn) contactsBtn.addEventListener('click', () => alert('「人脈」功能開發中...'));
     if(attributesBtn) attributesBtn.addEventListener('click', () => alert('「數值」功能開發中...'));
     if(inventoryBtn) inventoryBtn.addEventListener('click', () => alert('「行囊」功能開發中...'));
-
 
     // --- 頁面載入邏輯 ---
     const cachedData = sessionStorage.getItem('cachedGameState');

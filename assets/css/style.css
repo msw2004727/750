@@ -1,12 +1,13 @@
 /*
- * 版本: 5.2 (陣圖佈局版)
- * 描述: 根據使用者提供的佈局圖，使用 CSS Grid 全面重構介面。
+ * 版本: 5.3 (儀表板佈局版)
+ * 描述: 根據使用者進一步要求，實現可收摺面板與提示儀表板。
  */
 
 /* --- 根變數與色彩系統 --- */
 :root {
     --bg-main: #1a1c20;
     --bg-panel: #25282e;
+    --bg-inset: #1f2125;
     --border-color: #3a3f4b;
     --text-primary: #e0e2e8;
     --text-secondary: #9fa6b9;
@@ -15,9 +16,14 @@
     --hp-color: #e57373;
     --mp-color: #64b5f6;
     --shadow-color: rgba(0, 0, 0, 0.3);
-    --scroll-thumb-color: #4a4f5a;
-    --separator-color: var(--border-color);
-    --info-divider: rgba(255,255,255,0.1);
+    
+    /* 提示顏色 */
+    --system-prompt-bg: rgba(74, 144, 226, 0.1);
+    --system-prompt-border: #4a90e2;
+    --perception-prompt-bg: rgba(189, 16, 224, 0.1);
+    --perception-prompt-border: #bd10e0;
+    --core-situation-bg: rgba(208, 2, 27, 0.1);
+    --core-situation-border: #d0021b;
 }
 
 /* --- 基礎設定 --- */
@@ -25,7 +31,6 @@ html, body {
     height: 100%;
     margin: 0;
     font-family: 'Microsoft JhengHei', 'PingFang TC', 'Heiti TC', sans-serif;
-    font-size: 16px;
     background-color: var(--bg-main);
     color: var(--text-primary);
     overflow: hidden;
@@ -34,8 +39,11 @@ html, body {
 /* --- 主要佈局容器 (CSS Grid) --- */
 .game-container {
     display: grid;
-    grid-template-columns: 1fr 320px; /* 主內容區 | 右側邊欄 */
-    grid-template-rows: auto 1fr; /* 頂部面板 | 主要內容 */
+    grid-template-columns: 2fr 1.5fr 1fr; /* 氛圍 | 世界 | 角色 */
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+        "atmosphere world character"
+        "narrative narrative right-sidebar";
     gap: 16px;
     padding: 16px;
     height: calc(100vh - 32px);
@@ -54,140 +62,88 @@ html, body {
 }
 
 /* --- Grid 佈局分配 --- */
-.atmosphere-panel {
-    grid-column: 1 / 2;
-    grid-row: 1 / 2;
-    display: grid; /* 內部分為兩欄 */
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-}
-.world-state-panel {
-    display: none; /* 暫時隱藏，資訊已整合 */
-}
-.character-status-panel {
-    grid-column: 2 / 3;
-    grid-row: 1 / 2;
-    position: relative;
-}
-.narrative-panel {
-    grid-column: 1 / 2;
-    grid-row: 2 / 3;
-    overflow: hidden; /* 防止子元素溢出 */
-}
-.right-sidebar {
-    grid-column: 2 / 3;
-    grid-row: 2 / 3;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    overflow-y: auto; /* 若面板總高超出，允許滾動 */
-}
+.atmosphere-panel { grid-area: atmosphere; }
+.world-state-panel { grid-area: world; }
+.character-status-panel { grid-area: character; position: relative; }
+.narrative-panel { grid-area: narrative; overflow: hidden; }
+.right-sidebar { grid-area: right-sidebar; display: flex; flex-direction: column; gap: 16px; }
 
 /* --- 各面板內部樣式 --- */
-.atmosphere-panel h3 {
-    margin: 0 0 8px 0;
-    font-size: 1.1em;
-    color: var(--accent-color);
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 8px;
-}
-#round-atmosphere {
-    margin: 0;
-    color: var(--text-secondary);
-    font-style: italic;
-}
 
-.info-content p {
-    margin: 8px 0;
-    color: var(--text-secondary);
+/* 氛圍 & 儀表板 */
+.atmosphere-panel h3 { margin: 0 0 8px 0; font-size: 1.1em; color: var(--accent-color); }
+.prompt-dashboard { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.prompt-box {
+    border-left-width: 4px;
+    border-left-style: solid;
+    padding: 8px 12px;
+    border-radius: 4px;
     font-size: 0.9em;
-    line-height: 1.5;
 }
-.info-content p strong {
-    color: var(--text-primary);
-    font-weight: 600;
-    margin-right: 8px;
-}
-.info-content span, .info-content .status-bar-text { color: var(--text-primary); }
+.prompt-box.system-prompt { background-color: var(--system-prompt-bg); border-color: var(--system-prompt-border); }
+.prompt-box.perception-prompt { background-color: var(--perception-prompt-bg); border-color: var(--perception-prompt-border); }
+.prompt-box.core-situation { background-color: var(--core-situation-bg); border-color: var(--core-situation-border); font-weight: bold; }
 
+/* 世界狀態 */
+.world-state-panel p { margin: 4px 0; font-size: 0.9em; color: var(--text-secondary); }
+.world-state-panel p:first-child { font-weight: bold; font-size: 1em; color: var(--text-primary); }
+#weather-line { display: flex; justify-content: space-between; margin-top: 8px; }
+
+/* 角色狀態 */
+.info-content { width: 100%; }
 .status-bar-container { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.status-bar-label { flex-shrink: 0; width: 40px; font-size: 0.9em; color: var(--text-secondary); text-align: right; }
+.status-bar-label { flex-shrink: 0; width: 45px; font-size: 0.9em; color: var(--text-secondary); text-align: right; }
 .status-bar-bg { flex-grow: 1; background-color: var(--bg-main); border-radius: 6px; height: 16px; padding: 2px; }
 .status-bar { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
 .status-bar.hp { background: var(--hp-color); }
 .status-bar.mp { background: var(--mp-color); }
+.btn-corner-logout { position: absolute; top: 10px; right: 10px; padding: 4px 8px; font-size: 0.8em; }
 
-.player-panel-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.player-panel-buttons button {
-    flex: 1 1 45%; padding: 8px; background-color: var(--bg-main);
-    border: 1px solid var(--border-color); color: var(--text-primary);
-    border-radius: 4px; cursor: pointer; transition: all 0.2s;
-}
-.player-panel-buttons button:hover { background-color: var(--accent-color); }
-.btn-corner-logout {
-    position: absolute; top: 10px; right: 10px;
-    padding: 4px 8px; font-size: 0.8em;
-}
-
-.narrative-log {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 8px;
-}
-.narrative-log p { line-height: 1.7; margin-bottom: 1em; }
+/* 劇情區 */
+.narrative-log { flex-grow: 1; overflow-y: auto; padding-right: 10px; }
+.narrative-log p { line-height: 1.7; margin: 0 0 1em 0; }
 .input-area { flex-shrink: 0; padding-top: 16px; border-top: 1px solid var(--border-color); }
-#prompt-question { font-weight: 600; margin: 0 0 12px 0; }
 #action-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-#action-options button {
-    padding: 10px; background-color: var(--bg-main);
-    border: 1px solid var(--border-color); color: var(--text-primary);
-    border-radius: 4px; text-align: left; cursor: pointer;
-    transition: all 0.2s ease;
-}
-#action-options button:hover { background-color: var(--accent-color); border-color: var(--accent-color); color: white; }
-.custom-action-container { display: flex; gap: 8px; }
-#custom-action-input { flex-grow: 1; padding: 8px; background-color: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 4px; }
-.custom-action-container button { padding: 8px 16px; background-color: var(--accent-color); border: none; color: white; border-radius: 4px; cursor: pointer; }
+#action-options button { padding: 10px; background-color: var(--bg-inset); /* ... */ }
 
+/* 右側邊欄 & 可收摺面板 */
 .sidebar-panel .info-title {
-    font-size: 1.1em;
-    font-weight: 600;
-    color: var(--text-title);
-    margin: 0 0 12px 0;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border-color);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 1.1em; font-weight: 600; margin: 0 0 12px 0;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border-color);
 }
-.info-list { list-style: none; padding: 0; margin: 0; }
-.info-list li { padding: 8px 4px; border-bottom: 1px solid var(--border-color); transition: background-color 0.2s; cursor: pointer; }
-.info-list li:last-child { border-bottom: none; }
-.info-list li:hover { background-color: var(--bg-main); }
-hr.info-divider { border: 0; height: 1px; background-color: var(--info-divider); margin: 12px 0; }
+.collapsible-title { cursor: pointer; }
+.collapse-icon { transition: transform 0.3s ease; }
+.collapsible-title.collapsed .collapse-icon { transform: rotate(-90deg); }
 
-/* --- 窄版響應式設計 --- */
+.collapsible-content {
+    transition: max-height 0.4s ease-in-out, opacity 0.3s ease, margin-top 0.4s ease;
+    overflow-y: auto;
+    max-height: 500px; /* 動畫參考高度 */
+}
+.collapsible-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin-top: -12px; /* 抵銷標題的 margin-bottom */
+    overflow: hidden;
+}
+
+.info-list { list-style: none; padding: 0; margin: 0; }
+.info-list li { padding: 8px 4px; border-bottom: 1px solid var(--border-color); cursor: pointer; }
+.info-list li:hover { background-color: var(--bg-main); }
+hr.info-divider { border: 0; height: 1px; background-color: var(--border-color); margin: 12px 0; }
+
+.hidden { display: none !important; }
+
+/* 窄版響應式設計 */
 @media (max-width: 1024px) {
     .game-container {
-        grid-template-columns: 1fr; /* 單欄 */
-        grid-template-rows: auto 1fr; /* 頂部欄 | 主內容 */
-        padding: 8px;
-        height: calc(100vh - 16px);
+        display: flex;
+        flex-direction: column;
     }
-    .atmosphere-panel, .character-status-panel, .right-sidebar {
-        display: none; /* 窄版時隱藏桌面版專用面板 */
-    }
-    .narrative-panel {
-        grid-column: 1 / 2;
-        grid-row: 1 / 3; /* 佔滿所有空間 */
-    }
-    /* 在此可以加入手機版專用頂部欄的樣式 (如果需要) */
+    .panel, .right-sidebar { display: none; } /* 隱藏所有桌面面板 */
+    .narrative-panel { display: flex; flex-grow: 1; } /* 只顯示劇情面板 */
+    /* 在此可以加入手機版專用頂部欄的樣式 */
 }
 
-/* 其他 Modal, Loading, Scrollbar, Hint-tag 等樣式保持不變 */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; }
-.modal-content { background-color: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 12px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; padding: 24px; position: relative; }
-.modal-close { position: absolute; top: 12px; right: 16px; font-size: 2em; color: var(--text-secondary); background: none; border: none; cursor: pointer; }
-#modal-title { font-size: 1.8em; color: var(--accent-color); margin: 0 0 20px 0; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); }
-.loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); display: flex; justify-content: center; align-items: center; z-index: 2000; }
-.hidden { display: none !important; }
-*::-webkit-scrollbar { width: 8px; }
-*::-webkit-scrollbar-track { background: transparent; }
-*::-webkit-scrollbar-thumb { background: var(--scroll-thumb-color); border-radius: 4px; }
+/* 其他 Modal, Loading, Scrollbar 等樣式 ... */

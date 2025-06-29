@@ -218,7 +218,7 @@ html, body {
 }
 
 /* --- 通用狀態條樣式 --- */
-.status-bar-container { display: flex; align-items: center; gap: 8px; }
+.status-bar-container { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .status-bar-label { flex-shrink: 0; width: 40px; font-size: 0.9em; color: var(--text-secondary); text-align: right; }
 .status-bar-bg {
     flex-grow: 1; background-color: var(--bg-inset);

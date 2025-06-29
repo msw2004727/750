@@ -1,5 +1,5 @@
 // 檔案: assets/js/main.js
-// 版本: 5.0 (江湖煥新版)
+// 版本: 5.1 (江湖煥新版 - 校準)
 // 描述: 全面適配新的 HTML 結構與 CSS 樣式，並實現使用者要求的新功能。
 //      - 實現分隔線與提示標籤的動態渲染
 //      - 修正登出按鈕與可收合面板的滾動軸問題
@@ -109,20 +109,21 @@ function getReadableTime(gameTimestamp) {
  * @returns {string} - 處理後的 HTML 字串
  */
 function processNarrativeContent(content) {
+    if (typeof content !== 'string') return '';
+    
     let processed = content.replace(/\n/g, '<br>');
 
     // 轉換提示標籤，例如 [手工檢定][精細操作]
-    processed = processed.replace(/\[([^\]]+)\]\[([^\]]+)\]/g, '<span class="hint-tag">$1</span><span class="hint-tag">$2</span>');
-    processed = processed.replace(/\[([^[\]]+)\]/g, (match, p1) => {
+    processed = processed.replace(/\[([^\]]+?)]/g, (match, p1) => {
         // 避免轉換已經處理過的 <tag> 或 【】
-        if (p1.startsWith('<') || p1.startsWith('【')) {
+        if (p1.startsWith('<') || p1.startsWith('【') || p1.includes('=')) {
             return match;
         }
         return `<span class="hint-tag">${p1}</span>`;
     });
 
     // 轉換分隔線標記，例如 【**本回合標題**】
-    processed = processed.replace(/(【\*\*?.[^】]+?\*\*?】)/g, '<hr>$1');
+    processed = processed.replace(/(【.*?】)/g, '<hr><p style="text-align:center; font-weight:bold; margin: 1em 0;">$1</p>');
 
     return processed;
 }
@@ -236,15 +237,16 @@ function updateUI(data, isFromCache = false) {
         if (optionsContent) {
             promptQuestion.textContent = "接下來你打算？";
             const optionLineRegex = /^(?:[A-Z]|\d+)\..*$/m;
-            const options = optionsContent.replace(/<br\s*\/?>/g, '\n').split('\n').filter(line => line.trim().match(optionLineRegex));
-
+            let options = optionsContent.replace(/<br\s*\/?>/g, '\n').split('\n').filter(line => line.trim().match(optionLineRegex));
+            
             // 如果AI給出的選項少於3個，則補充預設選項
+            const defaultOptions = [
+                'D. 仔細觀察四周的環境。',
+                'E. 檢查一下自身的身體狀況。',
+                'F. 原地休息，恢復體力。'
+            ];
+
             while (options.length > 0 && options.length < 3) {
-                 const defaultOptions = [
-                    'D. 仔細觀察四周的環境。',
-                    'E. 檢查一下自身的身體狀況。',
-                    'F. 原地休息，恢復體力。'
-                 ];
                  if (!options.some(o => o.includes('觀察'))) options.push(defaultOptions[0]);
                  else if (!options.some(o => o.includes('檢查'))) options.push(defaultOptions[1]);
                  else options.push(defaultOptions[2]);
@@ -449,16 +451,19 @@ async function initializeGame() {
 
 
     // --- 頁面載入邏輯 ---
-    const cachedData = sessionStorage.getItem('cachedGameState');
-    if (cachedData) {
+    const cachedDataJSON = sessionStorage.getItem('cachedGameState');
+    let cachedData = null;
+    if (cachedDataJSON) {
         try {
-            const parsedData = JSON.parse(cachedData);
-            narrativeLog.innerHTML = parsedData.state?.narrative_log?.map(line => `<p>${processNarrativeContent(line)}</p>`).join('') || '';
-            updateUI(parsedData, true);
+            cachedData = JSON.parse(cachedDataJSON);
+            const logHtml = cachedData.state?.narrative_log?.map(line => `<p>${processNarrativeContent(line)}</p>`).join('') || '';
+            narrativeLog.innerHTML = logHtml;
+            updateUI(cachedData, true);
             narrativeLog.scrollTop = narrativeLog.scrollHeight;
         } catch (e) {
             console.error("解析快取失敗:", e);
             sessionStorage.removeItem('cachedGameState');
+            cachedData = null;
         }
     }
     
@@ -499,12 +504,13 @@ async function initializeGame() {
         const turnResult = await turnResponse.json();
         if (!turnResponse.ok) throw new Error(turnResult.error || "獲取回合數據失敗");
         
-        if (isFirstLoad || !cachedData) {
+        if (isFirstLoad) {
             updateUI(turnResult);
         } else {
+            // 對於刷新，我們只更新 state，不重新渲染敘事
             latestGameState = turnResult.state;
             sessionStorage.setItem('cachedGameState', JSON.stringify(turnResult));
-            updateUI(turnResult, true);
+            updateUI(turnResult, true); // 標記為 true，避免重複渲染敘事
         }
     } catch (error) {
         narrativeLog.innerHTML += `<p style="color: var(--danger-color);">遊戲載入失敗: ${error.message}</p>`;

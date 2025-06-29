@@ -1,6 +1,6 @@
 /*
- * 版本: 5.3 (儀表板佈局版)
- * 描述: 根據使用者進一步要求，實現可收摺面板與提示儀表板。
+ * 版本: 5.4 (置中修正版)
+ * 描述: 修正 loading-overlay 未能居中的問題，並完善其動畫效果。
  */
 
 /* --- 根變數與色彩系統 --- */
@@ -131,7 +131,7 @@ html, body {
 .collapsible-title.collapsed .collapse-icon { transform: rotate(-90deg); }
 
 .collapsible-content {
-    transition: max-height 0.4s ease-in-out, opacity 0.3s ease, margin-top 0.4s ease;
+    transition: max-height 0.4s ease-in-out, opacity 0.3s ease, margin-top 0.4s ease, padding 0.4s ease;
     overflow-y: auto;
     max-height: 500px; /* 動畫參考高度 */
 }
@@ -140,6 +140,8 @@ html, body {
     opacity: 0;
     margin-top: -12px; /* 抵銷標題的 margin-bottom */
     overflow: hidden;
+    padding-top: 0;
+    padding-bottom: 0;
 }
 
 .info-list { list-style: none; padding: 0; margin: 0; }
@@ -154,23 +156,55 @@ hr.info-divider { border: 0; height: 1px; background-color: var(--border-color);
     .game-container {
         display: flex;
         flex-direction: column;
+        padding: 0;
+        height: 100vh;
     }
-    .panel, .right-sidebar { display: none; } /* 隱藏所有桌面面板 */
-    .narrative-panel { display: flex; flex-grow: 1; } /* 只顯示劇情面板 */
+    .panel, .right-sidebar, .character-status-panel, .world-state-panel, .atmosphere-panel { display: none; } /* 隱藏所有桌面面板 */
+    .narrative-panel { 
+        display: flex; 
+        flex-grow: 1;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
     /* 在此可以加入手機版專用頂部欄的樣式 */
 }
 
-/* Modal, Loading, Scrollbar 等樣式 */
-*::-webkit-scrollbar { width: 8px; }
-*::-webkit-scrollbar-track { background: var(--bg-panel); }
-*::-webkit-scrollbar-thumb { background: var(--scroll-thumb-color); border-radius: 4px; }
+/* Modal 彈出視窗 */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 1000; }
 .modal-content { background-color: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 12px; width: 90%; max-width: 600px; max-height: 80vh; overflow-y: auto; padding: 24px; position: relative; }
 .modal-close { position: absolute; top: 12px; right: 16px; font-size: 2em; color: var(--text-secondary); background: none; border: none; cursor: pointer; }
 #modal-title { font-size: 1.8em; color: var(--accent-color); margin: 0 0 20px 0; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); }
-.loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); display: flex; flex-direction: center; align-items: center; z-index: 2000; }
+
+/* --- 核心修正：加載動畫樣式 --- */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    /* 補回核心置中指令 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    /* 補回淡入淡出動畫 */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+.loading-overlay:not(.hidden) {
+    opacity: 1;
+    visibility: visible;
+}
 .loading-content { text-align: center; color: white; }
 #loading-text { font-size: 1.2em; margin-bottom: 20px; }
 .loading-bar-container { width: 250px; height: 8px; background-color: rgba(255, 255, 255, 0.2); border-radius: 4px; overflow: hidden; }
 .loading-bar { width: 0%; height: 100%; background-color: var(--accent-color); border-radius: 4px; animation: loading-animation 2s infinite linear; }
 @keyframes loading-animation { 0% { width: 0%; } 50% { width: 100%; } 100% { width: 0%; transform: translateX(250px); } }
+
+/* 滾動條樣式 */
+*::-webkit-scrollbar { width: 8px; }
+*::-webkit-scrollbar-track { background: var(--bg-panel); }
+*::-webkit-scrollbar-thumb { background: var(--scroll-thumb-color); border-radius: 4px; }

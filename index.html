@@ -4,92 +4,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>文字江湖</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=5.1">
+    <link rel="stylesheet" href="assets/css/style.css?v=5.2">
 </head>
 <body>
-    <button id="logout-btn-corner" class="btn-corner-logout" title="登出江湖">登出</button>
-
     <div class="game-container">
-        <div class="sidebar-panel left-panel">
-            <div class="info-box" id="player-info-box">
-                <h3 class="info-title">俠客狀態</h3>
-                <div class="info-content">
-                    <p><strong>名號:</strong> <span id="player-name">---</span></p>
-                    <div class="status-bar-container">
-                        <div class="status-bar-label">氣血</div>
-                        <div class="status-bar-bg"><div id="hp-bar-side" class="status-bar hp"></div></div>
-                        <div id="player-hp" class="status-bar-text">--/--</div>
-                    </div>
-                    <div class="status-bar-container">
-                        <div class="status-bar-label">內力</div>
-                        <div class="status-bar-bg"><div id="mp-bar-side" class="status-bar mp"></div></div>
-                        <div id="player-mp" class="status-bar-text">--/--</div>
-                    </div>
-                </div>
-                <div id="player-panel-buttons" class="player-panel-buttons">
-                    <button id="attributes-btn">數值</button>
-                    <button id="inventory-btn">行囊</button>
-                    <button id="contacts-btn">人脈</button>
-                </div>
-            </div>
-            <div class="info-box" id="world-state-box">
-                <h3 class="info-title">世界狀態</h3>
-                <div class="info-content">
-                    <p><strong>目前地點:</strong> <span id="info-location">---</span></p>
-                    <p><strong>遊戲時間:</strong> <span id="info-time">---</span> <span id="info-time-readable" class="text-secondary"></span></p>
-                    <div id="weather-line">
-                        <p><strong>天氣:</strong> <span id="weather-info-desktop">--</span></p>
-                        <p><strong>溫度:</strong> <span id="temperature-info">--</span></p>
-                        <p><strong>濕度:</strong> <span id="humidity-info">--</span></p>
-                    </div>
-                </div>
-            </div>
-             <div class="info-box" id="scene-info-box">
-                <h3 class="info-title collapsible-title">
-                    地區資訊
-                    <span class="collapse-icon">▾</span>
-                </h3>
-                <div id="scene-info-content" class="info-content collapsible-content">
-                    <p><strong>描述:</strong> <span id="scene-desc">探索中...</span></p>
-                    <hr class="info-divider">
-                    <p><strong>規模:</strong> <span id="scene-size">未知</span></p>
-                    <p><strong>人口:</strong> <span id="scene-population">未知</span></p>
-                    <p><strong>經濟:</strong> <span id="scene-economy">未知</span></p>
-                    <p><strong>特產:</strong> <span id="scene-specialty">未知</span></p>
-                    <p><strong>主要勢力:</strong> <span id="scene-faction">未知</span></p>
-                    <p><strong>信仰:</strong> <span id="scene-religion">未知</span></p>
+
+        <div class="panel atmosphere-panel">
+            <h3 id="round-title">回合數：---</h3>
+            <p id="round-atmosphere">等待場景氛圍渲染...</p>
+        </div>
+
+        <div class="panel world-state-panel">
+             <div class="info-content">
+                <p><strong>目前地點:</strong> <span id="info-location">---</span></p>
+                <p><strong>遊戲時間:</strong> <span id="info-time">---</span> <span id="info-time-readable" class="text-secondary"></span></p>
+                <div id="weather-line">
+                    <p><strong>天氣:</strong> <span id="weather-info-desktop">--</span></p>
+                    <p><strong>溫度:</strong> <span id="temperature-info">--</span></p>
                 </div>
             </div>
         </div>
 
-        <div class="main-panel">
-            <div class="top-bar">
-                <div class="top-status-bars">
-                    <div class="status-bar-container">
-                        <div class="status-bar-label">氣血</div>
-                        <div class="status-bar-bg"><div id="hp-bar" class="status-bar hp"></div></div>
-                        <div id="hp-text" class="status-bar-text">--/--</div>
-                    </div>
-                    <div class="status-bar-container">
-                        <div class="status-bar-label">內力</div>
-                        <div class="status-bar-bg"><div id="mp-bar" class="status-bar mp"></div></div>
-                        <div id="mp-text" class="status-bar-text">--/--</div>
-                    </div>
+        <div class="panel character-status-panel">
+             <div class="info-content">
+                <div class="status-bar-container">
+                    <div class="status-bar-label">名號</div>
+                    <span id="player-name">---</span>
                 </div>
-                <div class="top-env-info">
-                    <span id="game-time-clock-mobile">--時--刻</span>
-                    <span>|</span>
-                    <span id="weather-info-mobile">--</span>
+                <div class="status-bar-container">
+                    <div class="status-bar-label">氣血</div>
+                    <div class="status-bar-bg"><div id="hp-bar-side" class="status-bar hp"></div></div>
+                    <div id="player-hp" class="status-bar-text">--/--</div>
                 </div>
-                <div class="top-buttons">
-                    <button id="status-btn-mobile" class="top-bar-btn">狀態</button>
-                    <button id="inventory-btn-mobile" class="top-bar-btn">行囊</button>
-                    <button id="map-btn-mobile" class="top-bar-btn">地區</button>
+                <div class="status-bar-container">
+                    <div class="status-bar-label">內力</div>
+                    <div class="status-bar-bg"><div id="mp-bar-side" class="status-bar mp"></div></div>
+                    <div id="player-mp" class="status-bar-text">--/--</div>
                 </div>
             </div>
-
+            <div id="player-panel-buttons" class="player-panel-buttons">
+                <button id="attributes-btn">數值</button>
+                <button id="inventory-btn">行囊</button>
+                <button id="contacts-btn">人脈</button>
+                <button id="map-btn-desktop">地圖</button>
+            </div>
+            <button id="logout-btn-corner" class="btn-corner-logout" title="登出江湖">登出</button>
+        </div>
+        
+        <div class="panel narrative-panel">
             <div id="narrative-log" class="narrative-log"></div>
-
             <div class="input-area">
                 <p id="prompt-question">接下來你打算？</p>
                 <div id="action-options"></div>
@@ -100,15 +63,34 @@
             </div>
         </div>
 
-        <div class="sidebar-panel right-panel">
-            <div class="info-box" id="scene-characters-box">
-                <h3 class="info-title collapsible-title">
+        <div class="right-sidebar">
+            <div class="panel sidebar-panel" id="scene-characters-box">
+                 <h3 class="info-title collapsible-title">
                     場景人物
                     <span class="collapse-icon">▾</span>
                 </h3>
                 <ul id="scene-characters-list" class="info-list collapsible-content expanded"></ul>
             </div>
+            <div class="panel sidebar-panel" id="scene-facilities-box">
+                 <h3 class="info-title">
+                    場景設施
+                </h3>
+                <div class="info-content">功能開發中...</div>
             </div>
+            <div class="panel sidebar-panel" id="scene-info-box">
+                <h3 class="info-title collapsible-title">
+                    地區資訊
+                    <span class="collapse-icon">▾</span>
+                </h3>
+                <div id="scene-info-content" class="info-content collapsible-content">
+                    <p><strong>描述:</strong> <span id="scene-desc">探索中...</span></p>
+                    <hr class="info-divider">
+                    <p><strong>規模:</strong> <span id="scene-size">未知</span></p>
+                    <p><strong>人口:</strong> <span id="scene-population">未知</span></p>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <div id="info-modal" class="modal-overlay hidden">
@@ -128,6 +110,6 @@
         </div>
     </div>
 
-    <script src="assets/js/main.js?v=5.1" type="module"></script>
+    <script src="assets/js/main.js?v=5.2" type="module"></script>
 </body>
 </html>

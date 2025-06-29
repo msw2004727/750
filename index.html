@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>文字江湖</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=5.3">
+    <link rel="stylesheet" href="assets/css/style.css?v=5.4">
 </head>
 <body>
     <div class="game-container">
@@ -19,16 +19,20 @@
         </div>
 
         <div class="panel world-state-panel">
+            <h3>世界概況</h3>
             <p><strong><span id="info-location">---</span></strong></p>
             <p><span id="info-time">---</span> <span id="info-time-readable" class="text-secondary"></span></p>
             <div id="weather-line">
-                <span><span id="weather-info-desktop">--</span></span>
-                <span><span id="temperature-info">--</span>°C</span>
+                <span>天氣: <span id="weather-info-desktop">--</span></span>
+                <span>|</span>
+                <span>溫度: <span id="temperature-info">--</span>°C</span>
+                <span>|</span>
                 <span>濕度: <span id="humidity-info">--</span>%</span>
             </div>
         </div>
 
         <div class="panel character-status-panel">
+             <h3>角色狀態</h3>
              <div class="info-content">
                 <div class="status-bar-container">
                     <div class="status-bar-label">名號:</div>
@@ -44,6 +48,12 @@
                     <div class="status-bar-bg"><div id="mp-bar-side" class="status-bar mp"></div></div>
                     <div id="player-mp" class="status-bar-text">--/--</div>
                 </div>
+            </div>
+            <div id="player-panel-buttons" class="player-panel-buttons">
+                <button id="inventory-btn">行囊</button>
+                <button id="contacts-btn">人脈</button>
+                <button id="skills-btn">武功</button>
+                <button id="map-btn">地圖</button>
             </div>
             <button id="logout-btn-corner" class="btn-corner-logout" title="登出江湖">登出</button>
         </div>
@@ -105,6 +115,6 @@
         </div>
     </div>
 
-    <script src="assets/js/main.js?v=5.3" type="module"></script>
+    <script src="assets/js/main.js?v=5.4" type="module"></script>
 </body>
 </html>

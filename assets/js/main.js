@@ -1,6 +1,6 @@
 // 檔案: assets/js/main.js
-// 版本: 5.3 (儀表板佈局版)
-// 描述: 重構UI更新邏輯，將提示資訊分離到儀表板，並啟用所有可收摺面板。
+// 版本: 5.4 (面板精修版)
+// 描述: 更新按鈕的事件監聽以匹配新的UI。
 
 // --- 設定與 API URL ---
 const API_BASE_URL = "https://md-server-main.onrender.com";
@@ -11,7 +11,6 @@ const currentGameSessionId = localStorage.getItem('game_session_id');
 
 // --- DOM 元素獲取 ---
 const loadingOverlay = document.getElementById('loading-overlay');
-const loadingText = document.getElementById('loading-text');
 const narrativeLog = document.getElementById('narrative-log');
 const actionOptionsContainer = document.getElementById('action-options');
 const promptQuestion = document.getElementById('prompt-question');
@@ -52,13 +51,11 @@ const modalCloseBtn = document.getElementById('modal-close-btn');
 const modalTitle = document.getElementById('modal-title');
 const modalBody = document.getElementById('modal-body');
 
-let latestGameState = {};
-
 // --- 核心功能函數 ---
 
 function showLoading(text) {
     if (loadingOverlay) {
-        loadingText.textContent = text;
+        loadingOverlay.querySelector('#loading-text').textContent = text;
         loadingOverlay.classList.remove('hidden');
     }
 }
@@ -85,8 +82,7 @@ function getReadableTime(gameTimestamp) {
 function updateUI(data) {
     const { narrative, state } = data;
     const { pc_data = {}, world = {}, metadata = {} } = state;
-    const { npcs = {}, locations = {} } = pc_data; // 修正: npcs 和 locations 可能在 pc_data 之外
-
+    
     // --- 更新角色狀態 ---
     if(sidePlayerName) sidePlayerName.textContent = pc_data.basic_info?.name ?? '---';
     const hpPercent = (pc_data.core_status?.hp?.current / pc_data.core_status?.hp?.max) * 100 || 0;
@@ -203,7 +199,7 @@ async function handleActionSelect(event) {
         const data = await response.json();
         updateUI(data);
     } catch (error) {
-        if(narrativeLog) narrativeLog.innerHTML += `<p style="color:red;">錯誤: ${error.message}</p>`;
+        if(narrativeLog) narrativeLog.innerHTML += `<p style="color:var(--danger-color);">錯誤: ${error.message}</p>`;
     } finally {
         hideLoading();
     }
@@ -243,12 +239,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 事件監聽
     if(logoutBtn) logoutBtn.addEventListener('click', handleLogout);
     if(customActionForm) customActionForm.addEventListener('submit', handleCustomActionSubmit);
+    
     document.querySelectorAll('.collapsible-title').forEach(title => {
         title.addEventListener('click', toggleCollapse);
-        // 預設收合
         title.classList.add('collapsed');
         title.nextElementSibling.classList.add('collapsed');
     });
+
+    // 為新按鈕添加事件監聽
+    document.getElementById('inventory-btn')?.addEventListener('click', () => alert('「行囊」功能開發中...'));
+    document.getElementById('contacts-btn')?.addEventListener('click', () => alert('「人脈」功能開發中...'));
+    document.getElementById('skills-btn')?.addEventListener('click', () => alert('「武功」功能開發中...'));
+    document.getElementById('map-btn')?.addEventListener('click', () => alert('「地圖」功能開發中...'));
     
     // 初始載入
     showLoading("載入江湖傳說...");

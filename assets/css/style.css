@@ -1,6 +1,11 @@
 /*
- * 版本: 4.3
- * 描述: 修正可收展面板溢出問題，為其增加最大高度與內部滾動軸 (100%完整內容)
+ * 版本: 5.0 (江湖煥新版)
+ * 描述: 全面重構佈局與樣式，以滿足使用者提出的新設計方向。
+ * - 實現三欄式桌面佈局
+ * - 降低劇情行高
+ * - 修正收展面板滾動問題
+ * - 新增提示標籤樣式
+ * - 全面視覺優化
  */
 
 /* --- 根變數與色彩系統 --- */
@@ -9,20 +14,24 @@
     --bg-main: #1a1c20;
     --bg-panel: #25282e;
     --bg-inset: #1f2125;
-    --bg-overlay: rgba(16, 18, 21, 0.7); /* 半透明底色 */
+    --bg-overlay: rgba(22, 24, 28, 0.85); /* 半透明底色 */
     --border-color: #3a3f4b;
     --text-primary: #e0e2e8;
     --text-secondary: #9fa6b9;
     --text-title: #ffffff;
     --accent-color: #4a90e2;
     --accent-color-hover: #5aa1f2;
-    --danger-color: #e57373; /* 危險/登出按鈕顏色 */
+    --danger-color: #e57373;
     --danger-color-hover: #ef5350;
     --hp-color: #e57373;
     --mp-color: #64b5f6;
     --shadow-color: rgba(0, 0, 0, 0.3);
     --scroll-thumb-color: #4a4f5a;
     --scroll-track-color: var(--bg-main);
+    --separator-color: var(--border-color);
+    --hint-bg: rgba(255, 235, 59, 0.1);
+    --hint-border: #fbc02d;
+    --hint-text: #fdd835;
 }
 
 body.theme-light {
@@ -30,7 +39,7 @@ body.theme-light {
     --bg-main: #f0f2f5;
     --bg-panel: #ffffff;
     --bg-inset: #e9ecef;
-    --bg-overlay: rgba(255, 255, 255, 0.7); /* 半透明底色 */
+    --bg-overlay: rgba(255, 255, 255, 0.85);
     --border-color: #d8dee4;
     --text-primary: #24292e;
     --text-secondary: #586069;
@@ -38,6 +47,10 @@ body.theme-light {
     --shadow-color: rgba(0, 0, 0, 0.08);
     --scroll-thumb-color: #c8cdd2;
     --scroll-track-color: var(--bg-main);
+    --separator-color: #e1e4e8;
+    --hint-bg: rgba(255, 193, 7, 0.1);
+    --hint-border: #ffa000;
+    --hint-text: #ff8f00;
 }
 
 /* --- 基礎與佈局 --- */
@@ -52,86 +65,76 @@ html, body {
     overflow: hidden;
 }
 .game-container {
-    position: relative;
     display: flex;
     height: 100%;
     width: 100%;
     box-sizing: border-box;
 }
-.main-panel {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-    height: 100%;
-    background-color: var(--bg-panel);
-}
 
-/* --- 右上角登出按鈕 --- */
-.btn-logout-corner {
+/* --- 右上角通用按鈕 --- */
+.btn-corner-logout {
     position: fixed;
     top: 16px;
     right: 16px;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+    padding: 8px 16px;
+    border-radius: 8px;
     background-color: var(--bg-overlay);
     border: 1px solid var(--border-color);
     color: var(--text-secondary);
-    font-size: 1.2em;
-    font-weight: bold;
+    font-size: 0.9em;
     cursor: pointer;
     z-index: 1001;
     transition: all 0.2s ease;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     backdrop-filter: blur(5px);
     -webkit-backdrop-filter: blur(5px);
 }
-.btn-logout-corner:hover {
+.btn-corner-logout:hover {
     background-color: var(--danger-color);
     color: white;
-    border-color: var(--danger-color);
-    transform: scale(1.1);
+    border-color: var(--danger-color-hover);
 }
 
-/* --- 寬版佈局 --- */
-@media (min-width: 993px) {
+/* --- 寬版佈局 (三欄式) --- */
+@media (min-width: 1025px) {
     .game-container {
-        max-width: 1440px;
+        max-width: 1600px;
         margin: 0 auto;
         padding: 24px;
         gap: 24px;
         height: calc(100% - 48px);
     }
     .main-panel {
-        flex-basis: 65%;
+        flex: 1 1 50%; /* 中間為主，佔50% */
         border-radius: 12px;
         overflow: hidden;
         box-shadow: 0 8px 24px var(--shadow-color);
         border: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
     }
-    .top-bar { display: none; }
     .sidebar-panel {
         display: flex;
         flex-direction: column;
-        flex-basis: 35%;
         gap: 24px;
     }
+    .left-panel { flex: 0 0 25%; min-width: 300px; }
+    .right-panel { flex: 0 0 25%; min-width: 300px; }
+
+    .top-bar { display: none; } /* 寬版隱藏手機頂部欄 */
+
     .info-box {
-        background-color: var(--bg-overlay);
+        background-color: var(--bg-panel);
         border: 1px solid var(--border-color);
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 4px 12px var(--shadow-color);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
     }
     .info-title {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        font-size: 1.25em;
+        font-size: 1.2em;
         font-weight: 600;
         color: var(--text-title);
         margin: 0 0 16px 0;
@@ -144,199 +147,125 @@ html, body {
         font-size: 0.95em;
         line-height: 1.6;
     }
-    .info-content p strong {
-        color: var(--text-primary);
-        font-weight: 600;
-        margin-right: 8px;
-    }
+    .info-content p strong { color: var(--text-primary); font-weight: 600; margin-right: 8px; }
     .info-content span { color: var(--text-primary); }
-    .info-content hr.info-divider {
-        border: 0;
-        height: 1px;
-        background-color: var(--border-color);
-        margin: 16px 0;
-    }
-    .info-list { list-style: none; padding: 0; margin: 0; }
-    .info-list li {
-        padding: 10px 4px;
-        border-bottom: 1px solid var(--border-color);
-        transition: background-color 0.2s;
-        cursor: pointer;
-    }
-    .info-list li:last-child { border-bottom: none; }
-    .info-list li:hover { background-color: rgba(255, 255, 255, 0.05); }
-    body.theme-light .info-list li:hover { background-color: rgba(0, 0, 0, 0.03); }
-    
-    #weather-line {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-bottom: 12px;
-    }
+    #weather-line { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
     #weather-line p { margin: 0; }
-    #weather-line p:not(:last-child)::after {
-        content: '|';
-        color: var(--border-color);
-        margin-left: 12px;
-    }
-    
+    #weather-line p:not(:last-child)::after { content: '|'; color: var(--border-color); margin-left: 12px; }
+
+    /* 玩家面板按鈕 */
     .player-panel-buttons { display: flex; gap: 10px; margin-top: 16px; }
     .player-panel-buttons button {
-        flex: 1;
-        padding: 10px;
-        background-color: var(--bg-inset);
-        border: 1px solid var(--border-color);
-        color: var(--text-primary);
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s;
+        flex: 1; padding: 10px; background-color: var(--bg-inset);
+        border: 1px solid var(--border-color); color: var(--text-primary);
+        border-radius: 8px; cursor: pointer; transition: all 0.2s;
     }
-    .player-panel-buttons button:hover {
-        background-color: var(--accent-color);
-        border-color: var(--accent-color);
-        color: white;
-    }
+    .player-panel-buttons button:hover { background-color: var(--accent-color); border-color: var(--accent-color); color: white; }
 
+    /* 可收合面板 (含滾動軸修正) */
     .collapsible-title { cursor: pointer; }
-    .collapsible-title .collapse-icon {
-        transition: transform 0.3s ease;
-        display: inline-block;
-    }
+    .collapsible-title .collapse-icon { transition: transform 0.3s ease; display: inline-block; }
     .collapsible-title.collapsed .collapse-icon { transform: rotate(-90deg); }
-    
+
     .collapsible-content {
-        max-height: 500px; /* 展開時的動畫最大高度參考 */
+        transition: max-height 0.4s ease-in-out, opacity 0.3s ease, margin 0.4s ease, padding 0.4s ease;
         overflow: hidden;
-        transition: max-height 0.4s ease-in-out, opacity 0.3s ease, padding 0.4s ease;
     }
-    /* .expanded class is used by JS to control scrollbar */
     .collapsible-content.expanded {
-        overflow-y: auto;
-        max-height: 30vh; /* 實際內容最大高度 */
+        max-height: 40vh; /* 修正：設定一個合理的視窗高度百分比 */
+        overflow-y: auto; /* 修正：內容超出時自動顯示滾動軸 */
         padding-right: 5px; /* 為滾動條預留空間 */
     }
     .collapsible-content.collapsed {
         max-height: 0;
         opacity: 0;
+        margin-top: 0;
+        margin-bottom: 0;
         padding-top: 0;
         padding-bottom: 0;
-        margin-top: -16px; /* 收起時移除標題的 margin-bottom */
+        border-top: none;
     }
+
+    .info-list { list-style: none; padding: 0; margin: 0; }
+    .info-list li {
+        padding: 10px 4px; border-bottom: 1px solid var(--border-color);
+        transition: background-color 0.2s; cursor: pointer;
+    }
+    .info-list li:last-child { border-bottom: none; }
+    .info-list li:hover { background-color: var(--bg-inset); }
 }
 
 /* --- 窄版佈局 --- */
-@media (max-width: 992px) {
-    .btn-logout-corner { display: none; }
-    .main-panel { width: 100%; }
+@media (max-width: 1024px) {
     .sidebar-panel { display: none; }
+    .main-panel { width: 100%; display: flex; flex-direction: column; height: 100%;}
     .top-bar {
-        padding: 12px 16px;
-        background-color: var(--bg-panel);
-        border-bottom: 1px solid var(--border-color);
-        box-shadow: 0 2px 8px var(--shadow-color);
+        padding: 12px 16px; background-color: var(--bg-panel);
+        border-bottom: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow-color);
     }
-    .top-status-bars {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        margin-bottom: 12px;
-    }
-    .status-bar-container { display: flex; align-items: center; gap: 8px; }
-    .status-bar-label {
-        flex-shrink: 0;
-        width: 40px;
-        font-size: 0.9em;
-        color: var(--text-secondary);
-        text-align: right;
-    }
-    .status-bar-bg {
-        flex-grow: 1;
-        background-color: var(--bg-inset);
-        border-radius: 6px;
-        height: 20px;
-        padding: 3px;
-        box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
-    }
-    .status-bar {
-        height: 100%;
-        border-radius: 4px;
-        transition: width 0.5s ease;
-    }
-    .status-bar.hp { background: linear-gradient(to right, var(--hp-color), #d32f2f); }
-    .status-bar.mp { background: linear-gradient(to right, var(--mp-color), #1976d2); }
-    .status-bar-text {
-        font-size: 0.85em;
-        color: var(--text-primary);
-        min-width: 70px;
-        text-align: center;
-    }
+    .top-status-bars { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
     .top-env-info {
-        display: flex;
-        justify-content: center;
-        gap: 15px;
-        color: var(--text-secondary);
-        font-size: 0.95em;
-        padding: 8px 0 16px 0;
+        display: flex; justify-content: center; gap: 15px;
+        color: var(--text-secondary); font-size: 0.9em; padding: 8px 0 16px 0;
     }
     .top-buttons { display: flex; justify-content: space-around; gap: 10px; }
     .top-bar-btn {
-        flex-grow: 1;
-        padding: 10px 15px;
-        background-color: var(--bg-inset);
-        border: 1px solid var(--border-color);
-        color: var(--text-primary);
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 0.95em;
-        transition: background-color 0.2s, border-color 0.2s;
+        flex-grow: 1; padding: 10px 15px; background-color: var(--bg-inset);
+        border: 1px solid var(--border-color); color: var(--text-primary);
+        border-radius: 8px; cursor: pointer; font-size: 0.95em; transition: all 0.2s;
     }
-    .top-bar-btn:hover {
-        background-color: var(--accent-color);
-        border-color: var(--accent-color);
-        color: white;
-    }
+    .top-bar-btn:hover { background-color: var(--accent-color); border-color: var(--accent-color); color: white; }
 }
+
+/* --- 通用狀態條樣式 --- */
+.status-bar-container { display: flex; align-items: center; gap: 8px; }
+.status-bar-label { flex-shrink: 0; width: 40px; font-size: 0.9em; color: var(--text-secondary); text-align: right; }
+.status-bar-bg {
+    flex-grow: 1; background-color: var(--bg-inset);
+    border-radius: 6px; height: 18px; padding: 2px;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+}
+.status-bar { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+.status-bar.hp { background: linear-gradient(to right, var(--hp-color), #d32f2f); }
+.status-bar.mp { background: linear-gradient(to right, var(--mp-color), #1976d2); }
+.status-bar-text { font-size: 0.85em; color: var(--text-primary); min-width: 60px; text-align: center; }
 
 /* --- 敘事與輸入區 --- */
 .narrative-log {
     flex-grow: 1;
     padding: 24px;
     overflow-y: auto;
-    line-height: 1.8;
     font-size: 1.05em;
 }
-.narrative-log::-webkit-scrollbar { width: 8px; }
-.narrative-log::-webkit-scrollbar-track { background: var(--scroll-track-color); }
-.narrative-log::-webkit-scrollbar-thumb { background: var(--scroll-thumb-color); border-radius: 4px; }
-.narrative-log::-webkit-scrollbar-thumb:hover { background: #555; }
+.narrative-log p {
+    line-height: 1.6; /* 修正：降低行高 */
+    margin: 0 0 1em 0;
+}
+.narrative-log hr {
+    border: 0;
+    height: 1px;
+    background-color: var(--separator-color);
+    margin: 20px 0;
+}
+
 .input-area {
-    flex-shrink: 0;
-    padding: 20px;
+    flex-shrink: 0; padding: 20px;
     border-top: 1px solid var(--border-color);
     background-color: var(--bg-panel);
     box-shadow: 0 -4px 12px var(--shadow-color);
 }
 #prompt-question {
-    font-size: 1.1em;
-    font-weight: 600;
-    color: var(--text-title);
-    margin: 0 0 16px 0;
+    font-size: 1.1em; font-weight: 600;
+    color: var(--text-title); margin: 0 0 16px 0;
 }
 #action-options {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 16px;
+    display: flex; flex-direction: column;
+    gap: 10px; margin-bottom: 16px;
 }
 #action-options button {
-    padding: 12px 16px;
-    font-size: 1em;
-    background-color: var(--bg-main);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    text-align: left;
-    cursor: pointer;
+    padding: 12px 16px; font-size: 1em; background-color: var(--bg-main);
+    color: var(--text-primary); border: 1px solid var(--border-color);
+    border-radius: 8px; text-align: left; cursor: pointer;
     transition: all 0.2s ease;
 }
 #action-options button:hover {
@@ -347,40 +276,46 @@ html, body {
 }
 .custom-action-container { display: flex; gap: 10px; }
 #custom-action-input {
-    flex-grow: 1;
-    padding: 10px 14px;
-    font-size: 1em;
-    background-color: var(--bg-inset);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    border-radius: 8px;
+    flex-grow: 1; padding: 10px 14px; font-size: 1em;
+    background-color: var(--bg-inset); border: 1px solid var(--border-color);
+    color: var(--text-primary); border-radius: 8px;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 #custom-action-input:focus {
-    outline: none;
-    border-color: var(--accent-color);
+    outline: none; border-color: var(--accent-color);
     box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.3);
 }
 .custom-action-container button {
-    padding: 10px 20px;
-    font-size: 1em;
-    font-weight: 600;
-    background-color: var(--accent-color);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
+    padding: 10px 20px; font-size: 1em; font-weight: 600;
+    background-color: var(--accent-color); color: white;
+    border: none; border-radius: 8px; cursor: pointer;
     transition: background-color 0.2s;
 }
 .custom-action-container button:hover { background-color: var(--accent-color-hover); }
 
-/* --- 敘事文字實體樣式 --- */
-.narrative-entity { font-weight: bold; cursor: pointer; padding: 2px 4px; border-radius: 4px; transition: background-color 0.2s; }
+/* --- 敘事文字實體 & 提示標籤樣式 --- */
+.narrative-entity {
+    font-weight: bold; cursor: pointer;
+    padding: 2px 4px; border-radius: 4px;
+    transition: background-color 0.2s;
+}
 .text-entity-npc { color: #fdd835; }
 .text-entity-item { color: #4fc3f7; }
 .text-entity-location { color: #9ccc65; }
-.narrative-entity:hover { background-color: rgba(255, 255, 255, 0.1); }
-body.theme-light .narrative-entity:hover { background-color: rgba(0, 0, 0, 0.05); }
+.narrative-entity:hover { background-color: var(--bg-inset); }
+
+.hint-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    margin: 0 4px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: 600;
+    background-color: var(--hint-bg);
+    border: 1px solid var(--hint-border);
+    color: var(--hint-text);
+    vertical-align: middle;
+}
 
 /* --- Modal 彈出視窗 --- */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s; z-index: 1000; }
@@ -395,7 +330,13 @@ body.theme-light .modal-overlay { background-color: rgba(36, 41, 46, 0.6); }
 .modal-body-content .info-grid strong { font-weight: 600; color: var(--text-secondary); text-align: right; }
 .modal-body-content .description-text { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color); font-style: italic; color: var(--text-secondary); line-height: 1.7; }
 
-/* --- 讀取遮罩與進度條樣式 --- */
+/* --- 滾動條樣式 --- */
+*::-webkit-scrollbar { width: 8px; }
+*::-webkit-scrollbar-track { background: var(--scroll-track-color); }
+*::-webkit-scrollbar-thumb { background: var(--scroll-thumb-color); border-radius: 4px; }
+*::-webkit-scrollbar-thumb:hover { background: #555; }
+
+/* --- 加載動畫 (維持不變) --- */
 .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); display: flex; justify-content: center; align-items: center; opacity: 0; visibility: hidden; transition: opacity 0.3s, visibility 0.3s; z-index: 2000; }
 .loading-overlay:not(.hidden) { opacity: 1; visibility: visible; }
 .loading-content { text-align: center; color: white; }

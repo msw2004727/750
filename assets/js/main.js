@@ -1,5 +1,9 @@
 // 檔案: assets/js/main.js
-// 版本: 4.6 - 修正可收展面板滾動軸功能
+// 版本: 5.0 (江湖煥新版)
+// 描述: 全面適配新的 HTML 結構與 CSS 樣式，並實現使用者要求的新功能。
+//      - 實現分隔線與提示標籤的動態渲染
+//      - 修正登出按鈕與可收合面板的滾動軸問題
+//      - 更新所有 DOM 元素選擇器以匹配新版面
 
 // --- 設定與 API URL ---
 const API_BASE_URL = "https://md-server-main.onrender.com";
@@ -25,6 +29,8 @@ const mobileTime = document.getElementById('game-time-clock-mobile');
 const mobileWeather = document.getElementById('weather-info-mobile');
 
 // 寬版側邊欄元素
+const sideHpBar = document.getElementById('hp-bar-side');
+const sideMpBar = document.getElementById('mp-bar-side');
 const sideInfoTime = document.getElementById('info-time');
 const sideInfoTimeReadable = document.getElementById('info-time-readable');
 const sideInfoLocation = document.getElementById('info-location');
@@ -36,7 +42,7 @@ const sidePlayerHp = document.getElementById('player-hp');
 const sidePlayerMp = document.getElementById('player-mp');
 const sideSceneCharactersList = document.getElementById('scene-characters-list');
 
-// 場景資訊 DOM
+// 地區資訊 DOM
 const sceneDesc = document.getElementById('scene-desc');
 const sceneSize = document.getElementById('scene-size');
 const scenePopulation = document.getElementById('scene-population');
@@ -89,51 +95,88 @@ function getReadableTime(gameTimestamp) {
         '辰': '07:00-09:00', '巳': '09:00-11:00', '午': '11:00-13:00', '未': '13:00-15:00',
         '申': '15:00-17:00', '酉': '17:00-19:00', '戌': '19:00-21:00', '亥': '21:00-23:00'
     };
-    const keMap = { '初刻': 0, '一刻': 15, '二刻': 30, '三刻': 45 };
     const hourMatch = timePart.match(/([子丑寅卯辰巳午未申酉戌亥])時/);
-    const keMatch = timePart.match(/(初刻|一刻|二刻|三刻)/);
     let readable = "";
-    if (hourMatch) {
-        const startHour = parseInt(hourMap[hourMatch[1]].split('-')[0], 10);
-        let approximateMinute = keMatch ? keMap[keMatch[1]] : 0;
-        const totalMinutes = startHour * 60 + approximateMinute;
-        const displayHour = String(Math.floor(totalMinutes / 60) % 24).padStart(2, '0');
-        const displayMinute = String(totalMinutes % 60).padStart(2, '0');
-        readable = `(約 ${displayHour}:${displayMinute})`;
+    if (hourMatch && hourMap[hourMatch[1]]) {
+        readable = `(約 ${hourMap[hourMatch[1]]})`;
     }
     return { full: gameTimestamp, short: timePart || "--時--刻", readable: readable };
 }
+
+/**
+ * 新增：處理文字內容，將特殊標記轉換為 HTML
+ * @param {string} content - 原始文字內容
+ * @returns {string} - 處理後的 HTML 字串
+ */
+function processNarrativeContent(content) {
+    let processed = content.replace(/\n/g, '<br>');
+
+    // 轉換提示標籤，例如 [手工檢定][精細操作]
+    processed = processed.replace(/\[([^\]]+)\]\[([^\]]+)\]/g, '<span class="hint-tag">$1</span><span class="hint-tag">$2</span>');
+    processed = processed.replace(/\[([^[\]]+)\]/g, (match, p1) => {
+        // 避免轉換已經處理過的 <tag> 或 【】
+        if (p1.startsWith('<') || p1.startsWith('【')) {
+            return match;
+        }
+        return `<span class="hint-tag">${p1}</span>`;
+    });
+
+    // 轉換分隔線標記，例如 【**本回合標題**】
+    processed = processed.replace(/(【\*\*?.[^】]+?\*\*?】)/g, '<hr>$1');
+
+    return processed;
+}
+
 
 function updateUI(data, isFromCache = false) {
     if (data.state) latestGameState = data.state;
     if (!isFromCache) {
         sessionStorage.setItem('cachedGameState', JSON.stringify(data));
     }
+
     const { narrative, state } = data;
     const { pc_data = {}, world = {}, metadata = {}, npcs = {}, locations = {} } = state;
     const { core_status = {}, basic_info = {} } = pc_data;
     const gameTimestamp = metadata?.game_timestamp;
+
     setThemeByGameTime(gameTimestamp);
     const timeInfo = getReadableTime(gameTimestamp);
+
+    // --- 更新狀態條 ---
     const hpPercent = (core_status.hp?.current / core_status.hp?.max) * 100 || 0;
     const mpPercent = (core_status.mp?.current / core_status.mp?.max) * 100 || 0;
-    const weatherEmojiMap = { "晴": "☀️", "陰": "☁️", "雨": "🌧️", "雪": "❄️", "霧": "🌫️" };
-    const weatherEmoji = weatherEmojiMap[world.weather] || '';
+    const hpValues = `${core_status.hp?.current ?? '--'}/${core_status.hp?.max ?? '--'}`;
+    const mpValues = `${core_status.mp?.current ?? '--'}/${core_status.mp?.max ?? '--'}`;
+    
+    // 窄版
     if(hpBar) hpBar.style.width = `${hpPercent}%`;
     if(mpBar) mpBar.style.width = `${mpPercent}%`;
-    if(hpText) hpText.textContent = `${core_status.hp?.current ?? '--'}/${core_status.hp?.max ?? '--'}`;
-    if(mpText) mpText.textContent = `${core_status.mp?.current ?? '--'}/${core_status.mp?.max ?? '--'}`;
+    if(hpText) hpText.textContent = hpValues;
+    if(mpText) mpText.textContent = mpValues;
+    
+    // 寬版
+    if(sideHpBar) sideHpBar.style.width = `${hpPercent}%`;
+    if(sideMpBar) sideMpBar.style.width = `${mpPercent}%`;
+    if(sidePlayerHp) sidePlayerHp.textContent = hpValues;
+    if(sidePlayerMp) sidePlayerMp.textContent = mpValues;
+
+    // --- 更新環境資訊 ---
+    const weatherEmojiMap = { "晴": "☀️", "陰": "☁️", "雨": "🌧️", "雪": "❄️", "霧": "🌫️" };
+    const weatherEmoji = weatherEmojiMap[world.weather] || '';
+    
     if(mobileTime) mobileTime.textContent = timeInfo.short;
     if(mobileWeather) mobileWeather.textContent = `${weatherEmoji} ${world.temperature ?? '--'}°C`;
+    
     if(sideInfoTime) sideInfoTime.textContent = timeInfo.full;
     if(sideInfoTimeReadable) sideInfoTimeReadable.textContent = timeInfo.readable;
     if(sideInfoLocation) sideInfoLocation.textContent = world.player_current_location_name ?? '未知';
     if(sideWeather) sideWeather.textContent = `${weatherEmoji} ${world.weather || ''}`;
     if(sideTemp) sideTemp.textContent = `${world.temperature ?? '--'} °C`;
     if(sideHumidity) sideHumidity.textContent = `${world.humidity ?? '--'} %`;
+
+    // --- 更新玩家與場景資訊 ---
     if(sidePlayerName) sidePlayerName.textContent = basic_info.name ?? '---';
-    if(sidePlayerHp) sidePlayerHp.textContent = `${core_status.hp?.current ?? '--'}/${core_status.hp?.max ?? '--'}`;
-    if(sidePlayerMp) sidePlayerMp.textContent = `${core_status.mp?.current ?? '--'}/${core_status.mp?.max ?? '--'}`;
+
     if(sideSceneCharactersList){
         const playerLocationId = world.player_current_location_id;
         const charactersInScene = Object.values(npcs).filter(npc => npc.current_location_id === playerLocationId);
@@ -160,49 +203,65 @@ function updateUI(data, isFromCache = false) {
     if (sceneFaction) sceneFaction.textContent = currentLocation.faction || "未知";
     if (sceneReligion) sceneReligion.textContent = currentLocation.religion || "未知";
 
+    // --- 更新劇情日誌與選項 ---
     if (!isFromCache) {
         const optionsRegex = /<options>([\s\S]*?)<\/options>/;
         let optionsContent = '';
         let narrativeHtml = "";
+
         (narrative || []).forEach(part => {
-            if (!part.content) return;
+            const content = part.content || part.text || '';
             if (part.type === 'text') {
-                let processedContent = part.content.replace(/\n/g, '<br>');
+                let processedContent = content;
                 if (optionsRegex.test(processedContent)) {
                     optionsContent = processedContent.match(optionsRegex)[1].trim();
                     processedContent = processedContent.replace(optionsRegex, '').trim();
                 }
-                narrativeHtml += processedContent;
+                narrativeHtml += processNarrativeContent(processedContent);
             } else {
                 narrativeHtml += `<span class="narrative-entity ${part.color_class || ''}" data-entity-id="${part.id}" data-entity-type="${part.type}">${part.text}</span>`;
             }
         });
+        
         if (narrativeHtml.trim()) {
             const p = document.createElement('p');
             p.innerHTML = narrativeHtml;
             narrativeLog.appendChild(p);
         }
+
         actionOptionsContainer.innerHTML = '';
         promptQuestion.style.display = 'block';
         customActionForm.style.display = 'flex';
+
         if (optionsContent) {
             promptQuestion.textContent = "接下來你打算？";
             const optionLineRegex = /^(?:[A-Z]|\d+)\..*$/m;
-            const options = optionsContent.replace(/<br>/g, '\n').split('\n').filter(line => line.trim().match(optionLineRegex));
+            const options = optionsContent.replace(/<br\s*\/?>/g, '\n').split('\n').filter(line => line.trim().match(optionLineRegex));
+
+            // 如果AI給出的選項少於3個，則補充預設選項
+            while (options.length > 0 && options.length < 3) {
+                 const defaultOptions = [
+                    'D. 仔細觀察四周的環境。',
+                    'E. 檢查一下自身的身體狀況。',
+                    'F. 原地休息，恢復體力。'
+                 ];
+                 if (!options.some(o => o.includes('觀察'))) options.push(defaultOptions[0]);
+                 else if (!options.some(o => o.includes('檢查'))) options.push(defaultOptions[1]);
+                 else options.push(defaultOptions[2]);
+            }
+            
             options.forEach(opt => {
                 const match = opt.trim().match(/^(?:([A-Z])|(\d+))\.\s*(.*)/);
                 if (match) {
-                    const actionId = match[1] || match[2];
-                    const textContent = match[3];
                     const button = document.createElement('button');
-                    button.dataset.actionId = actionId;
-                    button.textContent = textContent;
+                    button.dataset.actionId = match[1] || match[2];
+                    button.textContent = match[3];
                     button.addEventListener('click', handleActionSelect);
                     actionOptionsContainer.appendChild(button);
                 }
             });
         } else {
-            promptQuestion.innerHTML = "劇情似乎暫告一段落，你可以嘗試以下行動：";
+            promptQuestion.innerHTML = "劇情暫告一段落，你可以嘗試：";
             const defaultOptions = [
                 { id: 'A', text: '仔細觀察四周的環境。' },
                 { id: 'B', text: '檢查一下自身的身體狀況。' },
@@ -219,6 +278,7 @@ function updateUI(data, isFromCache = false) {
         narrativeLog.scrollTop = narrativeLog.scrollHeight;
     }
 }
+
 
 async function handleActionSelect(event) {
     const button = event.currentTarget;
@@ -251,6 +311,9 @@ async function handleActionSelect(event) {
         }
     } catch (error) {
         narrativeLog.innerHTML += `<p style="color: var(--danger-color);">與伺服器連線失敗: ${error.message}</p>`;
+        // 恢復操作選項
+        promptQuestion.style.display = 'block';
+        customActionForm.style.display = 'flex';
     } finally {
         hideLoading();
     }
@@ -323,27 +386,25 @@ function handleLogout() {
     }
 }
 
-// 【核心修改】收展面板功能
+/**
+ * 修正：處理可收合面板的展開與收合
+ */
 function toggleCollapse(event) {
     const title = event.currentTarget;
     const content = title.nextElementSibling;
     if (content && content.classList.contains('collapsible-content')) {
         const isCollapsed = content.classList.contains('collapsed');
-        if (isCollapsed) {
-            // 如果是收合的，就展開它
-            content.classList.remove('collapsed');
-            title.classList.remove('collapsed');
-            // 為了讓滾動條正常工作，我們在展開後添加 'expanded' class
-            // 使用 setTimeout 確保在 max-height 動畫完成後再添加 overflow
+        title.classList.toggle('collapsed', !isCollapsed);
+        content.classList.toggle('collapsed', !isCollapsed);
+        
+        // 為了讓滾動條正常工作，我們在展開後添加 'expanded' class
+        // 使用 setTimeout 確保在 max-height 動畫完成後再添加
+        if (isCollapsed) { // 如果是從收合到展開
             setTimeout(() => {
                 content.classList.add('expanded');
-            }, 300); // 動畫時間約 0.4s，設 0.3s 確保流暢
-        } else {
-            // 如果是展開的，就收合它
-            content.classList.remove('expanded'); // 先移除 overflow
-            content.classList.add('collapsed');
-
-            title.classList.add('collapsed');
+            }, 300); // 動畫時間 0.4s
+        } else { // 如果是從展開到收合
+            content.classList.remove('expanded');
         }
     }
 }
@@ -353,21 +414,19 @@ async function initializeGame() {
         window.location.href = 'login.html';
         return;
     }
+
     // --- 事件監聽 ---
     customActionForm.addEventListener('submit', handleCustomActionSubmit);
     narrativeLog.addEventListener('click', handleEntityClick);
     modalCloseBtn.addEventListener('click', handleModalClose);
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) handleModalClose();
-    });
+    modal.addEventListener('click', (e) => { if (e.target === modal) handleModalClose(); });
     if (sideSceneCharactersList) sideSceneCharactersList.addEventListener('click', handleEntityClick);
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
     
     document.querySelectorAll('.collapsible-title').forEach(title => {
         title.addEventListener('click', toggleCollapse);
-        // 預設收合
         const content = title.nextElementSibling;
-        if (!content.classList.contains('expanded')) {
+        if (content && !content.classList.contains('expanded')) {
             title.classList.add('collapsed');
             content.classList.add('collapsed');
         }
@@ -379,13 +438,22 @@ async function initializeGame() {
     if(contactsBtn) contactsBtn.addEventListener('click', () => alert('「人脈」功能開發中...'));
     if(attributesBtn) attributesBtn.addEventListener('click', () => alert('「數值」功能開發中...'));
     if(inventoryBtn) inventoryBtn.addEventListener('click', () => alert('「行囊」功能開發中...'));
+    
+    // 窄版按鈕
+    const statusBtnMobile = document.getElementById('status-btn-mobile');
+    const inventoryBtnMobile = document.getElementById('inventory-btn-mobile');
+    const mapBtnMobile = document.getElementById('map-btn-mobile');
+    if(statusBtnMobile) statusBtnMobile.addEventListener('click', () => alert('「狀態」功能開發中...'));
+    if(inventoryBtnMobile) inventoryBtnMobile.addEventListener('click', () => alert('「行囊」功能開發中...'));
+    if(mapBtnMobile) mapBtnMobile.addEventListener('click', () => alert('「地區」功能開發中...'));
+
 
     // --- 頁面載入邏輯 ---
     const cachedData = sessionStorage.getItem('cachedGameState');
     if (cachedData) {
         try {
             const parsedData = JSON.parse(cachedData);
-            narrativeLog.innerHTML = parsedData.state?.narrative_log?.map(line => `<p>${line.replace(/\n/g, '<br>')}</p>`).join('') || '';
+            narrativeLog.innerHTML = parsedData.state?.narrative_log?.map(line => `<p>${processNarrativeContent(line)}</p>`).join('') || '';
             updateUI(parsedData, true);
             narrativeLog.scrollTop = narrativeLog.scrollHeight;
         } catch (e) {
@@ -431,7 +499,7 @@ async function initializeGame() {
         const turnResult = await turnResponse.json();
         if (!turnResponse.ok) throw new Error(turnResult.error || "獲取回合數據失敗");
         
-        if (isFirstLoad) {
+        if (isFirstLoad || !cachedData) {
             updateUI(turnResult);
         } else {
             latestGameState = turnResult.state;

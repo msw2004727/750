@@ -4,49 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>文字江湖</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=5.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=5.3">
 </head>
 <body>
     <div class="game-container">
 
         <div class="panel atmosphere-panel">
             <h3 id="round-title">回合數：---</h3>
-            <p id="round-atmosphere">等待場景氛圍渲染...</p>
+            <div id="prompt-dashboard" class="prompt-dashboard">
+                <div id="system-prompt-box" class="prompt-box system-prompt hidden"></div>
+                <div id="perception-prompt-box" class="prompt-box perception-prompt hidden"></div>
+                <div id="core-situation-box" class="prompt-box core-situation hidden"></div>
+            </div>
         </div>
 
         <div class="panel world-state-panel">
-             <div class="info-content">
-                <p><strong>目前地點:</strong> <span id="info-location">---</span></p>
-                <p><strong>遊戲時間:</strong> <span id="info-time">---</span> <span id="info-time-readable" class="text-secondary"></span></p>
-                <div id="weather-line">
-                    <p><strong>天氣:</strong> <span id="weather-info-desktop">--</span></p>
-                    <p><strong>溫度:</strong> <span id="temperature-info">--</span></p>
-                </div>
+            <p><strong><span id="info-location">---</span></strong></p>
+            <p><span id="info-time">---</span> <span id="info-time-readable" class="text-secondary"></span></p>
+            <div id="weather-line">
+                <span><span id="weather-info-desktop">--</span></span>
+                <span><span id="temperature-info">--</span>°C</span>
+                <span>濕度: <span id="humidity-info">--</span>%</span>
             </div>
         </div>
 
         <div class="panel character-status-panel">
              <div class="info-content">
                 <div class="status-bar-container">
-                    <div class="status-bar-label">名號</div>
+                    <div class="status-bar-label">名號:</div>
                     <span id="player-name">---</span>
                 </div>
                 <div class="status-bar-container">
-                    <div class="status-bar-label">氣血</div>
+                    <div class="status-bar-label">氣血:</div>
                     <div class="status-bar-bg"><div id="hp-bar-side" class="status-bar hp"></div></div>
                     <div id="player-hp" class="status-bar-text">--/--</div>
                 </div>
                 <div class="status-bar-container">
-                    <div class="status-bar-label">內力</div>
+                    <div class="status-bar-label">內力:</div>
                     <div class="status-bar-bg"><div id="mp-bar-side" class="status-bar mp"></div></div>
                     <div id="player-mp" class="status-bar-text">--/--</div>
                 </div>
-            </div>
-            <div id="player-panel-buttons" class="player-panel-buttons">
-                <button id="attributes-btn">數值</button>
-                <button id="inventory-btn">行囊</button>
-                <button id="contacts-btn">人脈</button>
-                <button id="map-btn-desktop">地圖</button>
             </div>
             <button id="logout-btn-corner" class="btn-corner-logout" title="登出江湖">登出</button>
         </div>
@@ -69,13 +66,14 @@
                     場景人物
                     <span class="collapse-icon">▾</span>
                 </h3>
-                <ul id="scene-characters-list" class="info-list collapsible-content expanded"></ul>
+                <ul id="scene-characters-list" class="info-list collapsible-content"></ul>
             </div>
             <div class="panel sidebar-panel" id="scene-facilities-box">
-                 <h3 class="info-title">
+                 <h3 class="info-title collapsible-title">
                     場景設施
+                    <span class="collapse-icon">▾</span>
                 </h3>
-                <div class="info-content">功能開發中...</div>
+                <div class="info-content collapsible-content">功能開發中...</div>
             </div>
             <div class="panel sidebar-panel" id="scene-info-box">
                 <h3 class="info-title collapsible-title">
@@ -100,16 +98,13 @@
             <div id="modal-body" class="modal-body-content"></div>
         </div>
     </div>
-    
     <div id="loading-overlay" class="loading-overlay hidden">
         <div class="loading-content">
             <p id="loading-text">正在載入您的江湖傳說...</p>
-            <div class="loading-bar-container">
-                <div class="loading-bar"></div>
-            </div>
+            <div class="loading-bar-container"><div class="loading-bar"></div></div>
         </div>
     </div>
 
-    <script src="assets/js/main.js?v=5.2" type="module"></script>
+    <script src="assets/js/main.js?v=5.3" type="module"></script>
 </body>
 </html>

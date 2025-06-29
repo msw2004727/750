@@ -1,5 +1,5 @@
 # 檔名: app.py
-# 版本: 2.15 - 修正 get_summary 崩潰問題，增加存檔校驗
+# 版本: 2.16 - 強化實體標籤解析，應對未知標籤；再次強化選項指令
 
 import os
 import json
@@ -11,7 +11,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# --- 初始化 (與之前版本相同) ---
+# --- 初始化 ---
 app = Flask(__name__)
 CORS(app)
 db = None
@@ -32,13 +32,15 @@ DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY')
 if not DEEPSEEK_API_KEY:
     print("警告：環境變數 'DEEPSEEK_API_KEY' 未設定！AI 功能將無法使用。")
 
-# --- 指令解析與輔助函數 (與之前版本相同) ---
+# --- 指令解析與輔助函數 ---
 def flatten_dict(d, parent_key='', sep='.'):
     items = []
     for k, v in d.items():
         new_key = parent_key + sep + k if parent_key else k
-        if isinstance(v, dict): items.extend(flatten_dict(v, new_key, sep=sep).items())
-        else: items.append((new_key, v))
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
     return dict(items)
 
 def parse_and_execute_ai_commands(ai_raw_text, game_state_ref):
@@ -46,6 +48,7 @@ def parse_and_execute_ai_commands(ai_raw_text, game_state_ref):
     commands_to_execute = []
     for match in re.finditer(command_pattern, ai_raw_text, flags=re.DOTALL):
         commands_to_execute.append({"name": match.group(1), "json_str": match.group(2)})
+    
     for cmd in commands_to_execute:
         command_name, json_str = cmd["name"], cmd["json_str"]
         try:
@@ -56,53 +59,81 @@ def parse_and_execute_ai_commands(ai_raw_text, game_state_ref):
                 flattened_data = flatten_dict(data)
                 for key, value in flattened_data.items():
                     full_key_path = f"pc_data.{key}" if not key.startswith("pc_data") else key
-                    if isinstance(value, (int, float)): update_data[full_key_path] = firestore.Increment(value)
-                    else: update_data[full_key_path] = value
-                if update_data: game_state_ref.update(update_data); print(f"  [成功] 已執行 UPDATE_PC_DATA: {update_data}")
+                    if isinstance(value, (int, float)):
+                        update_data[full_key_path] = firestore.Increment(value)
+                    else:
+                        update_data[full_key_path] = value
+                if update_data:
+                    game_state_ref.update(update_data)
+                    print(f"  [成功] 已執行 UPDATE_PC_DATA: {update_data}")
             elif command_name == "UPDATE_NPC":
                 if (npc_id := data.pop("id", None)):
                     update_data = {f'npcs.{npc_id}.{key}': value for key, value in data.items()}
-                    if update_data: game_state_ref.update(update_data); print(f"  [成功] 已執行 UPDATE_NPC: 更新了 ID 為 {npc_id} 的 NPC。")
+                    if update_data:
+                        game_state_ref.update(update_data)
+                        print(f"  [成功] 已執行 UPDATE_NPC: 更新了 ID 為 {npc_id} 的 NPC。")
             elif command_name == "UPDATE_WORLD":
                 update_data = {f'world.{key}': value for key, value in data.items()}
-                if update_data: game_state_ref.update(update_data); print(f"  [成功] 已執行 UPDATE_WORLD: 更新了世界狀態。")
+                if update_data:
+                    game_state_ref.update(update_data)
+                    print(f"  [成功] 已執行 UPDATE_WORLD: 更新了世界狀態。")
             elif command_name == "CREATE_NPC":
                 if (npc_id := data.get("id")):
-                    game_state_ref.update({f'npcs.{npc_id}': data}); print(f"  [成功] 已執行 CREATE_NPC: 創建了 ID 為 {npc_id} 的 NPC。")
+                    game_state_ref.update({f'npcs.{npc_id}': data})
+                    print(f"  [成功] 已執行 CREATE_NPC: 創建了 ID 為 {npc_id} 的 NPC。")
             elif command_name == "CREATE_LOCATION":
                 if (loc_id := data.get("id")):
-                    game_state_ref.update({f'locations.{loc_id}': data}); print(f"  [成功] 已執行 CREATE_LOCATION: 創建了 ID 為 {loc_id} 的地點。")
+                    game_state_ref.update({f'locations.{loc_id}': data})
+                    print(f"  [成功] 已執行 CREATE_LOCATION: 創建了 ID 為 {loc_id} 的地點。")
             elif command_name == "ADD_ITEM":
                 if "name" in data and "id" in data:
-                    game_state_ref.update({'pc_data.inventory.carried': firestore.ArrayUnion([data])}); print(f"  [成功] 已執行 ADD_ITEM: 將物品 {data['name']} 加入背包。")
+                    game_state_ref.update({'pc_data.inventory.carried': firestore.ArrayUnion([data])})
+                    print(f"  [成功] 已執行 ADD_ITEM: 將物品 {data['name']} 加入背包。")
         except Exception as e:
             print(f"  [失敗] 執行指令 {command_name} 時發生錯誤: {e}")
+            
     cleaned_text = re.sub(command_pattern, '', ai_raw_text, flags=re.DOTALL).strip()
     return cleaned_text
 
 def parse_narrative_entities(narrative_text, current_state):
-    entity_pattern = r'<(人物|物品|地點|npc|item|location)\s+id="([^"]+)">([^<]+)</\1>'
-    tag_map = {'人物': 'npc', '物品': 'item', '地點': 'location', 'npc': 'npc', 'item': 'item', 'location': 'location'}
+    entity_pattern = r'<(\w+)\s+id="([^"]+)">([^<]+)</\1>'
+    tag_map = {
+        '人物': 'npc', 'npc': 'npc',
+        '物品': 'item', 'item': 'item',
+        '地點': 'location', 'location': 'location',
+    }
+    
     parts, last_end = [], 0
     for match in re.finditer(entity_pattern, narrative_text):
         start, end = match.span()
-        if start > last_end: parts.append({"type": "text", "content": narrative_text[last_end:start]})
-        raw_tag_type, entity_id, entity_text = match.groups()
-        entity_type = tag_map.get(raw_tag_type, 'text')
-        entity_obj = {"type": entity_type, "id": entity_id, "text": entity_text, "color_class": f"text-entity-{entity_type}"}
-        if entity_type == 'npc':
-            friendliness = current_state.get("npcs", {}).get(entity_id, {}).get("relationship", {}).get("friendliness", 0)
-            if friendliness > 50: entity_obj["color_class"] = "text-npc-friendly"
-            elif friendliness < -50: entity_obj["color_class"] = "text-npc-hostile"
+        if start > last_end:
+            parts.append({"type": "text", "content": narrative_text[last_end:start]})
+        
+        tag_name, entity_id, entity_text = match.groups()
+        entity_type = tag_map.get(tag_name.lower(), tag_name.lower())
+        
+        color_class = f"text-entity-{entity_type}"
+        # 為未知的 entity type 提供一個通用顏色
+        if not tag_map.get(tag_name.lower()):
+            color_class = "text-entity-generic" # 假設有一個通用的 CSS class
+
+        entity_obj = {
+            "type": entity_type,
+            "id": entity_id,
+            "text": entity_text,
+            "color_class": color_class
+        }
         parts.append(entity_obj)
         last_end = end
-    if last_end < len(narrative_text): parts.append({"type": "text", "content": narrative_text[last_end:]})
+        
+    if last_end < len(narrative_text):
+        parts.append({"type": "text", "content": narrative_text[last_end:]})
+        
     return parts if parts else [{"type": "text", "content": narrative_text}]
-
 
 @app.route('/')
 def index():
-    return "文字江湖遊戲後端 v2.15 已啟動！(平民崛起模式)"
+    return "文字江湖遊戲後端 v2.16 已啟動！(平民崛起模式)"
 
 @app.route('/api/register', methods=['POST'])
 def register():
@@ -173,16 +204,25 @@ def get_entity_info():
         data = request.get_json()
         session_id, entity_id, entity_type = data.get('session_id'), data.get('entity_id'), data.get('entity_type')
         if not all([session_id, entity_id, entity_type]): return jsonify({"error": "請求缺少必要參數。"}), 400
-        game_state = db.collection('game_sessions').document(session_id).get().to_dict()
-        entity_data = game_state.get(f"{entity_type}s", {}).get(entity_id)
+        game_state_doc = db.collection('game_sessions').document(session_id).get()
+        if not game_state_doc.exists: return jsonify({"error": "找不到遊戲存檔。"}), 404
+        game_state = game_state_doc.to_dict()
+
+        # 組合複數形式的 collection key，例如 "npc" -> "npcs"
+        collection_key = f"{entity_type}s"
+        entity_data = game_state.get(collection_key, {}).get(entity_id)
+        
         if not entity_data:
-            definition_doc = db.collection('definitions').document(f"{entity_type}s").get()
-            if definition_doc.exists: entity_data = definition_doc.to_dict().get("entries", {}).get(entity_id)
-        if not entity_data: entity_data = {"name": entity_id, "description": "關於此事的資訊還籠罩在迷霧之中..."}
+            definition_doc = db.collection('definitions').document(collection_key).get()
+            if definition_doc.exists:
+                entity_data = definition_doc.to_dict().get("entries", {}).get(entity_id)
+        
+        if not entity_data:
+            entity_data = {"name": entity_id, "description": "關於此事的資訊還籠罩在迷霧之中..."}
+            
         return jsonify({"success": True, "data": entity_data}), 200
     except Exception as e: return jsonify({"error": f"伺服器內部發生未知錯誤: {str(e)}"}), 500
     
-# 【核心修改】獲取前情提要函數
 @app.route('/api/get_summary', methods=['POST'])
 def get_summary():
     if not db or not DEEPSEEK_API_KEY:
@@ -194,7 +234,6 @@ def get_summary():
         
         game_state_doc = db.collection('game_sessions').document(session_id).get()
         
-        # 【新增】保護性檢查
         if not game_state_doc.exists:
             print(f"警告：在 get_summary 中找不到 Session ID 為 {session_id} 的遊戲存檔。")
             return jsonify({"error": f"找不到 Session ID 為 {session_id} 的遊戲存檔。"}), 404
@@ -248,24 +287,24 @@ def generate_turn():
 
         prompt_text = f"""
         你是一個頂級的真實人生模擬器，專門描寫小人物在古代世界的奮鬥史。
-        【核心世界觀】
-        玩家是一個擁有21世紀現代知識的普通人，穿越到了一個類似中國古代的架空世界，附身在一個極其虛弱的平民少年身上。他的旅程核心是【生存】與【成長】，而非開場就是英雄。
-        【敘事規則】
-        1.  **平民視角**: 你的敘事【必須】從一個普通人的視角出發。他會餓、會渴、會累、會生病。他不懂武功，也沒有內力。他的首要目標是弄清楚狀況，找到食物和水，確保自己的安全。
-        2.  **放緩節奏**: 劇情推進【必須】緩慢且合乎邏輯。專注於細節描寫，例如環境的氣味、身體的感受、與普通村民的互動。不要有任何突然的、都合主義的劇情跳躍。
-        3.  **高手稀有化**: 武林高手、大俠、重要官員等都是【傳說中的存在】。【絕對禁止】讓這些人物在遊戲初期輕易登場。玩家能遇到的只會是村民、獵戶、小混混、行腳商人等普通人。只有當玩家的聲望達到極高水平，並經歷了漫長的冒險後，才【可能】有機會接觸到真正的「江湖」。
-        4.  **現代知識的應用**: 玩家唯一的優勢是他的現代知識。他可以利用這些知識來解決問題（例如，思考如何淨化水源、製作簡單工具、提出衛生概念），但這需要一個【觀察->思考->嘗試】的過程，而不是瞬間就變出成品。
-        5.  **預留數值判定**: 當劇情需要角色進行能力判定時，請在描述中插入【文字標籤】作為預留位。這很重要，未來程式會根據這些標籤實作具體的功能。
+        【核心世界觀與敘事規則】
+        1. **平民視角**: 你的敘事【必須】從一個普通人的視角出發。他會餓、會渴、會累、會生病。他不懂武功，也沒有內力。他的首要目標是弄清楚狀況，找到食物和水，確保自己的安全。
+        2. **放緩節奏**: 劇情推進【必須】緩慢且合乎邏輯。專注於細節描寫，例如環境的氣味、身體的感受、與普通村民的互動。不要有任何突然的、都合主義的劇情跳躍。
+        3. **高手稀有化**: 武林高手、大俠、重要官員等都是【傳說中的存在】。【絕對禁止】讓這些人物在遊戲初期輕易登場。玩家能遇到的只會是村民、獵戶、小混混、行腳商人等普通人。只有當玩家的聲望達到極高水平，並經歷了漫長的冒險後，才【可能】有機會接觸到真正的「江湖」。
+        4. **現代知識的應用**: 玩家唯一的優勢是他的現代知識。他可以利用這些知識來解決問題（例如，思考如何淨化水源、製作簡單工具、提出衛生概念），但這需要一個【觀察->思考->嘗試】的過程，而不是瞬間就變出成品。
+        5. **預留數值判定**: 當劇情需要角色進行能力判定時，請在描述中插入【文字標籤】作為預留位。這很重要，未來程式會根據這些標籤實作具體的功能。
             * 體力活/力量相關: `[蠻力檢定]`
             * 思考/學習/觀察/記憶: `[悟性判定]`
             * 身體靈巧/速度相關: `[速度檢定]`
             * 知識/分析/推理: `[智力判定]`
             * 武學/技能相關: `[基礎拳法判定]`, `[基礎劍法判定]` 等。
             * 例如: "你試圖搬開堵住門口的木箱 `[蠻力檢定]`，但它紋絲不動。" 或 "你回想著化學知識，思考著如何制取純鹼 `[智力判定]` `[悟性判定]`。"
+
         【AI數據指令規則】
-        * 你【必須】使用 `<類型 id="ID">名稱</類型>` 標籤包裹所有實體。
-        * 你【必須】在劇情後用 `[COMMAND: {{...}}]` 來更新數據。
-        * 劇情最後【必須】提供剛好 3 個符合當前平民處境的、合理的行動選項，並用 `<options>` 標籤包裹。
+        1. 你【必須】使用 `<標籤類型 id="ID">名稱</標籤類型>` 格式包裹所有實體。
+        2. 你【必須】在劇情後用 `[COMMAND: {{...}}]` 來更新數據。
+        3. 【最重要規則】遊戲的每個回合都【必須有選項】，否則玩家無法繼續。請務必在劇情結尾提供 3 個符合當前平民處境的、合理的行動選項，並用 `<options>` 標籤將它們完整包裹起來。這是絕對的要求。
+
         {context_summary}
         [玩家的行動]
         > {player_action.get('text', '無')}

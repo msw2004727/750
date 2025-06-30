@@ -6,12 +6,11 @@ from app.models.action import PlayerAction
 from app.services.ai_service import ai_service
 from app.services.prompt_generator import generate_prompt
 from google.cloud.firestore_v1.base_query import FieldFilter
-from google.cloud.firestore_v1.transaction import Transaction
-from google.cloud.firestore_v1.webrequest import transactional
+# 修正了 'transactional' 的導入路徑
+from google.cloud.firestore_v1.transaction import Transaction, transactional 
+from google.cloud import firestore # 確保導入 firestore 以便使用 Increment
 
 # --- Transactional Update Function ---
-# 這是我們新的核心，一個獨立的、帶有 @transactional 裝飾器的函式。
-# 這確保了內部所有的資料庫讀寫操作都是一個不可分割的整體。
 @transactional
 def _update_game_state_in_transaction(transaction: Transaction, player_id: str, world_changes: dict):
     """
@@ -24,7 +23,6 @@ def _update_game_state_in_transaction(transaction: Transaction, player_id: str, 
     time_unit = world_changes.get("time_unit", "minutes")
     time_amount = world_changes.get("time_amount", 0)
     if time_amount > 0:
-        # 在事務中，必須先 get 再 update
         world_snapshot = world_ref.get(transaction=transaction)
         current_time = world_snapshot.to_dict().get('currentTime')
         if isinstance(current_time, datetime.datetime):
@@ -40,7 +38,6 @@ def _update_game_state_in_transaction(transaction: Transaction, player_id: str, 
     # 3. 更新玩家狀態 (health, hunger, etc.)
     status_changes = world_changes.get("status_changes")
     if status_changes and isinstance(status_changes, dict):
-        # 使用 FieldFilter 來安全地增減數值
         status_updates = {f'status.{key}': firestore.Increment(value) for key, value in status_changes.items()}
         if status_updates:
             transaction.update(player_ref, status_updates)
@@ -55,9 +52,7 @@ def _update_game_state_in_transaction(transaction: Transaction, player_id: str, 
             if not item_id: continue
             
             item_doc_ref = inventory_ref.document(item_id)
-            # 使用 FieldFilter 安全地減少數量
             transaction.update(item_doc_ref, {'quantity': firestore.Increment(-quantity_to_remove)})
-            # 注意: 此處暫不處理數量變為 0 後刪除文件的邏輯，可作為後續優化
 
     # 5. 更新玩家物品欄 - 新增物品
     items_added = world_changes.get("items_added", [])
@@ -72,20 +67,17 @@ def _update_game_state_in_transaction(transaction: Transaction, player_id: str, 
             item_doc = item_doc_ref.get(transaction=transaction)
 
             if item_doc.exists:
-                # 物品已存在，增加數量
                 transaction.update(item_doc_ref, {'quantity': firestore.Increment(quantity_to_add)})
             else:
-                # 物品不存在，創建新文件
                 transaction.set(item_doc_ref, {
                     'quantity': quantity_to_add,
-                    'identified': False # 新獲得的物品預設為未鑑定
+                    'identified': False
                 })
 
 # --- Main Game Service Class ---
 class GameService:
     @staticmethod
     def get_player_data(player_id: str):
-        # (此函式保持不變，用於讀取並組合前端所需的資料)
         player_ref = db.collection('players').document(player_id)
         player_doc = player_ref.get()
         if not player_doc.exists: return None
@@ -100,7 +92,7 @@ class GameService:
         for doc in inventory_docs:
             item_id = doc.id
             player_item_data = doc.to_dict()
-            if player_item_data.get('quantity', 0) <= 0: continue # 不顯示數量為 0 的物品
+            if player_item_data.get('quantity', 0) <= 0: continue
             
             item_info_doc = db.collection('items').document(item_id).get()
             if item_info_doc.exists:
@@ -149,74 +141,67 @@ class GameService:
         return location_doc.to_dict() if location_doc.exists else None
         
     @staticmethod
-    def process_player_action(player_id: str, action: PlayerAction):
-        # 獲取當前狀態，用於生成 Prompt
-        player_data = GameService.get_player_data(player_id)
-        world_data = GameService.get_world_state()
-        location_data = GameService.get_location_data(player_data.get('location')) if player_data else {}
-        if not all([player_data, world_data, location_data]): 
-            return {"status": "error", "message": "無法獲取完整的遊戲狀態。"}
-        
-        # 檢查玩家是否選擇了移動
-        # 這是一個簡化的檢查，它假設移動選項的文字與路徑描述高度相關
-        chosen_action_value = action.model_dump().get('value', '')
-        for conn in location_data.get('connections', []):
-            if conn.get('path_description') in chosen_action_value:
-                # 如果是移動選項，直接設定 new_location_id，覆蓋 AI 可能的回應
-                ai_data_override = {"world_changes": {"new_location_id": conn.get('target_location_id'), "time_amount": conn.get('distance', 10)}}
-                print(f"[GameService] 偵測到移動指令，目標: {conn.get('target_location_id')}")
-                break
-        else:
-            ai_data_override = None
+def process_player_action(player_id: str, action: PlayerAction):
+    player_data = GameService.get_player_data(player_id)
+    world_data = GameService.get_world_state()
+    location_data = GameService.get_location_data(player_data.get('location')) if player_data else {}
+    if not all([player_data, world_data, location_data]):
+        return {"status": "error", "message": "無法獲取完整的遊戲狀態。"}
 
-        try:
-            if ai_data_override:
-                # 如果是移動，我們跳過 AI 生成，直接使用預設的移動結果
-                ai_data = {
-                    "story_description": f"你決定{chosen_action_value}，踏上了新的旅程。",
-                    "options": ["繼續前進...", "觀察四周...", "稍作休息..."],
-                    "atmosphere": "旅行",
-                    "world_changes": ai_data_override["world_changes"],
-                    "world_creations": None
+    chosen_action_value = action.model_dump().get('value', '')
+    ai_data_override = None
+
+    for conn in location_data.get('connections', []):
+        if conn.get('path_description') in chosen_action_value:
+            ai_data_override = {
+                "world_changes": {
+                    "new_location_id": conn.get('target_location_id'),
+                    "time_amount": conn.get('distance', 10),
+                    "time_unit": "minutes"
                 }
-            else:
-                # 如果不是移動，正常呼叫 AI
-                prompt = generate_prompt(player_data, world_data, location_data, action.model_dump())
-                ai_raw_response = ai_service.generate_narrative(prompt)
-                ai_content_str = ai_raw_response['choices'][0]['message']['content']
-                ai_data = json.loads(ai_content_str)
+            }
+            print(f"[GameService] 偵測到移動指令，目標: {conn.get('target_location_id')}")
+            break
 
-            # --- 核心修改：呼叫事務函式來處理所有資料庫寫入 ---
-            world_changes = ai_data.get("world_changes")
-            if world_changes and isinstance(world_changes, dict):
-                # 建立一個事務
-                transaction = db.transaction()
-                # 執行我們的事務函式
-                _update_game_state_in_transaction(transaction, player_id, world_changes)
+    try:
+        if ai_data_override:
+            ai_data = {
+                "story_description": f"你決定{chosen_action_value}，踏上了新的旅程。",
+                "options": ["繼續前進...", "觀察四周...", "稍作休息..."],
+                "atmosphere": "旅行",
+                "world_changes": ai_data_override["world_changes"],
+                "world_creations": None
+            }
+        else:
+            prompt = generate_prompt(player_data, world_data, location_data, action.model_dump())
+            ai_raw_response = ai_service.generate_narrative(prompt)
+            ai_content_str = ai_raw_response['choices'][0]['message']['content']
+            ai_data = json.loads(ai_content_str)
 
-            # 處理世界創造 (這部分不需要在同一個事務內，因為它不影響玩家的直接狀態)
-            world_creations = ai_data.get("world_creations")
-            if world_creations:
-                new_npc_data = world_creations.get("new_npc")
-                if new_npc_data and isinstance(new_npc_data, dict):
-                    npc_id = new_npc_data.get("id")
-                    if npc_id and not db.collection('npcs').document(npc_id).get().exists:
-                        db.collection('npcs').document(npc_id).set(new_npc_data)
-                        print(f"[GameService] AI 創造了新的 NPC: {new_npc_data.get('name')}")
+        world_changes = ai_data.get("world_changes")
+        if world_changes and isinstance(world_changes, dict):
+            transaction = db.transaction()
+            _update_game_state_in_transaction(transaction, player_id, world_changes)
 
-        except Exception as e:
-            print(f"[ERROR] 處理行動或更新狀態時發生嚴重錯誤: {e}")
-            # 向上追蹤錯誤，方便偵錯
-            import traceback
-            traceback.print_exc()
-            return {"status": "error", "message": str(e)}
+        world_creations = ai_data.get("world_creations")
+        if world_creations:
+            new_npc_data = world_creations.get("new_npc")
+            if new_npc_data and isinstance(new_npc_data, dict):
+                npc_id = new_npc_data.get("id")
+                if npc_id and not db.collection('npcs').document(npc_id).get().exists:
+                    db.collection('npcs').document(npc_id).set(new_npc_data)
+                    print(f"[GameService] AI 創造了新的 NPC: {new_npc_data.get('name')}")
 
-        # 獲取並回傳「更新後」的全新遊戲狀態
-        next_gamestate = {
-            "player": GameService.get_player_data(player_id),
-            "world": GameService.get_world_state(),
-            "narrative": {"description": ai_data.get("story_description"), "options": ai_data.get("options"), "atmosphere": ai_data.get("atmosphere")}
-        }
-        return {"status": "action_processed", "next_gamestate": next_gamestate}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": str(e)}
+
+    next_gamestate = {
+        "player": GameService.get_player_data(player_id),
+        "world": GameService.get_world_state(),
+        "narrative": {"description": ai_data.get("story_description"), "options": ai_data.get("options"), "atmosphere": ai_data.get("atmosphere")}
+    }
+    return {"status": "action_processed", "next_gamestate": next_gamestate}
 
 game_service = GameService()

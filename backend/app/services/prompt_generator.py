@@ -3,6 +3,15 @@ import datetime
 def generate_prompt(player_data: dict, world_data: dict, location_data: dict, action_data: dict) -> str:
     """
     根據當前遊戲狀態和玩家行動，生成一個詳細的、結構化的 Prompt。
+
+    Args:
+        player_data (dict): 玩家的資料。
+        world_data (dict): 世界的狀態資料。
+        location_data (dict): 當前地點的資料。
+        action_data (dict): 玩家執行的行動。
+
+    Returns:
+        str: 組裝完成，準備發送給 AI 的完整指令。
     """
 
     # --- 1. 世界情境 ---
@@ -44,10 +53,11 @@ def generate_prompt(player_data: dict, world_data: dict, location_data: dict, ac
     instruction_section = """
 # 你的任務
 作為一個富有創意的文字冒險遊戲敘事引擎，請根據以上所有情境：
-1.  生成一段生動、符合當前氛圍的故事描述 (story_description)，描述玩家行動後發生的事情。
-2.  根據新的劇情，為玩家提供 3 個合理且有趣的行動選項 (options)，選項內容不要包含編號。
-3.  判斷當前場景的整體氛圍 (atmosphere)，例如："緊張", "懸疑", "溫馨", "探索"。
-4.  嚴格按照以下 JSON 格式回傳你的創作，不要包含任何 JSON 格式以外的文字或解釋。
+1.  生成一段生動、符合當前氛圍的故事描述 (story_description)。
+2.  根據新的劇情，為玩家提供 3 個合理且有趣的行動選項 (options)。
+3.  判斷當前場景的整體氛圍 (atmosphere)。
+4.  **[重要]** 根據玩家行動的複雜程度，估算一個合理的流逝時間，並在 `world_changes` 中提供 `time_unit` ("minutes", "hours", "days") 和 `time_amount` (數字)。例如，「環顧四周」可能只需要幾分鐘，「長途旅行」可能需要數小時或數天。
+5.  嚴格按照以下 JSON 格式回傳你的創作，不要包含任何 JSON 格式以外的文字或解釋。
 
 ```json
 {
@@ -59,7 +69,8 @@ def generate_prompt(player_data: dict, world_data: dict, location_data: dict, ac
   ],
   "atmosphere": "這裡是你判斷的場景氛圍",
   "world_changes": {
-    "time_passed_hours": 1,
+    "time_unit": "minutes",
+    "time_amount": 15,
     "temperature_change": 0
   }
 }

@@ -58,3 +58,47 @@ body {
 }
 .memory-sort-btn.active { background-color: var(--accent-color); color: white; }
 .memory-sort-btn:not(.active) { background-color: var(--bg-tertiary); color: var(--text-secondary); }
+
+/* --- (新) 互動元素樣式 --- */
+.interactive-element {
+    color: var(--accent-color);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.interactive-element:hover {
+    opacity: 0.7;
+}
+
+/* --- (新) 彈出式操作選單樣式 --- */
+#context-menu {
+    position: absolute; /* 關鍵：使用絕對定位 */
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 0.5rem;
+    z-index: 100;
+    min-width: 120px;
+}
+.context-menu-button {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: 0.25rem;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+.context-menu-button:hover {
+    background-color: var(--bg-tertiary);
+}
+.hidden {
+    display: none;
+}

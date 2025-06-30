@@ -36,15 +36,28 @@ def generate_prompt(player_data: dict, world_data: dict, location_data: dict, ac
 - 玩家行動: 玩家選擇了 '{action_data.get('value')}'
 """
 
-    # --- 3. 組合 NPC 資訊 ---
-    npc_section = """
-# 在場的 NPC
-- (目前此處為空，未來需動態載入)
+    # --- 3. (新) 組合當前地點的出口資訊 ---
+    connections = location_data.get('connections', [])
+    if connections:
+        # 將每個出口的資訊格式化成一行文字
+        connections_text = "\n".join([
+            f"- {conn.get('path_description', '一條未知的路')} (風險: {conn.get('travel_risk', '未知')}, 耗時: 約 {conn.get('distance', '?')} 分鐘)"
+            for conn in connections
+        ])
+        connections_section = f"""
+# 當前地點的出口
+{connections_text}
+"""
+    else:
+        connections_section = """
+# 當前地點的出口
+- (此處似乎無路可走)
 """
 
     # --- 4. 組合最終的 Prompt ---
-    # 直接使用從 prompt_templates.py 導入的指令
-    full_prompt = f"{world_section}\n{player_section}\n{npc_section}\n{MAIN_GAME_INSTRUCTIONS}"
+    # 將所有部分組合起來，並加入從 templates 導入的指令
+    # 注意: 我們將 connections_section 放在了 player_section 和指令之間
+    full_prompt = f"{world_section}\n{player_section}\n{connections_section}\n{MAIN_GAME_INSTRUCTIONS}"
 
     print("----------- GENERATED PROMPT -----------")
     print(full_prompt)

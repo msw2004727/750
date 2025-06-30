@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動文字小說 - 介面佈局 (可拖曳與收折)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #f3f4f6;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #e5e7eb;
+            --text-primary: #1f2937;
+            --text-secondary: #4b5563;
+            --border-color: #d1d5db;
+            --accent-color: #2563eb;
+        }
+
+        .dark {
+            --bg-primary: #111827;
+            --bg-secondary: #1f2937;
+            --bg-tertiary: #374151;
+            --text-primary: #f9fafb; /* gray-50 */
+            --text-secondary: #d1d5db;
+            --border-color: #4b5563;
+            --accent-color: #3b82f6;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background-color: var(--accent-color); }
+        
+        .card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: all 0.3s;
+        }
+
+        .section-container {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            cursor: move;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .section-container.is-collapsed .section-header {
+            border-bottom: 1px solid transparent;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .collapse-icon {
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            color: var(--text-secondary);
+        }
+        
+        .is-collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+
+        .section-content {
+            padding: 1.5rem;
+            padding-top: 1rem;
+            transition: all 0.3s;
+        }
+        
+        .action-button {
+            width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color);
+            border-radius: 0.5rem; text-align: left; background-color: var(--bg-secondary);
+            transition: all 0.2s ease-in-out;
+        }
+
+        .action-button:hover {
+            border-color: var(--accent-color); background-color: var(--bg-tertiary);
+            color: var(--accent-color); transform: translateY(-2px);
+        }
+
+        .sortable-ghost {
+            opacity: 0.4;
+            background: var(--bg-tertiary);
+        }
+
+        /* Modal Styles */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+        .modal-content {
+            background-color: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body class="p-2 sm:p-4 lg:p-6">
+
+    <div class="max-w-screen-2xl mx-auto">
+        <header class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl sm:text-3xl font-bold">《初境：黑石部落》</h1>
+            <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                <svg id="theme-icon-dark" class="h-6 w-6 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                <svg id="theme-icon-light" class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            </button>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 lg:gap-6 space-y-6 lg:space-y-0">
+
+            <main class="lg:col-span-2 space-y-6">
+                
+                <div class="section-container p-3">
+                    <div class="flex flex-wrap gap-2">
+                         <div class="bg-[var(--bg-tertiary)] flex items-center gap-1.5 py-1 px-2.5 rounded-full"><span class="text-base">😊</span><p class="text-xs font-normal">小溪</p></div>
+                         <div class="bg-[var(--bg-tertiary)] flex items-center gap-1.5 py-1 px-2.5 rounded-full"><span class="text-base">😠</span><p class="text-xs font-normal">烈風</p></div>
+                         <div class="bg-[var(--bg-tertiary)] flex items-center gap-1.5 py-1 px-2.5 rounded-full"><span class="text-base">😐</span><p class="text-xs font-normal">石山</p></div>
+                         <div class="bg-[var(--bg-tertiary)] flex items-center gap-1.5 py-1 px-2.5 rounded-full"><span class="text-base">🤔</span><p class="text-xs font-normal">青葉</p></div>
+                         <div class="bg-[var(--bg-tertiary)] flex items-center gap-1.5 py-1 px-2.5 rounded-full"><span class="text-base">😶</span><p class="text-xs font-normal">部落成員</p></div>
+                    </div>
+                </div>
+
+                <section class="section-container p-6 relative">
+                    <div class="card absolute top-4 right-4 py-2 px-4"><p class="font-bold text-center text-red-500">緊張・對峙</p></div>
+                    <h2 class="section-title" style="border-bottom: 2px solid var(--accent-color); display:inline-block; padding-bottom: 0.5rem; margin-bottom: 1rem;">故事發展</h2>
+                    <div id="narrative-box" class="h-80 overflow-y-auto pr-2 space-y-4 text-lg leading-relaxed">
+                        <p>你話音未落，茅屋的門簾被猛地掀開，一個身材魁梧、面帶煞氣的男人走了進來，他正是部落的獵首「烈風」。他銳利的眼神掃過你，又瞪向小溪。「妳竟敢把來路不明的人帶進部落！族長正為此事召集大家！」</p>
+                        <p>氣氛瞬間凝固。小溪嚇得後退一步，而門外傳來了更多腳步聲，德高望重的族長「石山」、神秘的巫醫「青葉」，以及幾個手持武器的部落成員都出現在門口，將小小的茅屋圍得水泄不通。</p>
+                    </div>
+                </section>
+
+                <section class="section-container p-6">
+                     <h2 class="section-title" style="border-bottom: 2px solid var(--accent-color); display:inline-block; padding-bottom: 0.5rem; margin-bottom: 1rem;">你的行動</h2>
+                    <div class="space-y-3">
+                        <button class="action-button">1. 冷靜地向族長石山解釋自己並無惡意。</button>
+                        <button class="action-button">2. 站到小溪身前，表示一切與她無關。</button>
+                        <button class="action-button">3. 緊握口袋裡那塊奇怪的石頭，隨時準備應對不測。</button>
+                        <div class="flex items-center pt-2"><hr class="flex-grow border-t border-[var(--border-color)]"><span class="px-3 text-sm text-[var(--text-secondary)]">或</span><hr class="flex-grow border-t border-[var(--border-color)]"></div>
+                        <div class="flex space-x-2">
+                            <input type="text" placeholder="手動輸入你想做的其他事..." class="w-full p-3 rounded-lg border bg-transparent border-[var(--border-color)] focus:border-[var(--accent-color)] focus:ring-2 focus:ring-[var(--accent-color)] outline-none transition">
+                            <button class="px-6 py-3 bg-[var(--accent-color)] text-white font-bold rounded-lg hover:opacity-90 transition-opacity">確認</button>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <aside id="info-dashboard" class="space-y-6">
+                <section class="section-container" id="panel-player-status">
+                     <div class="section-header">
+                        <h2 class="section-title">主角狀態</h2>
+                        <svg class="collapse-icon h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                    </div>
+                    <div class="section-content">
+                        <div class="space-y-3">
+                            <div class="card"><div class="flex justify-between items-center"><h3 class="font-bold">健康</h3><span class="text-green-500 font-semibold">良好</span></div><div class="w-full bg-[var(--bg-tertiary)] rounded-full h-2.5 mt-2"><div class="bg-green-500 h-2.5 rounded-full" style="width: 90%"></div></div></div>
+                            <div class="card"><div class="flex justify-between items-center"><h3 class="font-bold">飢餓</h3><span class="text-yellow-500 font-semibold">略感飢餓</span></div><div class="w-full bg-[var(--bg-tertiary)] rounded-full h-2.5 mt-2"><div class="bg-yellow-500 h-2.5 rounded-full" style="width: 75%"></div></div></div>
+                            <div class="grid grid-cols-2 gap-3 pt-2">
+                                <button id="open-stats-modal" class="w-full py-2 px-4 bg-[var(--accent-color)] text-white font-bold rounded-lg hover:opacity-90 transition-opacity">數值</button>
+                                <button id="open-memory-modal" class="w-full py-2 px-4 bg-[var(--accent-color)] text-white font-bold rounded-lg hover:opacity-90 transition-opacity">記憶</button>
+                                <button id="open-network-modal" class="w-full py-2 px-4 bg-[var(--accent-color)] text-white font-bold rounded-lg hover:opacity-90 transition-opacity">人脈</button>
+                                <button id="open-equipment-modal" class="w-full py-2 px-4 bg-[var(--accent-color)] text-white font-bold rounded-lg hover:opacity-90 transition-opacity">裝備</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section-container" id="panel-world-info">
+                    <div class="section-header">
+                        <h2 class="section-title">世界資訊</h2>
+                        <svg class="collapse-icon h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                    </div>
+                    <div class="section-content">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-4">
+                            <div class="card text-center"><h3 class="font-bold text-lg">時間</h3><p class="text-[var(--text-secondary)] text-sm">大荒曆3年<br>春15日 辰時</p></div>
+                            <div class="card text-center"><h3 class="font-bold text-lg">地點</h3><p class="text-[var(--text-secondary)] text-sm">黑石部落<br>你的茅屋</p></div>
+                            <div class="card text-center"><h3 class="font-bold text-lg">天氣</h3><p class="text-[var(--text-secondary)] text-sm">薄霧<br>16°C</p></div>
+                            <div class="card !p-3">
+                                <h3 class="font-bold text-center text-lg mb-1">所屬</h3>
+                                <div class="text-center text-sm text-[var(--text-secondary)]">
+                                    <p>黑石部落</p>
+                                    <p>首領: 石山</p>
+                                    <p>規模: 小型</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="section-container" id="panel-quests">
+                     <div class="section-header">
+                        <h2 class="section-title">任務</h2>
+                        <svg class="collapse-icon h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                    </div>
+                    <div class="section-content">
+                        <div id="quest-box" class="max-h-64 overflow-y-auto pr-2 space-y-3">
+                            <div class="card"><h3 class="font-bold text-yellow-500">初來乍到</h3><p class="text-sm text-[var(--text-secondary)] mt-1">搞清楚自己在哪裡，以及發生了什麼事。</p><ul class="list-disc list-inside text-sm mt-2 space-y-1"><li class="text-green-500"><s>與部落的人交談</s> (完成)</li><li>了解部落的現況</li></ul></div>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </div>
+    
+    <!-- Modals (彈出視窗) -->
+    <div id="stats-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-bold">主角數值</h3><button class="close-modal p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button></div>
+            <div class="flex-grow overflow-y-auto pr-2"><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div class="card"><h4 class="text-lg font-bold text-[var(--accent-color)]">力量 (10)</h4><p class="text-sm text-[var(--text-secondary)] mt-1">影響物理傷害、負重能力與部份需要體力的行動成功率。</p></div><div class="card"><h4 class="text-lg font-bold text-[var(--accent-color)]">智力 (12)</h4><p class="text-sm text-[var(--text-secondary)] mt-1">影響學習速度、觀察力、說服能力與使用複雜道具的成功率。</p></div><div class="card"><h4 class="text-lg font-bold text-[var(--accent-color)]">敏捷 (8)</h4><p class="text-sm text-[var(--text-secondary)] mt-1">影響戰鬥中的閃避與命中率、行動速度與進行潛行等精細操作的成功率。</p></div><div class="card"><h4 class="text-lg font-bold text-[var(--accent-color)]">幸運 (5)</h4><p class="text-sm text-[var(--text-secondary)] mt-1">一個神秘的數值，似乎會影響隨機事件的結果、物品掉落率與爆擊機率。</p></div></div></div>
+        </div>
+    </div>
+
+    <div id="memory-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-bold">過往記憶</h3><button class="close-modal p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button></div>
+            <div class="flex flex-wrap gap-2 mb-4 border-b border-[var(--border-color)] pb-4"><span>排序方式：</span><button class="memory-sort-btn active px-3 py-1 text-sm rounded-full">時間</button><button class="memory-sort-btn px-3 py-1 text-sm rounded-full">人物</button><button class="memory-sort-btn px-3 py-1 text-sm rounded-full">事物</button><button class="memory-sort-btn px-3 py-1 text-sm rounded-full">地點</button></div>
+            <div class="flex-grow overflow-y-auto pr-2"><ul class="space-y-3"><li class="p-3 bg-[var(--bg-tertiary)] rounded-lg"><p class="font-bold">在河邊醒來</p><p class="text-sm text-[var(--text-secondary)]">大荒曆3年，春15日 - 你在黑石部落旁的河邊被人發現，失去了所有記憶。</p></li><li class="p-3 bg-[var(--bg-tertiary)] rounded-lg"><p class="font-bold">與小溪的初次見面</p><p class="text-sm text-[var(--text-secondary)]">大荒曆3年，春15日 - 一位名叫小溪的少女在你醒來時照顧你，她是第一個與你交談的人。</p></li><li class="p-3 bg-[var(--bg-tertiary)] rounded-lg"><p class="font-bold">獲得奇怪的石頭</p><p class="text-sm text-[var(--text-secondary)]">未知時間 - 你發現口袋裡有一顆會發出微光的奇特石頭，它的來歷是個謎。</p></li></ul></div>
+        </div>
+    </div>
+
+    <div id="network-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-bold">人脈關係</h3><button class="close-modal p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button></div>
+            <div id="network-box" class="flex-grow overflow-y-auto pr-2 space-y-3">
+                <div class="card"><div class="flex justify-between items-center"><h3 class="font-bold">小溪 (獸皮少女)</h3><span class="text-blue-500 font-semibold">陌生 (友善)</span></div><p class="text-sm text-[var(--text-secondary)] mt-1">她似乎對你的到來充滿好奇。</p></div>
+                <div class="card"><div class="flex justify-between items-center"><h3 class="font-bold">烈風 (獵首)</h3><span class="text-red-500 font-semibold">敵對</span></div><p class="text-sm text-[var(--text-secondary)] mt-1">他把你視為對部落的威脅。</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="equipment-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-bold">持有裝備</h3><button class="close-modal p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg></button></div>
+            <div id="equipment-box" class="flex-grow overflow-y-auto pr-2 space-y-3">
+                <div class="card flex items-center space-x-4"><div class="w-12 h-12 bg-[var(--bg-tertiary)] rounded-lg flex items-center justify-center font-bold text-xl">石</div><div><h3 class="font-bold">奇怪的石頭</h3><p class="text-sm text-[var(--text-secondary)]">一顆在河邊撿到的、發出微光的石頭。</p></div></div>
+                <div class="card flex items-center space-x-4"><div class="w-12 h-12 bg-[var(--bg-tertiary)] rounded-lg flex items-center justify-center font-bold text-xl">衣</div><div><h3 class="font-bold">破舊的布衣</h3><p class="text-sm text-[var(--text-secondary)]">身上僅有的衣物，看不出原本的材質。</p></div></div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- 主題切換 ---
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const darkIcon = document.getElementById('theme-icon-dark');
+        const lightIcon = document.getElementById('theme-icon-light');
+        const htmlEl = document.documentElement;
+
+        function applyTheme(theme) {
+            htmlEl.classList.toggle('dark', theme === 'dark');
+            darkIcon.classList.toggle('hidden', theme !== 'dark');
+            lightIcon.classList.toggle('hidden', theme === 'dark');
+        }
+        
+        const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        applyTheme(savedTheme);
+
+        themeToggleBtn.addEventListener('click', () => {
+            const newTheme = htmlEl.classList.contains('dark') ? 'light' : 'dark';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+        });
+
+        // --- 可收折面板 ---
+        document.querySelectorAll('.section-container').forEach(container => {
+            const header = container.querySelector('.section-header');
+            const content = container.querySelector('.section-content');
+            
+            if (header && content) {
+                header.addEventListener('click', (e) => {
+                    if (e.target.closest('.collapse-icon') || e.target.closest('.section-title')) {
+                        const isCollapsed = container.classList.toggle('is-collapsed');
+                        content.classList.toggle('hidden');
+                        localStorage.setItem(container.id + '_collapsed', isCollapsed);
+                    }
+                });
+                if (localStorage.getItem(container.id + '_collapsed') === 'true') {
+                    container.classList.add('is-collapsed');
+                    content.classList.add('hidden');
+                }
+            }
+        });
+
+        // --- 可拖曳面板 ---
+        const dashboard = document.getElementById('info-dashboard');
+        const savedOrder = JSON.parse(localStorage.getItem('panelOrder'));
+        if (savedOrder) {
+            savedOrder.forEach(panelId => {
+                const panel = document.getElementById(panelId);
+                if (panel) dashboard.appendChild(panel);
+            });
+        }
+        new Sortable(dashboard, {
+            animation: 150,
+            handle: '.section-header',
+            ghostClass: 'sortable-ghost',
+            onEnd: function (evt) {
+                const newOrder = Array.from(dashboard.children).map(el => el.id);
+                localStorage.setItem('panelOrder', JSON.stringify(newOrder));
+            },
+        });
+
+        // --- Modal (彈出視窗) 功能 ---
+        const openStatsModalBtn = document.getElementById('open-stats-modal');
+        const openMemoryModalBtn = document.getElementById('open-memory-modal');
+        const openNetworkModalBtn = document.getElementById('open-network-modal');
+        const openEquipmentModalBtn = document.getElementById('open-equipment-modal');
+
+        const statsModal = document.getElementById('stats-modal');
+        const memoryModal = document.getElementById('memory-modal');
+        const networkModal = document.getElementById('network-modal');
+        const equipmentModal = document.getElementById('equipment-modal');
+        
+        const closeButtons = document.querySelectorAll('.close-modal');
+        const modals = [statsModal, memoryModal, networkModal, equipmentModal];
+
+        function openModal(modal) {
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            modals.forEach(modal => modal.classList.add('hidden'));
+        }
+
+        openStatsModalBtn.addEventListener('click', () => openModal(statsModal));
+        openMemoryModalBtn.addEventListener('click', () => openModal(memoryModal));
+        openNetworkModalBtn.addEventListener('click', () => openModal(networkModal));
+        openEquipmentModalBtn.addEventListener('click', () => openModal(equipmentModal));
+
+        closeButtons.forEach(btn => btn.addEventListener('click', closeModal));
+        modals.forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
+        });
+
+        // --- 記憶排序按鈕 ---
+        const sortButtons = document.querySelectorAll('.memory-sort-btn');
+        sortButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                sortButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+            });
+        });
+        const style = document.createElement('style');
+        style.innerHTML = `
+            .memory-sort-btn.active {
+                background-color: var(--accent-color);
+                color: white;
+            }
+             .memory-sort-btn:not(.active) {
+                background-color: var(--bg-tertiary);
+                color: var(--text-secondary);
+            }
+        `;
+        document.head.appendChild(style);
+
+    </script>
+</body>
+</html>

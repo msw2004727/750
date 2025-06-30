@@ -3,307 +3,302 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>互動小說遊戲 - 動態專案計畫書</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <title>AI 驅動的文字冒險遊戲 - 專案計畫</title>
     <style>
         body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: #f3f4f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
         }
-        .dark body {
-            background-color: #111827;
+        .container {
+            width: 80%;
+            margin: auto;
+            overflow: hidden;
+            padding: 20px 0;
         }
-        .tab-btn {
-            padding: 0.75rem 1.5rem;
+        header {
+            background: #333;
+            color: #fff;
+            padding: 1rem 0;
+            text-align: center;
+        }
+        header h1 {
+            margin: 0;
+        }
+        .tabs {
+            display: flex;
+            background: #444;
+            border-bottom: 2px solid #00aaff;
+        }
+        .tab-link {
+            border: none;
+            outline: none;
             cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
-            font-weight: 600;
+            padding: 14px 16px;
+            transition: 0.3s;
+            font-size: 17px;
+            color: white;
+            background-color: inherit;
         }
-        .tab-btn.active {
-            color: #3b82f6;
-            border-bottom-color: #3b82f6;
+        .tab-link:hover {
+            background-color: #555;
         }
-        .dark .tab-btn.active {
-            color: #60a5fa;
-            border-bottom-color: #60a5fa;
+        .tab-link.active {
+            background-color: #00aaff;
         }
         .tab-content {
             display: none;
+            padding: 20px;
+            background-color: white;
+            border-top: none;
+            animation: fadeEffect 0.5s;
         }
-        .tab-content.active {
-            display: block;
+        @keyframes fadeEffect {
+            from {opacity: 0;}
+            to {opacity: 1;}
         }
-        .task-list-item {
+        h2 {
+            color: #00aaff;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .task-list {
+            list-style: none;
+            padding: 0;
+        }
+        .task-list li {
+            background: #fff;
+            margin-bottom: 10px;
+            padding: 15px;
+            border-left: 5px solid #00aaff;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            padding: 0.5rem 0;
-            transition: color 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        .task-list-item input[type="checkbox"] {
-            margin-right: 0.75rem;
-            width: 1.25rem;
-            height: 1.25rem;
-            accent-color: #3b82f6;
+        .task-name {
+            font-weight: bold;
         }
-        .task-list-item.completed > label {
-            text-decoration: line-through;
-            color: #6b7280;
+        .status {
+            padding: 5px 15px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
         }
-        .dark .task-list-item.completed > label {
-            color: #9ca3af;
+        .status-completed { background-color: #28a745; }
+        .status-inprogress { background-color: #ffc107; color: #333; }
+        .status-planned { background-color: #17a2b8; }
+        .status-on-hold { background-color: #6c757d; }
+
+        .notes {
+            background-color: #e9f7ff;
+            border-left: 4px solid #00aaff;
+            padding: 15px;
+            margin-top: 20px;
         }
-        .prose h3 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-top: 1.5rem;
-            margin-bottom: 0.5rem;
-            border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 0.25rem;
-        }
-        .dark .prose h3 {
-            border-bottom-color: #4b5563;
-        }
-        .prose p, .prose li, .prose ul, .prose blockquote {
-            color: #374151;
-        }
-        .dark .prose p, .dark .prose li, .dark .prose ul, .dark .prose blockquote {
-            color: #d1d5db;
-        }
-        .prose blockquote {
-            border-left: 4px solid #d1d5db;
-            padding-left: 1rem;
-            font-style: italic;
-        }
-        .dark .prose blockquote {
-             border-left-color: #4b5563;
+        .notes h3 {
+            margin-top: 0;
+            color: #005f88;
         }
     </style>
 </head>
-<body class="dark:bg-gray-900 dark:text-gray-100">
+<body>
 
-    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
-        <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-800 dark:text-white">互動小說遊戲專案</h1>
-            <p class="text-lg text-gray-600 dark:text-gray-400 mt-2">一份持續更新的動態開發藍圖</p>
-        </header>
+    <header>
+        <h1>AI 驅動的文字冒險遊戲 - 專案計畫</h1>
+        <p>一個動態、由 AI 敘事的文字 RPG 遊戲</p>
+    </header>
 
-        <!-- 頁籤導覽 -->
-        <nav class="flex flex-wrap justify-center border-b border-gray-200 dark:border-gray-700 mb-8">
-            <button class="tab-btn active" data-tab="concept">遊戲企劃</button>
-            <button class="tab-btn" data-tab="future">未來開發目標</button>
-            <button class="tab-btn" data-tab="progress">已完成進度</button>
-            <button class="tab-btn" data-tab="optimization">優化方向</button>
-            <button class="tab-btn" data-tab="qa">遊戲Q&A</button>
-            <button class="tab-btn" data-tab="tools">使用工具與服務</button>
-        </nav>
+    <div class="tabs">
+        <button class="tab-link active" onclick="openTab(event, 'milestones')">核心功能里程碑</button>
+        <button class="tab-link" onclick="openTab(event, 'polishing')">短期打磨目標</button>
+        <button class="tab-link" onclick="openTab(event, 'future')">未來開發目標</button>
+    </div>
 
-        <!-- 頁籤內容 -->
-        <main>
-            <!-- 遊戲企劃 -->
-            <div id="concept" class="tab-content active">
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md prose max-w-none">
-                    <h2 class="text-2xl font-bold mb-4">遊戲企劃與核心玩法</h2>
-                    <h3>核心理念：一個由你和AI共同創造的動態江湖</h3>
-                    <p>這款遊戲的核心是一個單機的、高自由度的互動文字世界。玩家扮演一位穿越到古代的主角，從一個默默無聞的市井小民開始，逐步探索並影響整個世界。與傳統遊戲不同，這個世界的NPC、物品、場景乃至於劇情發展，都由大型語言模型（AI）動態生成，並永久記錄在資料庫中。每一個玩家的選擇，都在為這個世界添磚加瓦，使其成為一個真正獨一無二、不斷演化的江湖。</p>
-                    <h3>遊戲玩法與特色機制</h3>
-                    <ul>
-                        <li><strong>動態世界系統：</strong> 遊戲世界擁有獨立的時間流動（年月日、時辰）、天氣變化與溫度。這些因素將直接影響劇情描述、NPC的行為以及特定事件的觸發，營造出一個生動真實的環境。</li>
-                        <li><strong>玩家即主角：</strong> 遊戲不預設主角的性格。玩家的選擇、對話風格和行為模式將直接塑造主角的個性和名聲。外貌等特徵也會隨著遊戲時間、經歷和裝備而產生細微變化。</li>
-                        <li><strong>深度NPC系統：</strong> 每個NPC都擁有獨立的個性、背景故事、人際關係和記憶，玩家的行動可以真實地改變其命運。</li>
-                        <li><strong>資訊迷霧與探索（抽絲剝繭系統）：</strong> NPC的背景、物品的用途等資訊需要玩家透過互動逐步發掘，每一次的發現都充滿成就感。</li>
-                        <li><strong>永久性世界演化：</strong> 任何一位玩家創造出的新NPC、新地點等元素，將被永久記錄在核心資料庫中，供後續所有玩家探索。</li>
-                    </ul>
-                     <h3>核心遊戲循環 (Core Loop)</h3>
-                     <p>玩家的遊戲體驗將圍繞著一個不斷循環的過程：<strong>探索 (Explore)</strong> → <strong>互動 (Interact)</strong> → <strong>選擇 (Choose)</strong> → <strong>影響 (Impact)</strong> → <strong>反饋 (Feedback)</strong></p>
-                     <h3>開發願景與藍圖</h3>
-                     <p>為了確保專案能夠穩健地推進，我們將開發過程分為三個階段性的願景：</p>
-                     <h4>短期願景 (MVP - 最小可行性產品)</h4>
-                     <p><strong>目標：</strong> 建立一個穩定、可玩的核心體驗，讓玩家能在一個小範圍內（黑石部落）完整地體驗到遊戲的獨特魅力。</p>
-                     <ul><li><strong>重點：</strong> 完善並穩定化「遊戲主迴圈」。</li></ul>
-                     <h4>中期願景 (擴展世界與玩法深度)</h4>
-                     <p><strong>目標：</strong> 打破單一場景的限制，擴展遊戲世界，並引入更多元的系統，讓遊戲的可玩性和重玩價值大幅提升。</p>
-                      <ul><li><strong>重點：</strong> 豐富遊戲內容，並實作更深度的互動系統。</li></ul>
-                     <h4>長期願景 (一個活著的、由玩家共創的世界)</h4>
-                     <p><strong>目標：</strong> 實現最初的夢想——一個能夠自我演化、並由所有玩家的行動共同塑造其歷史的永久性世界。</p>
-                      <ul><li><strong>重點：</strong> 強化 AI 的自主性與世界的永久性。</li></ul>
-                </div>
-            </div>
+    <div id="milestones" class="tab-content" style="display: block;">
+        <h2>核心功能里程碑</h2>
+        
+        <h3>第一階段：專案基礎建設</h3>
+        <ul class="task-list">
+            <li>
+                <span class="task-name">Task 1-1: 初始化 Firebase 專案</span>
+                <span class="status status-completed">已完成</span>
+            </li>
+            <li>
+                <span class="task-name">Task 1-2: 建立後端 FastAPI 框架</span>
+                <span class="status status-completed">已完成</span>
+            </li>
+            <li>
+                <span class="task-name">Task 1-3: 設計並填充基礎資料庫結構</span>
+                <span class="status status-completed">已完成</span>
+            </li>
+            <li>
+                <span class="task-name">Task 1-4: 建立前端基本 HTML/CSS/JS 結構</span>
+                <span class="status status-completed">已完成</span>
+            </li>
+        </ul>
 
-            <!-- 已完成進度 -->
-            <div id="progress" class="tab-content">
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                    <h2 class="text-2xl font-bold mb-4">專案進度總覽 (已完成)</h2>
-                    <ul class="space-y-2">
-                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段一] 專案可行性與架構規劃</strong></label></li>
-                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段一] 前端介面設計 (UI)</strong></label></li>
-                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段一] 前端專案模組化 (HTML/CSS/JS)</strong></label></li>
-                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段一] 資料庫結構設計 (Firebase Firestore)</strong></label></li>
-                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段一] 後端基礎建設與雲端部署 (Render)</strong></label></li>
-                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段二] 前後端串接與核心互動</strong></label></li>
-                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段三] AI 服務整合與 Prompt 工程 (v1.0)</strong></label></li>
-                    </ul>
-                </div>
-            </div>
+        <h3>第二階段：核心遊戲迴圈</h3>
+        <ul class="task-list">
+            <li>
+                <span class="task-name">Task 2-1: 實作後端 AI 敘事生成 API</span>
+                <span class="status status-completed">已完成</span>
+            </li>
+            <li>
+                <span class="task-name">Task 2-2: 實作後端遊戲狀態更新 API</span>
+                <span class="status status-completed">已完成</span>
+            </li>
+            <li>
+                <span class="task-name">Task 2-3: 前端實作發送玩家行動與接收遊戲狀態</span>
+                <span class="status status-completed">已完成</span>
+            </li>
+             <li>
+                <span class="task-name">Task 2-4: 前端 UI 動態渲染敘事與選項</span>
+                <span class="status status-completed">已完成</span>
+            </li>
+        </ul>
 
-            <!-- 未來開發目標 -->
-            <div id="future" class="tab-content">
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                    <h2 class="text-2xl font-bold mb-4">第三階段：AI 整合與遊戲迴圈 (收尾)</h2>
-                     <ul class="space-y-2">
-                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>AI 回應解析：</strong>後端已能解析 AI 回傳的 JSON 主體。</label></li>
-                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>實作資料庫更新：</strong>根據 AI 回應中的 `world_changes` 物件，真實地更新資料庫中的世界狀態（時間、天氣等）。</label></li>
-                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>建立遊戲主迴圈 (Game Loop)：</strong>將「接收行動 -> 呼叫 AI -> 解析回應 -> 更新資料庫 -> 回傳新狀態給前端」的完整流程串接起來。</label></li>
-                    </ul>
-                </div>
-                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mt-6">
-                    <h2 class="text-2xl font-bold mb-4">第四階段：深度玩法與擴充</h2>
-                     <ul class="space-y-2">
-                        <li class="task-list-item"><input type="checkbox" id="task4-1"><label><strong>擴充後端資料 API：</strong>讓 `/state` API 能一併回傳玩家的 inventory, relationships, memories 等子集合的詳細資料。</label></li>
-                        <li class="task-list-item"><input type="checkbox" id="task4-2"><label><strong>前端 UI 渲染真實資料：</strong>修改 `ui.js`，讓所有彈出視窗的內容都來自後端回傳的真實資料，移除所有 `mock` (假) 資料。</label></li>
-                        <li class="task-list-item"><input type="checkbox" id="task4-3"><label><strong>實作「迷霧系統」：</strong>根據資料庫設計，正式完成 NPC 背景和物品鑑定的抽絲剝繭邏輯。</label></li>
-                         <li class="task-list-item"><input type="checkbox" id="task4-4"><label><strong>動態世界事件：</strong>設計一個系統，讓 AI 可以主動觸發或創造新的 NPC、任務、甚至地點，並由後端將其永久寫入資料庫。</label></li>
-                    </ul>
-                </div>
-            </div>
+        <h3>第三階段：玩家狀態與世界互動</h3>
+        <ul class="task-list">
+            <li>
+                <span class="task-name">Task 3-1: 擴充後端 API 以回傳玩家詳細狀態 (背包、人脈)</span>
+                <span class="status status-completed">已完成</span>
+            </li>
+            <li>
+                <span class="task-name">Task 3-2: 前端建立「裝備」、「人脈」彈出視窗</span>
+                <span class="status status-completed">已完成</span>
+            </li>
+            <li>
+                <span class="task-name">Task 3-3: 前端 UI 使用假資料 (Mock Data) 渲染彈出視窗</span>
+                 <span class="status status-completed">已完成</span>
+            </li>
+        </ul>
+        
+        <h3>第四階段：深度玩法與擴充</h3>
+        <ul class="task-list">
+            <li>
+                <span class="task-name">Task 4-1: (迷霧系統) 後端 API 擴充，根據玩家認知回傳資料</span>
+                <span class="status status-completed">已完成</span>
+            </li>
+             <li>
+                <span class="task-name">Task 4-2: (迷霧系統) 前端 UI 渲染真實資料 (移除假資料)</span>
+                <span class="status status-completed">已完成</span>
+            </li>
+            <li>
+                <span class="task-name">Task 4-3: (動態世界事件) 賦予 AI 創造世界的能力 (Prompt 修改)</span>
+                <span class="status status-completed">已完成</span>
+            </li>
+            <li>
+                <span class="task-name">Task 4-4: (動態世界事件) 後端實作 AI 世界創造的處理邏輯</span>
+                <span class="status status-completed">已完成</span>
+            </li>
+        </ul>
+    </div>
 
-            <!-- 優化方向 -->
-            <div id="optimization" class="tab-content">
-                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md prose max-w-none">
-                    <h2 class="text-2xl font-bold mb-4">架構回顧與未來優化方向</h2>
-                    <p>這份文件探討幾個未來可行的優化方向。這些並不是「問題」，而是當我們的遊戲世界變得更龐大、更複雜時，可以採用的「進階策略」。</p>
-                    
-                    <h3>A. 優化方向一：資料庫讀取效能 (Denormalization)</h3>
-                    <blockquote>
-                        <strong>目前的做法：</strong> 當我們要獲取玩家的背包時，後端會先讀取玩家的 `inventory` 子集合，然後對裡面的**每一個**物品 ID，都再去 `items` 集合進行一次查詢，以獲得物品的名稱和描述。<br>
-                        <strong>潛在問題：</strong> 如果玩家背包裡有 20 件物品，這就需要 **21 次**資料庫讀取，可能增加 API 的回應時間。<br>
-                        <strong>未來優化建議 (反正規化)：</strong> 我們可以在玩家獲得物品時，就將物品的「顯示名稱」等不常變的資訊，一併存入玩家的 `inventory` 子集合中，將 21 次讀取降為 **1 次**。<br>
-                        <strong>權衡：</strong> 代價是微量的資料冗餘，以及在更新物品主資料時可能需要額外的工作來同步。
-                    </blockquote>
+    <div id="polishing" class="tab-content">
+        <h2>短期打磨目標：AI 調教與寫實化</h2>
+        <div class="notes">
+            <h3>核心理念</h3>
+            <p>此階段的目標不是開發新功能，而是針對現有系統進行深度調教。我們將修改 Prompt，讓 AI 的敘事和判斷更加符合現實邏輯，並與遊戲機制緊密結合，創造一個更具沉浸感和可信度的世界。</p>
+        </div>
+        <ul class="task-list">
+            <li>
+                <span class="task-name">時間與環境系統</span>
+                <span class="status status-planned">計畫中</span>
+            </li>
+             <p>細節：指導 AI 根據 `currentTime` (白天/夜晚/清晨/黃昏) 和 `currentWeather` (晴/雨/雪) 來影響其故事描述、氛圍和事件。例如：夜晚的警覺性應更高，雨天可能引發滑倒或感冒事件。</p>
+            <li>
+                <span class="task-name">健康與耐力系統</span>
+                <span class="status status-planned">計畫中</span>
+            </li>
+            <p>細節：指導 AI 根據玩家的 `health` 和 `hunger` 狀態調整敘事。低健康值應觸發負面描述（如頭暈、虛弱），並限制某些高強度行動選項（如「全力衝刺」）。</p>
+            <li>
+                <span class="task-name">人際關係與情感模型</span>
+                <span class="status status-planned">計畫中</span>
+            </li>
+            <p>細節：指導 AI 在生成敘事時，參考玩家與在場 NPC 的 `affinity` (好感度)。高好感度應帶來更友善的對話和選項，低好感度則相反。AI 的判斷應影響好感度的動態變化。</p>
+            <li>
+                <span class="task-name">移動與探索邏輯</span>
+                <span class="status status-planned">計畫中</span>
+            </li>
+            <p>細節：指導 AI 根據地點的特性（如森林、城市）和玩家狀態，生成更合理的移動選項和時間消耗。例如，在「茂密森林」中移動 1 公里，應比在「平坦大道」上花費更多 `time_amount`。</p>
+             <li>
+                <span class="task-name">物品互動與鑑定</span>
+                <span class="status status-planned">計畫中</span>
+            </li>
+            <p>細節：指導 AI 根據物品的 `vague_description` 進行敘事，並設計出能夠將 `identified` 狀態變為 `true` 的事件或行動選項（如「尋找專家鑑定」、「使用鑑定卷軸」）。</p>
+            <li>
+                <span class="task-name">技能與屬性檢定 (軟性)</span>
+                <span class="status status-planned">計畫中</span>
+            </li>
+            <p>細節：雖然我們沒有硬性的技能點數，但可以指導 AI 根據玩家的「隱性標籤」（例如，如果玩家經常選擇「潛行」，就給他一個 `stealthy` 的隱性標籤）來判斷行動成功率，並在敘事中體現出來。</p>
+            <li>
+                <span class="task-name">運氣與隨機事件</span>
+                <span class="status status-planned">計畫中</span>
+            </li>
+            <p>細節：在 Prompt 中加入一個 `luck` 參數（可設為定值或隨機值），指導 AI 根據此參數的數值高低，來決定隨機事件是偏向正面（撿到錢）還是負面（被石頭絆倒）。</p>
+            <li>
+                <span class="task-name">世界觀與知識體系</span>
+                <span class="status status-planned">計畫中</span>
+            </li>
+            <p>細節：在 Prompt 的世界情境部分，注入更多關於這個世界的核心設定（如歷史、神話、主要勢力），讓 AI 的創造和敘事能更貼合我們設定的世界觀，而不是天馬行空。</p>
+        </ul>
+    </div>
+    
+    <div id="future" class="tab-content">
+        <h2>未來開發目標</h2>
+        <div class="notes">
+            <h3>核心理念</h3>
+            <p>這些是需要修改程式碼、新增功能模組的較大型開發任務。可以在完成短期打磨目標後，根據優先級進行選擇。</p>
+        </div>
 
-                    <h3>B. 優化方向二：資料庫寫入的原子性 (Transactions)</h3>
-                     <blockquote>
-                        <strong>目前的做法：</strong> 我們的後端在處理 AI 回應時，是**分開**執行多個更新操作的（如更新時間、更新物品）。<br>
-                        <strong>潛在問題：</strong> 如果在多個操作之間伺服器當機，可能導致資料不一致（例如，扣了錢但沒給物品）。<br>
-                        <strong>未來優化建議 (使用事務)：</strong> Firebase Firestore 提供了「**事務 (Transaction)**」功能。我們可以將所有相關的資料庫寫入操作包在一個事務裡，保證它們要麼**全部成功**，要麼**全部失敗**，確保資料的絕對一致性。
-                    </blockquote>
+        <h3>A. 效能優化</h3>
+        <ul class="task-list">
+            <li>
+                <span class="task-name">資料庫讀取效能 (Denormalization)</span>
+                <span class="status status-on-hold">暫緩</span>
+            </li>
+            <p>目標：減少 API 的資料庫查詢次數，提升回應速度。<br>方案：在玩家獲得物品或建立關係時，將物品/NPC 的核心資訊（如名稱、描述）作為副本存入玩家的子集合中，避免每次都需要跨集合查詢。</p>
+        </ul>
 
-                    <h3>C. 優化方向三：Prompt 工程的深度</h3>
-                     <blockquote>
-                        <strong>目前的做法：</strong> 我們的 Prompt 已經包含了世界、玩家狀態和行動。<br>
-                        <strong>未來優化建議：</strong> 我們可以讓 Prompt 變得更「聰明」，提供給 AI 更多決策時需要的上下文。<br>
-                        <ul>
-                           <li><strong>加入人脈資訊：</strong> 在 Prompt 中列出在場 NPC 的姓名及好感度，讓 AI 生成更符合關係的對話。</li>
-                           <li><strong>加入背包資訊：</strong> 在 Prompt 中簡要列出玩家的關鍵物品，讓 AI 能生成與物品相關的選項（例如，看到鎖住的門時，提供「使用鑰匙」的選項）。</li>
-                        </ul>
-                    </blockquote>
-                </div>
-            </div>
-
-            <!-- 遊戲Q&A -->
-            <div id="qa" class="tab-content">
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md prose max-w-none">
-                    <h2 class="text-2xl font-bold mb-4">遊戲設計 Q&A</h2>
-
-                    <h3>Q1：這款遊戲有「結局」嗎？可以「通關」嗎？</h3>
-                    <p>
-                        **答：** 我們的長期願景是打造一個沒有固定結局的「開放世界」。遊戲的核心樂趣來自於探索和體驗，而非達成某個單一的最終目標。雖然遊戲中會有許多由 AI 生成的、有始有終的長篇任務線，但完成它們更像是結束了一段傳奇，而不是結束了整個遊戲。理論上，只要您願意繼續探索，這個世界就會不斷為您生成新的故事。
-                    </p>
-
-                    <h3>Q2：AI 會不會生成一些不合邏輯或破壞平衡的內容？</h3>
-                    <p>
-                        **答：** 這是 AI 生成內容（AIGC）遊戲面臨的最大挑戰，也是我們架構設計的重點。我們主要透過以下幾種方式來應對：
-                        <ol>
-                            <li><strong>強大的 Prompt 指令：</strong> 我們會給 AI 非常詳細的「劇本大綱」和「規則限制」，例如明確告訴它當前的科技水平（石器時代）、物理規則，以及什麼可以做、什麼不能做。</li>
-                            <li><strong>結構化輸出 (JSON)：</strong> 我們強制要求 AI 以嚴格的 JSON 格式回傳它的「想法」，而不是自由發揮的散文。這讓我們的後端可以準確地解析並驗證它的意圖。</li>
-                            <li><strong>後端邏輯驗證：</strong> 在執行 AI 的指令前，我們的後端會進行最後的把關。例如，如果 AI 指示給予玩家 99999 金幣，後端可以根據規則將其判定為不合理並拒絕執行，或將其調整到一個合理的範圍內。</li>
-                        </ol>
-                    </p>
-
-                    <h3>Q3：如果我把遊戲「玩壞了」（例如殺光了所有重要NPC），會怎麼樣？</h3>
-                    <p>
-                        **答：** 這正是遊戲的樂趣所在！「玩壞」本身就是一種玩法。我們的設計理念是「擁抱混亂，產生後果」。
-                        <ul>
-                            <li>如果您殺光了所有重要NPC，世界不會因此結束。AI 會根據這個「所有領袖都消失了」的新情境，生成後續的劇情，例如：倖存者們會為了爭奪權力而內鬥、新的勢力會趁虛而入、或者整個部落因為失去秩序而分崩離析。</li>
-                            <li>您的行為會被永久記錄下來，您將親身體驗到這些行動所帶來的真實後果，這就是一個「活著的世界」的魅力。</li>
-                        </ul>
-                    </p>
-
-                    <h3>Q4：遊戲是單機的，那「永久性世界演化」是如何影響其他玩家的？</h3>
-                     <p>
-                        **答：** 我們的核心資料庫（如 `npcs`, `items`, `locations` 集合）是所有玩家**共享**的。而每個玩家的個人進度（如 `inventory`, `relationships`）是**獨立**的。
-                        <blockquote>
-                        <strong>舉例來說：</strong> 玩家A 在遊戲中完成了一個史詩任務，創造出了一個全新的 NPC「獨臂刀客」。這個「獨臂刀客」的資料會被永久寫入到共享的 `/npcs` 集合中。<br><br>
-                        當玩家B 之後進入遊戲，在他的世界裡，這個「獨臂刀客」是存在的。但是，玩家B 與他的關係是從零開始的，他需要自己去接觸、了解這位由玩家A所創造出來的傳奇人物。這就是我們實現「共創世界」的方式。
-                        </blockquote>
-                    </p>
-                </div>
-            </div>
-
-            <!-- 使用工具與服務 -->
-            <div id="tools" class="tab-content">
-                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                    <h2 class="text-2xl font-bold mb-4">技術堆疊與服務列表</h2>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead class="bg-gray-50 dark:bg-gray-700"><tr><th class="p-4">類別</th><th class="p-4">工具 / 服務</th><th class="p-4">主要用途</th><th class="p-4">備註</th></tr></thead>
-                            <tbody>
-                                <tr class="border-b dark:border-gray-700"><td class="p-4 font-bold">前端</td><td class="p-4">HTML5, CSS3, JavaScript</td><td class="p-4">建構遊戲介面的基礎</td><td class="p-4">採用 ES Module 進行模組化管理。</td></tr>
-                                <tr class="border-b dark:border-gray-700"><td class="p-4 font-bold"></td><td class="p-4">Tailwind CSS</td><td class="p-4">快速建構 UI 樣式</td><td class="p-4"></td></tr>
-                                <tr class="border-b dark:border-gray-700"><td class="p-4 font-bold"></td><td class="p-4">SortableJS</td><td class="p-4">實現儀表板欄位的拖曳功能</td><td class="p-4"></td></tr>
-                                <tr class="border-b dark:border-gray-700"><td class="p-4 font-bold">後端</td><td class="p-4">Python</td><td class="p-4">作為後端開發的主要語言</td><td class="p-4"></td></tr>
-                                <tr class="border-b dark:border-gray-700"><td class="p-4 font-bold"></td><td class="p-4">FastAPI</td><td class="p-4">高效能的非同步 API 框架</td><td class="p-4"></td></tr>
-                                <tr class="border-b dark:border-gray-700"><td class="p-4 font-bold"></td><td class="p-4">Uvicorn</td><td class="p-4">負責啟動並運行 FastAPI 應用程式</td><td class="p-4"></td></tr>
-                                <tr class="border-b dark:border-gray-700"><td class="p-4 font-bold">資料庫</td><td class="p-4">Firebase Firestore</td><td class="p-4">儲存所有遊戲資料</td><td class="p-4"></td></tr>
-                                <tr class="border-b dark:border-gray-700"><td class="p-4 font-bold">部署</td><td class="p-4">Render</td><td class="p-4">託管後端 Python 應用程式</td><td class="p-4"></td></tr>
-                                <tr class="border-b dark:border-gray-700"><td class="p-4 font-bold"></td><td class="p-4">GitHub</td><td class="p-4">程式碼版本控制與 CI/CD 觸發</td><td class="p-4"></td></tr>
-                                <tr class="border-b dark:border-gray-700"><td class="p-4 font-bold">核心</td><td class="p-4">DeepSeek / OpenAI API</td><td class="p-4">動態生成劇情、對話與世界事件</td><td class="p-4">已整合，可透過環境變數切換。</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </main>
+        <h3>B. 功能擴充</h3>
+        <ul class="task-list">
+            <li>
+                <span class="task-name">任務/日誌系統</span>
+                <span class="status status-on-hold">暫緩</span>
+            </li>
+            <p>目標：讓玩家可以追蹤當前的主要任務和支線任務。<br>方案：建立一個新的 `quests` 集合，並在玩家資料中加入 `active_quests` 欄位。AI 可以觸發任務的開始、推進和完成。</p>
+            <li>
+                <span class="task-name">硬性技能與成長系統</span>
+                <span class="status status-on-hold">暫緩</span>
+            </li>
+            <p>目標：引入明確的技能樹或屬性點系統，讓玩家有更清晰的成長路徑。<br>方案：在玩家資料中新增 `attributes` (如力量、敏捷) 和 `skills` (如劍術、偷竊) 物件。AI 在判斷行動結果時需參考這些數值。</p>
+             <li>
+                <span class="task-name">多人在線互動</span>
+                <span class="status status-on-hold">暫緩</span>
+            </li>
+            <p>目標：讓多個玩家能在同一個世界中互動。<br>方案：這是最複雜的目標，需要重構遊戲核心邏輯，處理玩家間的同步問題。需要引入 Websocket 或類似的即時通訊技術。</p>
+        </ul>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const tabs = document.querySelectorAll('.tab-btn');
-            const contents = document.querySelectorAll('.tab-content');
-            const defaultTab = 'concept'; // 預設顯示 '遊戲企劃'
-
-            // 初始化頁籤狀態
-            tabs.forEach(tab => {
-                tab.classList.toggle('active', tab.dataset.tab === defaultTab);
-            });
-            contents.forEach(content => {
-                content.classList.toggle('active', content.id === defaultTab);
-            });
-
-            // 頁籤點擊事件
-            tabs.forEach(tab => {
-                tab.addEventListener('click', function () {
-                    tabs.forEach(item => item.classList.remove('active'));
-                    contents.forEach(item => item.classList.remove('active'));
-                    this.classList.add('active');
-                    document.getElementById(this.dataset.tab).classList.add('active');
-                });
-            });
-
-            // 核取方塊點擊事件
-            const taskItems = document.querySelectorAll('.task-list-item');
-            taskItems.forEach(item => {
-                const checkbox = item.querySelector('input[type="checkbox"]');
-                function applyStyle(cb) { item.classList.toggle('completed', cb.checked); }
-                if (checkbox) {
-                    applyStyle(checkbox);
-                    if (!checkbox.disabled) { checkbox.addEventListener('change', function() { applyStyle(this); }); }
-                }
-            });
-        });
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tab-link");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
     </script>
+
 </body>
 </html>

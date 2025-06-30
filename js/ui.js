@@ -10,47 +10,53 @@ export function updateUI(gameState) {
     }
     
     requestAnimationFrame(() => {
-        updateSceneInfo(gameState.player);
-        updateNarrative(gameState.world);
-        updateActions(gameState.player.actions); 
+        updateSceneInfo(gameState.player, gameState.narrative);
+        updateNarrative(gameState.world, gameState.narrative);
+        updateActions(gameState.narrative ? gameState.narrative.options : []);
         updateDashboard(gameState.player, gameState.world);
         updateModals(gameState.player);
         console.log("[UI] 所有介面更新函式執行完畢。");
     });
 }
 
-function updateSceneInfo(player) {
+function updateSceneInfo(player, narrative) {
     const charactersContainer = document.getElementById('characters-present-container');
     if (charactersContainer) {
+        // TODO: 未來這裡的資料應來自 narrative.characters
         charactersContainer.innerHTML = `
             <div class="bg-[var(--bg-tertiary)] flex items-center gap-1.5 py-1 px-2.5 rounded-full"><span class="text-base">😊</span><p class="text-xs font-normal">小溪</p></div>
         `;
     }
     const atmosphereContainer = document.getElementById('scene-atmosphere-container');
     if (atmosphereContainer) {
+        // TODO: 未來這裡的資料應來自 narrative.atmosphere
         atmosphereContainer.innerHTML = `<div class="card py-2 px-4"><p class="font-bold text-center text-teal-500">和緩</p></div>`;
     }
 }
 
-function updateNarrative(world) {
+function updateNarrative(world, narrative) {
     const container = document.getElementById('narrative-box');
     if (!container) return;
 
     if (world.error) {
         container.innerHTML = `<p class="text-red-500">錯誤: ${world.error}</p>`;
     } else {
-        container.innerHTML = `<p>你身處於你的茅屋。目前時間是 ${new Date(world.currentTime).toLocaleString()}，天氣${world.currentWeather}。</p>`;
+        const description = narrative ? narrative.description : `你身處於你的茅屋。`;
+        container.innerHTML = `<p>${description}</p>`;
     }
 }
 
-function updateActions(actions) {
+function updateActions(options) {
     const container = document.getElementById('options-container');
     if (!container) return;
     
-    container.innerHTML = `
-        <button class="action-button" data-action-type="option" data-action-value="1">1. 四處張望，看看有什麼特別的。</button>
-        <button class="action-button" data-action-type="option" data-action-value="2">2. 躺下休息片刻。</button>
-    `;
+    if (options && options.length > 0) {
+        container.innerHTML = options.map((option_text, index) => {
+            return `<button class="action-button" data-action-type="option" data-action-value="${option_text}">${index + 1}. ${option_text}</button>`;
+        }).join('');
+    } else {
+        container.innerHTML = `<p class="text-gray-500 text-center italic">沒有可執行的動作。</p>`;
+    }
 }
 
 function updateDashboard(player, world) {
@@ -65,7 +71,7 @@ function updateDashboard(player, world) {
     const worldInfoContainer = document.getElementById('world-info-cards-container');
     if (worldInfoContainer) {
         worldInfoContainer.innerHTML = `
-            <div class="card text-center"><h3 class="font-bold text-lg">時間</h3><p class="text-[var(--text-secondary)] text-sm">${new Date(world.currentTime).toLocaleTimeString()}</p></div>
+            <div class="card text-center"><h3 class="font-bold text-lg">時間</h3><p class="text-[var(--text-secondary)] text-sm">${new Date(world.currentTime.value || world.currentTime).toLocaleTimeString()}</p></div>
             <div class="card text-center"><h3 class="font-bold text-lg">地點</h3><p class="text-[var(--text-secondary)] text-sm">${player.location}</p></div>
             <div class="card text-center"><h3 class="font-bold text-lg">天氣</h3><p class="text-[var(--text-secondary)] text-sm">${world.currentWeather}, ${world.currentTemperature}°C</p></div>
             <div class="card !p-3"><h3 class="font-bold text-center text-lg mb-1">所屬</h3><div class="text-center text-sm text-[var(--text-secondary)]"><p>${player.faction.name}</p><p>首領: ${player.faction.leader}</p><p>規模: ${player.faction.scale}</p></div></div>

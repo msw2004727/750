@@ -19,6 +19,50 @@ export function updateUI(gameState) {
 }
 
 /**
+ * (新) 輔助函式：將 ISO 時間字串轉換為宋朝風格的時辰時間
+ * @param {string} dateString - ISO 格式的時間字串
+ * @returns {string} 格式化後的時間字串，例如 "960/06/30 子時一刻 (23:15)"
+ */
+function formatSongDynastyTime(dateString) {
+    try {
+        const date = new Date(dateString);
+
+        // 定義時辰
+        const shichen = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+        // 定義刻
+        const ke = ["初刻", "一刻", "二刻", "三刻", "四刻", "五刻", "六刻", "七刻"];
+
+        let hour = date.getHours();
+        
+        // 子時 (23:00 - 00:59) 是跨日的，所以計算索引時需要特別處理
+        const shichenIndex = Math.floor((hour + 1) / 2) % 12;
+
+        // 計算當前時間在該時辰內經過了多少分鐘
+        // 時辰的起始小時 (例如子時是23, 丑時是1, 寅時是3...)
+        const shichenStartHour = shichenIndex === 0 ? 23 : shichenIndex * 2 - 1;
+        
+        let minutesIntoShichen = (hour - shichenStartHour) * 60 + date.getMinutes();
+        // 處理跨日子時 (00:00-00:59)
+        if (hour < shichenStartHour) {
+            minutesIntoShichen += 24 * 60;
+        }
+
+        const keIndex = Math.floor(minutesIntoShichen / 15);
+
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        const westernTime = hour.toString().padStart(2, '0') + ":" + date.getMinutes().toString().padStart(2, '0');
+        
+        return `${year}/${month}/${day} ${shichen[shichenIndex]}時${ke[keIndex]} (約${westernTime})`;
+    } catch (e) {
+        console.error("時間格式化失敗:", e);
+        return dateString; // 如果轉換失敗，回傳原始字串
+    }
+}
+
+
+/**
  * 更新場景資訊 (在場角色、氛圍)
  * @param {object} player 
  * @param {object} narrative 
@@ -92,7 +136,8 @@ function updateDashboard(player, world) {
     const worldInfoContainer = document.getElementById('world-info-cards-container');
     if (worldInfoContainer) {
         const timeValue = world.currentTime.value || world.currentTime;
-        const timeString = new Date(timeValue).toLocaleString('zh-TW', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        // 使用新的格式化函式
+        const timeString = formatSongDynastyTime(timeValue);
         
         worldInfoContainer.innerHTML = `
             <div class="card text-center"><h3 class="font-bold text-lg">時間</h3><p class="text-[var(--text-secondary)] text-sm">${timeString}</p></div>
@@ -132,7 +177,6 @@ function updateModals(player) {
                         <h3 class="font-bold">${r.name} (${r.title})</h3>
                         <span class="${r.affinity >= 0 ? 'text-blue-500' : 'text-red-500'} font-semibold">${r.status} (${r.affinity})</span>
                     </div>
-                    <!-- 只顯示已解鎖的背景故事 -->
                     ${r.unlocked_backstory && r.unlocked_backstory.length > 0 ? 
                         `<ul class="list-disc list-inside text-sm mt-2 text-[var(--text-secondary)]">
                             ${r.unlocked_backstory.map(story => `<li>${story}</li>`).join('')}

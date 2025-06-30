@@ -2,17 +2,28 @@
 import { formatSongDynastyTime } from './utils.js';
 
 /**
+ * (新) 輔助函式：根據好感度決定顯示的表情符號
+ * @param {number} affinity - NPC 對玩家的好感度
+ * @returns {string} 代表心情的表情符號
+ */
+function getEmojiForAffinity(affinity) {
+    if (affinity > 50) return '😊';   // 非常友善
+    if (affinity > 10) return '🙂';   // 友善
+    if (affinity < -50) return '😠';  // 敵對
+    if (affinity < -10) return '😒';  // 不友善
+    return '😐'; // 中立或陌生
+}
+
+/**
  * (新) 輔助函式：解析帶有特殊標記的文字，並轉換為 HTML。
  * @param {string} text - 包含 [顯示文字](type:id) 標記的原始文字。
  * @returns {string} 轉換後的 HTML 字串。
  */
 function parseInteractiveText(text) {
     if (!text) return '';
-    // 使用正規表示式尋找所有符合格式的標記
     const regex = /\[(.*?)\]\((.*?)\)/g;
     return text.replace(regex, (match, displayText, fullId) => {
         const [type, id] = fullId.split(':');
-        // 根據 type 決定要添加的 CSS class 和 data-* 屬性
         return `<a href="#" class="interactive-element" data-interactive-type="${type}" data-interactive-id="${id}">${displayText}</a>`;
     });
 }
@@ -21,15 +32,21 @@ function parseInteractiveText(text) {
  * 更新場景資訊 (在場角色、氛圍)
  * @param {object} player 
  * @param {object} narrative 
+ * @param {Array} sceneCharacters - (新) 從 gameState 傳入的在場角色列表
  */
-export function updateSceneInfo(player, narrative) {
+export function updateSceneInfo(player, narrative, sceneCharacters) {
     const charactersContainer = document.getElementById('characters-present-container');
     if (charactersContainer) {
-        // TODO: 未來這裡的資料應來自 narrative.characters
-        // 範例資料，未來會由 gameState 提供
-        charactersContainer.innerHTML = `
-            <div class="bg-[var(--bg-tertiary)] flex items-center gap-1.5 py-1 px-2.5 rounded-full"><span class="text-base">😊</span><p class="text-xs font-normal">小溪</p></div>
-        `;
+        // (新) 根據後端傳來的真實資料動態渲染
+        if (sceneCharacters && sceneCharacters.length > 0) {
+            charactersContainer.innerHTML = sceneCharacters.map(npc => {
+                const emoji = getEmojiForAffinity(npc.affinity);
+                return `<div class="bg-[var(--bg-tertiary)] flex items-center gap-1.5 py-1 px-2.5 rounded-full"><span class="text-base">${emoji}</span><p class="text-xs font-normal">${npc.name}</p></div>`;
+            }).join('');
+        } else {
+            // 如果場景中沒有角色，則顯示提示
+            charactersContainer.innerHTML = `<p class="text-xs text-gray-500 italic">此處似乎沒有其他人。</p>`;
+        }
     }
     const atmosphereContainer = document.getElementById('scene-atmosphere-container');
     if (atmosphereContainer) {
@@ -51,7 +68,6 @@ export function updateNarrative(world, narrative) {
         container.innerHTML = `<p class="text-red-500">錯誤: ${world.error}</p>`;
     } else {
         const description = narrative ? narrative.description : `你身處於你的茅屋。`;
-        // 使用新的解析函式來處理描述文字
         container.innerHTML = `<p>${parseInteractiveText(description)}</p>`;
         container.scrollTop = container.scrollHeight;
     }

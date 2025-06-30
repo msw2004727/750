@@ -61,7 +61,7 @@ class ChatGPTService(BaseAIService):
         print("[AI] 正在使用 ChatGPT 引擎...")
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o", # 或其他模型，如 gpt-3.5-turbo
+                model="gpt-4-0125-preview", # 或其他模型，如 gpt-3.5-turbo
                 messages=[
                     {"role": "system", "content": "你是一個互動小說的劇情生成器。請根據情境，生成一段故事描述、三個給玩家的選項，並以 JSON 格式回傳結果。"},
                     {"role": "user", "content": prompt}

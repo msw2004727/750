@@ -1,15 +1,16 @@
-# backend/app/models/action.py
-from pydantic import BaseModel, Field
-from typing import Literal, Optional
+# backend/app/api/v1/endpoints/admin.py
+from fastapi import APIRouter
 
-class PlayerAction(BaseModel):
-    # 將 'item_action' 加入到允許的 type 列表中
-    type: Literal['option', 'custom', 'item_action']
-    
-    # value 現在可以是可選的，因為 item_action 主要依賴 target_id
-    value: str 
-    
-    # 新增 target_id 欄位，並設為可選 (Optional)
-    # 這樣傳統的 option 和 custom 行動就不需要提供此欄位
-    target_id: Optional[str] = None
+router = APIRouter()
 
+@router.get("/seed-database", response_model=dict)
+def seed_database_endpoint():
+    """
+    執行資料庫填充作業。
+    這是一個一次性使用的端點，用來初始化遊戲世界的基礎資料。
+    """
+    # (新) 將導入語句移動到函式內部
+    # 這可以解決循環導入的問題，因為只有在呼叫此 API 時才會執行導入
+    from app.services.seed_service import seed_service
+    
+    return seed_service.seed_database()

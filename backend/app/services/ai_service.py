@@ -42,9 +42,9 @@ class DeepSeekService(BaseAIService):
         try:
             response = requests.post(self.api_url, headers=headers, json=payload, timeout=60)
             response.raise_for_status() # 如果狀態碼不是 2xx，則拋出異常
-            # TODO: 在這裡解析 response.json()，並轉換為我們遊戲需要的標準字典格式
             print(f"[AI] DeepSeek 回應: {response.json()}")
-            return response.json() # 暫時直接回傳
+            # 直接回傳 API 的 JSON 回應，其中應包含 'choices'
+            return response.json()
         except requests.exceptions.RequestException as e:
             print(f"[AI] 呼叫 DeepSeek API 失敗: {e}")
             return {"error": "AI service failed"}
@@ -68,9 +68,10 @@ class ChatGPTService(BaseAIService):
                 ],
                 response_format={"type": "json_object"}
             )
-            # TODO: 在這裡解析回應，並轉換為我們遊戲需要的標準字典格式
-            print(f"[AI] ChatGPT 回應: {response.choices[0].message.content}")
-            return {"response": response.choices[0].message.content} # 暫時直接回傳
+            # 將 Pydantic 模型的回應轉為字典，其結構與 DeepSeek 相似，包含 'choices'
+            response_dict = response.model_dump()
+            print(f"[AI] ChatGPT 回應: {response_dict}")
+            return response_dict
         except Exception as e:
             print(f"[AI] 呼叫 ChatGPT API 失敗: {e}")
             return {"error": "AI service failed"}

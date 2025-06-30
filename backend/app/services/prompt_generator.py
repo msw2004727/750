@@ -82,14 +82,3 @@ def generate_prompt(player_data: dict, world_data: dict, location_data: dict, ac
     "items_removed": []
   }
 }
-```
-"""
-
-    # --- 5. 組裝完整的 Prompt ---
-    full_prompt = f"{world_section}\n{player_section}\n{npc_section}\n{instruction_section}"
-    
-    print("----------- GENERATED PROMPT -----------")
-    print(full_prompt)
-    print("--------------------------------------")
-    
-    return full_prompt

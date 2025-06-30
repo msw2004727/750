@@ -109,7 +109,7 @@
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <header class="text-center mb-12">
             <h1 class="text-5xl font-extrabold text-gray-900 dark:text-white">AI 驅動文字遊戲</h1>
-            <p class="text-xl text-gray-500 dark:text-gray-400 mt-4">專案開發白皮書 (v1.0)</p>
+            <p class="text-xl text-gray-500 dark:text-gray-400 mt-4">專案開發白皮書 (v2.0)</p>
         </header>
 
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl">
@@ -125,15 +125,15 @@
             <main class="p-6 sm:p-8">
                 <!-- 開發藍圖 -->
                 <div id="roadmap" class="tab-content active prose max-w-none">
-                    <h3>短期目標 (Next Up)：遊戲體驗打磨與 AI 調教</h3>
-                    <p>此階段的核心是「提升沉浸感」。我們不開發大型新功能，而是專注於優化現有系統，讓 AI 的行為更真實、更符合世界觀，並讓玩家的互動體驗更流暢。</p>
+                    <h3>短期目標 (Current Focus)：遊戲體驗打磨</h3>
+                    <p>此階段的核心是「提升沉浸感與互動性」。我們不開發大型新功能，而是專注於優化現有系統，讓 AI 的行為更真實，並讓玩家的互動體驗更流暢、更直觀。</p>
                     
                     <h4>核心任務</h4>
                     <ul class="space-y-4">
                         <li>
                             <div class="flex items-center justify-between">
                                 <strong>混合驅動式物品互動</strong>
-                                <span class="status-tag status-planned">計畫中</span>
+                                <span class="status-tag status-inprogress">進行中</span>
                             </div>
                             <p class="text-sm text-gray-600 dark:text-gray-400">目標：解決目前撿拾/丟棄物品完全依賴 AI 理解的痛點。將在故事敘述中的物品文字轉為可點擊的互動元素，並提供明確的「撿起」、「查看」等按鈕，讓玩家的意圖能被精準執行。</p>
                         </li>
@@ -151,51 +151,42 @@
                             </div>
                             <p class="text-sm text-gray-600 dark:text-gray-400">目標：讓 AI 的敘事更貼近世界狀態。在 Prompt 中強化對 `currentTime` (時辰) 和 `currentWeather` (天氣) 的描述，要求 AI 的故事氛圍、NPC 行為和事件必須與環境保持一致。</p>
                         </li>
-                        <li>
-                            <div class="flex items-center justify-between">
-                                <strong>已完成的核心功能</strong>
-                                <span class="status-tag status-completed">已完成</span>
-                            </div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">基礎建設、核心遊戲迴圈、迷霧系統、動態世界事件、地圖與旅行系統、以及最關鍵的**原子性存檔機制**皆已完成，為當前的打磨工作奠定了穩固的基礎。</p>
-                        </li>
                     </ul>
 
-                    <h3>中期目標 (Future)：玩法擴充與世界深化</h3>
-                    <p>在核心體驗打磨完成後，我們將開始為遊戲增添更多血肉，引入更多元的系統，大幅提升遊戲的可玩性與深度。</p>
+                    <h3>已完成的核心功能</h3>
                      <ul class="space-y-4">
                         <li>
                             <div class="flex items-center justify-between">
-                                <strong>動態任務系統</strong>
-                                <span class="status-tag status-planned">計畫中</span>
+                                <strong>動態在場角色顯示</strong>
+                                <span class="status-tag status-completed">已完成</span>
                             </div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">目標：讓 AI 不僅能創造 NPC 和地點，更能主動生成有始有終的任務線，並讓玩家可以透過 UI 追蹤任務進度。</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">UI 介面現在能夠根據玩家的即時位置，動態地顯示場景中所有 NPC，並根據好感度顯示不同的心情圖示。</p>
+                        </li>
+                        <li>
+                            <div class="flex items-center justify-between">
+                                <strong>原子性存檔機制</strong>
+                                <span class="status-tag status-completed">已完成</span>
+                            </div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">遊戲進度（包含玩家狀態、物品、位置）現在透過資料庫事務進行原子性更新，確保了存檔的穩定性與一致性，徹底解決了進度遺失問題。</p>
+                        </li>
+                        <li>
+                            <div class="flex items-center justify-between">
+                                <strong>地圖與旅行系統</strong>
+                                <span class="status-tag status-completed">已完成</span>
+                            </div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">後端已建立地點間的連接、距離和風險屬性。AI 能根據地圖生成合理的移動選項，玩家的旅行不再是瞬移。</p>
                         </li>
                          <li>
                             <div class="flex items-center justify-between">
-                                <strong>角色成長系統</strong>
-                                <span class="status-tag status-planned">計畫中</span>
+                                <strong>AI 世界創造</strong>
+                                <span class="status-tag status-completed">已完成</span>
                             </div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">目標：引入更明確的屬性與技能系統。玩家的行為不僅會影響故事，也會累積經驗並提升相應技能（如：常說服 NPC 會提升「口才」），AI 在進行成功率判定時需要參考這些數值。</p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">AI 已被賦予創造新 NPC 和新地點的能力，並能將其永久地寫入資料庫，為「共創世界」奠定基礎。</p>
                         </li>
                     </ul>
 
-                    <h3>長期願景 (Vision)：永續演化的動態世界</h3>
-                     <ul class="space-y-4">
-                        <li>
-                             <div class="flex items-center justify-between">
-                                <strong>AI 自主 NPC</strong>
-                                <span class="status-tag status-planned">計畫中</span>
-                            </div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">目標：讓世界中的 NPC 擁有自己的「人生目標」和「每日行程」。即使玩家不在場，他們也會根據自己的設定去行動，進而影響世界狀態，讓世界真正「活」起來。</p>
-                        </li>
-                        <li>
-                             <div class="flex items-center justify-between">
-                                <strong>多人非同步互動</strong>
-                                <span class="status-tag status-planned">計畫中</span>
-                            </div>
-                            <p class="text-sm text-gray-600 dark:text-gray-400">目標：實現玩家間的非同步互動。例如，玩家 A 留下的「一封信」或建立的「一個新商會」，可以被後來的玩家 B 發現並產生互動，真正實現「共創世界」的理念。</p>
-                        </li>
-                    </ul>
+                    <h3>中期與長期目標</h3>
+                    <p>在核心體驗打磨完成後，我們將逐步擴充遊戲的廣度與深度，最終實現一個能永續演化的動態世界。</p>
                 </div>
 
                 <!-- 系統設計 Q&A -->
@@ -223,9 +214,9 @@
 
                     <h4>Q: 玩家如何與物品互動 (撿拾/丟棄)？目前的瓶頸是？</h4>
                     <blockquote>
-                        <p><strong>答：目前處於「純敘事驅動」的第一階段。</strong></p>
-                        <p>玩家與物品的互動，完全依賴 AI 是否在故事中描述了某物品，並給出了對應的選項（如「撿起地上的石頭」）。玩家也可以手動輸入指令，但成功與否取決於 AI 的理解能力。</p>
-                        <p><strong>瓶頸與下一步計畫：</strong> 這種方式給予玩家的直接掌控感較弱，且充滿不確定性。如「開發藍圖」中所述，我們的下一個核心目標就是實作「**混合驅動式物品互動系統**」，在敘事文字上附加可點擊的互動按鈕，將玩家的明確意圖（如「撿起」）與 AI 的敘事能力結合起來。</p>
+                        <p><strong>答：目前正從「純敘事驅動」升級為「混合驅動」模式。</strong></p>
+                        <p>舊系統完全依賴 AI 理解玩家意圖。新系統（正在開發中）則是在 AI 的敘述文字中，將物品「標記」出來，由前端渲染為可點擊的互動元素（如按鈕），並提供「撿起」、「丟棄」等明確選項。玩家點擊後，後端會執行精準的、無需 AI 猜測的機械指令。</p>
+                        <p><strong>設計理念：</strong> 讓玩家對世界的直接互動（如撿拾物品）變得可靠、即時，同時保留 AI 在描述互動「後果」與「氛圍」上的創造力。</p>
                     </blockquote>
 
                      <h4>Q: 我們如何控制 AI，避免它生成不合邏輯的內容？</h4>
@@ -343,11 +334,9 @@
 
             tabs.forEach(tab => {
                 tab.addEventListener('click', function () {
-                    // Remove active state from all tabs and content
                     tabs.forEach(item => item.classList.remove('active'));
                     contents.forEach(item => item.classList.remove('active'));
                     
-                    // Add active state to the clicked tab and corresponding content
                     this.classList.add('active');
                     document.getElementById(this.dataset.tab).classList.add('active');
                 });

@@ -22,33 +22,6 @@ MAIN_GAME_INSTRUCTIONS = """
     - `new_npc`: 創造全新的人物時，除了 `id`, `name`, `title` 外，**必須**包含 `location` 欄位，其值必須使用「世界情境」中提供的「**當前地點 ID**」。
 7.  嚴格按照以下 JSON 格式回傳你的創作，不要有任何額外解釋。
 
-```json
-// --- 普通情況範例 (沒有創造) ---
-{
-  "story_description": "你在森林中採集草藥，不小心被毒蛇咬傷，但幸運的是，你找到了一株[解毒草](item:item_antidote_herb)並吃了下去。雖然餘毒未清，但總算保住了性命。",
-  "options": [
-    "繼續在附近搜索其他藥草",
-    "處理傷口後立刻返回村莊",
-    "尋找水源清洗傷口"
-  ],
-  "atmosphere": "驚險",
-  "world_changes": {
-    "time_unit": "minutes",
-    "time_amount": 30,
-    "new_location_id": null,
-    "items_added": [
-      { "item_id": "item_antidote_herb", "quantity": 1 }
-    ],
-    "items_removed": [
-      { "item_id": "item_antidote_herb", "quantity": 1 }
-    ],
-    "status_changes": {
-        "health": -10
-    }
-  },
-  "world_creations": null
-}
-```json
 // --- 觸發創造的範例 (只創造 NPC) ---
 {
   "story_description": "當你走出村莊，一陣強風吹過，遠方的山谷傳來一聲奇特的獸吼，與此同時，一位拄著拐杖、身披斗篷的[神祕老人](npc:npc_mysterious_old_man)出現在了村口，他似乎正在尋找著什麼。",

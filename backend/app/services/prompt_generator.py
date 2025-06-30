@@ -1,31 +1,25 @@
 import datetime
 
-def generate_prompt(player_data: dict, world_data: dict, action_data: dict) -> str:
+def generate_prompt(player_data: dict, world_data: dict, location_data: dict, action_data: dict) -> str:
     """
     根據當前遊戲狀態和玩家行動，生成一個詳細的、結構化的 Prompt。
-
-    Args:
-        player_data (dict): 玩家的資料。
-        world_data (dict): 世界的狀態資料。
-        action_data (dict): 玩家執行的行動。
-
-    Returns:
-        str: 組裝完成，準備發送給 AI 的完整指令。
     """
 
     # --- 1. 世界情境 ---
-    # 從 Firestore 的 Timestamp 物件中獲取 datetime 物件
     current_time_obj = world_data.get('currentTime')
-    # 確保 current_time_obj 是 datetime.datetime 型別
     if isinstance(current_time_obj, datetime.datetime):
         world_time = current_time_obj.strftime('%Y-%m-%d %H:%M')
     else:
         world_time = "時間未知"
+    
+    # 使用傳入的地點名稱
+    location_name = location_data.get('name', '未知地點')
 
     world_section = f"""
 # 世界情境
 - 當前時間: {world_time}
-- 當前地點: {player_data.get('location', '未知')}
+- 當前地點: {location_name}
+- 地點描述: {location_data.get('description', '周圍一片模糊。')}
 - 天氣: {world_data.get('currentWeather', '未知')}
 """
 
@@ -38,13 +32,12 @@ def generate_prompt(player_data: dict, world_data: dict, action_data: dict) -> s
 """
 
     # --- 3. NPC 資訊 (未來可擴充) ---
-    # TODO: 根據玩家地點，從資料庫讀取在場的 NPC 資訊並加入到 Prompt 中
     npc_section = """
 # 在場的 NPC
 - (目前此處為空，未來需動態載入)
 """
 
-    # --- 4. 對 AI 的指令與要求 ---
+    # --- 4. 對 AI 的指令與要求 (保持不變) ---
     instruction_section = """
 # 你的任務
 作為一個富有創意的文字冒險遊戲敘事引擎，請根據以上所有情境：
@@ -67,14 +60,3 @@ def generate_prompt(player_data: dict, world_data: dict, action_data: dict) -> s
     "temperature_change": 0
   }
 }
-```
-"""
-
-    # --- 5. 組裝完整的 Prompt ---
-    full_prompt = f"{world_section}\n{player_section}\n{npc_section}\n{instruction_section}"
-    
-    print("----------- GENERATED PROMPT -----------")
-    print(full_prompt)
-    print("--------------------------------------")
-    
-    return full_prompt

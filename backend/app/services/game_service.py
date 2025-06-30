@@ -65,10 +65,6 @@ class GameService:
         player_data['relationships'] = relationships_list
         return player_data
 
-    # ... (get_world_state 和 get_location_data 保持不變) ...
-    # ... (process_player_action 保持不變) ...
-
-# (以下為精簡後的其他函式，確保檔案完整性)
     @staticmethod
     def get_world_state():
         world_ref = db.collection('worlds').document('main_world')
@@ -88,27 +84,58 @@ class GameService:
         world_data = GameService.get_world_state()
         location_data = GameService.get_location_data(player_data.get('location')) if player_data else {}
         if not all([player_data, world_data]): return {"status": "error"}
+        
         prompt = generate_prompt(player_data, world_data, location_data, action.model_dump())
         ai_raw_response = ai_service.generate_narrative(prompt)
+        
         try:
             ai_content_str = ai_raw_response['choices'][0]['message']['content']
             ai_data = json.loads(ai_content_str)
+
+            # --- 處理世界變化 ---
             world_changes = ai_data.get("world_changes", {})
             if world_changes:
-                player_ref = db.collection('players').document(player_id)
                 world_ref = db.collection('worlds').document('main_world')
                 updates = {}
                 time_unit = world_changes.get("time_unit", "minutes")
                 time_amount = world_changes.get("time_amount", 0)
-                if time_amount > 0 and isinstance(world_data['currentTime'], datetime.datetime):
+                if time_amount > 0 and isinstance(world_data.get('currentTime'), datetime.datetime):
                     delta = datetime.timedelta(minutes=time_amount) if time_unit == "minutes" else datetime.timedelta(hours=time_amount) if time_unit == "hours" else datetime.timedelta()
                     if delta.total_seconds() > 0:
                         new_time = world_data['currentTime'] + delta
                         updates['currentTime'] = new_time
                 if updates: world_ref.update(updates)
+
+            # --- (新功能) 處理世界創造 ---
+            world_creations = ai_data.get("world_creations")
+            if world_creations:
+                # 處理新 NPC
+                new_npc_data = world_creations.get("new_npc")
+                if new_npc_data and isinstance(new_npc_data, dict):
+                    npc_id = new_npc_data.get("id")
+                    npc_name = new_npc_data.get("name")
+                    # 進行基本驗證，確保核心資料存在
+                    if npc_id and npc_name:
+                        # 檢查該 ID 是否已存在，避免覆蓋
+                        npc_ref = db.collection('npcs').document(npc_id)
+                        if not npc_ref.get().exists:
+                            npc_ref.set({
+                                "name": npc_name,
+                                "title": new_npc_data.get("title", ""),
+                                "backstory": new_npc_data.get("backstory", [])
+                            })
+                            print(f"[GameService] AI 創造了新的 NPC: {npc_name} (ID: {npc_id})")
+                        else:
+                            print(f"[GameService] AI 試圖創造已存在的 NPC (ID: {npc_id})，已略過。")
+                
+                # (未來可擴充) 處理新地點
+                # new_location_data = world_creations.get("new_location")
+                # if new_location_data: ...
+
         except Exception as e:
             print(f"[ERROR] 解析或處理 AI 回應失敗: {e}")
-            return {"status": "ai_response_error"}
+            return {"status": "ai_response_error", "message": str(e)}
+
         next_gamestate = {
             "player": GameService.get_player_data(player_id),
             "world": GameService.get_world_state(),

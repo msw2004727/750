@@ -1,27 +1,56 @@
-[遊戲專案根目錄]
+專案根目錄/
+├── backend/                  # 後端 Python 專案目錄
+│   ├── app/                  # FastAPI 應用程式主要程式碼
+│   │   ├── api/              # API 相關程式碼
+│   │   │   └── v1/           # API 版本 v1
+│   │   │       ├── __init__.py
+│   │   │       └── endpoints/  # API 端點 (處理網頁請求)
+│   │   │           ├── __init__.py
+│   │   │           ├── admin.py     # 管理員用 API (例如: 填充資料庫)
+│   │   │           └── game.py      # 遊戲核心 API (例如: 獲取狀態、執行動作)
+│   │   ├── core/             # 核心設定與組態
+│   │   │   ├── __init__.py
+│   │   │   ├── config.py      # 環境變數設定 (例如: API 金鑰)
+│   │   │   └── firebase_config.py # Firebase 資料庫連線設定
+│   │   ├── models/           # Pydantic 資料模型 (定義資料結構)
+│   │   │   ├── __init__.py
+│   │   │   ├── action.py    # 定義玩家行動的資料格式
+│   │   │   ├── player.py    # 定義玩家角色的完整資料結構
+│   │   │   └── world.py     # 定義世界狀態的資料格式
+│   │   ├── services/         # 商業邏輯服務層 (執行核心功能)
+│   │   │   ├── __init__.py
+│   │   │   ├── ai_service.py      # AI 服務 (與 DeepSeek/OpenAI 溝通)
+│   │   │   ├── game_service.py    # 遊戲核心邏輯 (處理玩家動作、讀寫資料庫)
+│   │   │   ├── prompt_generator.py # AI Prompt 產生器 (組合給 AI 的指令)
+│   │   │   └── seed_service.py    # 初始資料填充服務
+│   │   ├── __init__.py
+│   │   └── main.py           # FastAPI 應用程式進入點
+│   ├── __init__.py
+│   └── requirements.txt      # Python 依賴套件列表
 │
-└─── index.html                     # 網頁主入口：整個遊戲的基礎 HTML 骨架，負責載入所有 CSS 和 JS。
-     
-├─── components/                    # HTML 元件資料夾：存放所有介面區塊。
-│    ├── header.html                #   [頁首] - 顯示遊戲標題和主題切換按鈕。
-│    ├── scene-info.html            #   [場景資訊] - 在場角色列表的容器。
-│    ├── narrative.html             #   [故事敘述] - 顯示主要故事文本和場景氛圍。
-│    ├── actions.html               #   [玩家行動] - 顯示選項按鈕和手動輸入框。
-│    ├── panel-player.html          #   [儀表板面板] - 玩家狀態。
-│    ├── panel-world.html           #   [儀表板面板] - 世界資訊。
-│    ├── panel-quests.html          #   [儀表板面板] - 任務列表。
-│    └── modals.html                #   [彈窗] - 所有彈出視窗的結構。
+├── components/               # 前端 UI 元件 (可重複使用的 HTML 片段)
+│   ├── actions.html          # 玩家行動區塊 (選項按鈕、手動輸入)
+│   ├── header.html           # 頁首 (遊戲標題、主題切換)
+│   ├── modals.html           # 所有彈出視窗 (屬性、人脈、裝備等)
+│   ├── narrative.html        # 故事敘述區塊
+│   ├── panel-player.html     # 儀表板 - 玩家狀態面板
+│   ├── panel-quests.html     # 儀表板 - 任務面板
+│   ├── panel-world.html      # 儀表板 - 世界資訊面板
+│   └── scene-info.html       # 場景資訊 (在場人物、氛圍)
 │
-├─── css/                           # CSS 樣式資料夾：存放所有外觀樣式。
-│    └── main.css                   #   [主要樣式] - 定義整個遊戲介面的顏色、字體、卡片等外觀。
+├── css/                      # CSS 樣式表
+│   └── main.css              # 主要樣式與深色/淺色主題
 │
-└─── js/                            # JavaScript 腳本資料夾：存放所有互動功能。
-     ├── api.js                     #   [API 模組] - (新) 專門負責與後端伺服器溝通 (fetch)。
-     ├── ui.js                      #   [UI 模組] - (新) 專門負責更新所有畫面上的 HTML 內容。
-     ├── event-listeners.js         #   [事件監聽模組] - (新) 專門負責設定所有玩家的點擊事件。
-     │
-     ├── main.js                    #   [主入口] - (已重構) 只負責協調，呼叫其他模組來完成初始化。
-     │
-     ├── theme.js                   #   [主題功能] - 處理深色/淺色主題切換。
-     ├── dashboard.js               #   [儀表板功能] - 處理右側儀表板的拖曳與收折。
-     └── modals.js                  #   [彈窗功能] - 處理所有彈出視窗的開啟與關閉。
+├── js/                       # JavaScript 腳本
+│   ├── api.js                # 前端 API 模組 (負責與後端溝通)
+│   ├── dashboard.js          # 儀表板功能 (拖曳、收合)
+│   ├── event-listeners.js    # 事件監聽器 (處理所有玩家點擊互動)
+│   ├── main.js               # 前端主程式進入點 (載入遊戲)
+│   ├── modals.js             # 彈出視窗開關邏輯
+│   ├── render.js             # 畫面渲染模組 (負責將資料轉為 HTML)
+│   ├── theme.js              # 主題切換功能 (深色/淺色)
+│   ├── ui.js                 # UI 更新總協調者
+│   └── utils.js              # 可共用的工具函式 (例如: 時間格式化)
+│
+├── index.html                # 遊戲主頁面 (HTML 骨架)
+└── ProjectPlan.html          # 專案計畫書

@@ -46,5 +46,32 @@ MAIN_GAME_INSTRUCTIONS = """
         "health": -10
     }
   },
+  // --- 觸發創造的範例 (只創造 NPC) ---
+{
+  "story_description": "當你走出村莊，一陣強風吹過，遠方的山谷傳來一聲奇特的獸吼，與此同時，一位拄著拐杖、身披斗篷的[神祕老人](npc:npc_mysterious_old_man)出現在了村口，他似乎正在尋找著什麼。",
+  "options": [
+    "上前與老人搭話",
+    "繞開老人，繼續前進",
+    "躲在樹後觀察他"
+  ],
+  "atmosphere": "神祕",
+  "world_changes": {
+    "time_unit": "minutes",
+    "time_amount": 5,
+    "new_location_id": null,
+    "items_added": [],
+    "items_removed": [],
+    "status_changes": {}
+  },
+  "world_creations": {
+      "new_npc": {
+          "id": "npc_mysterious_old_man",
+          "name": "蒼崖",
+          "title": "雲遊者",
+          "backstory": ["沒有人知道他來自何方。", "據說他在尋找一本失落的古籍。"],
+          "location": "blackstone_village_center"
+      }
+  }
+}
   "world_creations": null
 }

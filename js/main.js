@@ -1,19 +1,28 @@
 // js/main.js
 
+// 從其他模組引入初始化函式 (雖然目前為空，但保留結構)
 import { initThemeSwitcher } from './theme.js';
 import { initDashboard } from './dashboard.js';
 import { initModals } from './modals.js';
 
+// --- 全域設定 ---
 const API_BASE_URL = "https://md-server-main.onrender.com/api/v1";
-const PLAYER_ID = 'player_001';
+const PLAYER_ID = 'player_001'; // 將玩家ID設為常數，方便管理
 
 // --- API 呼叫函式 ---
 
+/**
+ * 從後端 API 獲取完整的遊戲狀態
+ * @param {string} playerId - 玩家的 ID
+ * @returns {Promise<object|null>} 遊戲狀態物件，或在失敗時返回 null
+ */
 async function fetchGameState(playerId) {
     console.log(`[API] 正在獲取玩家 ${playerId} 的遊戲狀態...`);
     try {
         const response = await fetch(`${API_BASE_URL}/game/state/${playerId}`);
-        if (!response.ok) throw new Error(`伺服器錯誤: ${response.status}`);
+        if (!response.ok) {
+            throw new Error(`伺服器錯誤: ${response.status} ${response.statusText}`);
+        }
         const gameState = await response.json();
         console.log("[API] 成功獲取遊戲狀態:", gameState);
         return gameState;
@@ -24,37 +33,50 @@ async function fetchGameState(playerId) {
     }
 }
 
+/**
+ * 將玩家的行動發送到後端
+ * @param {string} playerId - 玩家 ID
+ * @param {object} actionData - 行動資料物件 {type, value}
+ */
 async function sendPlayerAction(playerId, actionData) {
     console.log(`[API] 正在發送行動給玩家 ${playerId}:`, actionData);
     try {
         const response = await fetch(`${API_BASE_URL}/game/action/${playerId}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify(actionData),
         });
         if (!response.ok) throw new Error(`伺服器錯誤: ${response.status}`);
         const result = await response.json();
         console.log("[API] 收到後端回應:", result);
+        
         const narrativeBox = document.getElementById('narrative-box');
         if (narrativeBox) {
             narrativeBox.innerHTML += `<p class="text-blue-500 italic mt-4">${result.message}</p>`;
         }
+
     } catch (error) {
         console.error("[API] 發送行動失敗:", error);
     }
 }
 
-// --- UI 更新函式 (加入大量偵錯日誌) ---
+// --- UI 更新函式 ---
 
+/**
+ * 主更新函式：根據遊戲狀態更新整個 UI
+ * @param {object} gameState - 從後端獲取的完整遊戲狀態物件
+ */
 function updateUI(gameState) {
     console.log("[UI] 開始更新介面...");
     if (!gameState) {
         console.error("[UI] gameState 為空，停止更新。");
         return;
     }
-
-    // 將所有更新操作延遲到下一個瀏覽器繪製週期，確保所有 DOM 元素都已準備就緒
+    // 使用 requestAnimationFrame 確保 DOM 準備就緒
     requestAnimationFrame(() => {
+        updateSceneInfo(gameState.player, gameState.world);
         updateNarrative(gameState.world);
         updateActions();
         updateDashboard(gameState.player, gameState.world);
@@ -62,31 +84,48 @@ function updateUI(gameState) {
     });
 }
 
+function updateSceneInfo(player, world) {
+    const charactersContainer = document.getElementById('characters-present-container');
+    const atmosphereContainer = document.getElementById('scene-atmosphere-container');
+
+    if (charactersContainer) {
+        // 範例資料，未來會由 gameState 提供
+        charactersContainer.innerHTML = `
+            <div class="bg-[var(--bg-tertiary)] flex items-center gap-1.5 py-1 px-2.5 rounded-full"><span class="text-base">😊</span><p class="text-xs font-normal">小溪</p></div>
+        `;
+    }
+    if (atmosphereContainer) {
+        // 範例資料
+        atmosphereContainer.innerHTML = `<div class="card py-2 px-4"><p class="font-bold text-center text-teal-500">和緩</p></div>`;
+    }
+}
+
 function updateNarrative(world) {
     const container = document.getElementById('narrative-box');
-    if (container) {
-        console.log("[UI] 找到 'narrative-box'，正在更新故事內容。");
-        if (world.error) {
-            container.innerHTML = `<p class="text-red-500">無法連接到遊戲伺服器: ${world.error}</p>`;
-        } else {
-            container.innerHTML = `<p>你身處於你的茅屋。目前時間是 ${new Date(world.currentTime).toLocaleString()}，天氣${world.currentWeather}。</p>`;
-        }
-    } else {
+    if (!container) {
         console.error("[UI] 錯誤：找不到 ID 為 'narrative-box' 的容器！");
+        return;
+    }
+    
+    console.log("[UI] 找到 'narrative-box'，正在更新故事內容。");
+    if (world.error) {
+        container.innerHTML = `<p class="text-red-500">無法連接到遊戲伺服器: ${world.error}</p>`;
+    } else {
+        container.innerHTML = `<p>你身處於你的茅屋。目前時間是 ${new Date(world.currentTime).toLocaleString()}，天氣${world.currentWeather}。</p>`;
     }
 }
 
 function updateActions() {
     const container = document.getElementById('options-container');
-     if (container) {
-        console.log("[UI] 找到 'options-container'，正在更新選項。");
-        container.innerHTML = `
-            <button class="action-button" data-action-type="option" data-action-value="1">1. 四處張望，看看有什麼特別的。</button>
-            <button class="action-button" data-action-type="option" data-action-value="2">2. 躺下休息片刻。</button>
-        `;
-    } else {
+    if (!container) {
         console.error("[UI] 錯誤：找不到 ID 為 'options-container' 的容器！");
+        return;
     }
+    console.log("[UI] 找到 'options-container'，正在更新選項。");
+    container.innerHTML = `
+        <button class="action-button" data-action-type="option" data-action-value="1">1. 四處張望，看看有什麼特別的。</button>
+        <button class="action-button" data-action-type="option" data-action-value="2">2. 躺下休息片刻。</button>
+    `;
 }
 
 function updateDashboard(player, world) {
@@ -113,17 +152,33 @@ function updateDashboard(player, world) {
     } else {
         console.error("[UI] 錯誤：找不到 ID 為 'world-info-cards-container' 的容器！");
     }
+
+    // 清空任務列表 (未來會從玩家資料中讀取)
+    const questBox = document.getElementById('quest-box');
+    if(questBox) {
+        questBox.innerHTML = '';
+    } else {
+        console.error("[UI] 錯誤：找不到 ID 為 'quest-box' 的容器！");
+    }
 }
 
 // --- 事件處理 ---
 
 function setupActionListeners() {
     const actionsContainer = document.getElementById('actions-container');
-    if (!actionsContainer) return;
+    if (!actionsContainer) {
+        console.error("[INIT] 錯誤：找不到 'actions-container'，無法設定行動監聽器。");
+        return;
+    }
+    
     actionsContainer.addEventListener('click', (event) => {
         const target = event.target;
         if (target.matches('.action-button')) {
-            sendPlayerAction(PLAYER_ID, { type: target.dataset.actionType, value: target.dataset.actionValue });
+            const actionData = {
+                type: target.dataset.actionType,
+                value: target.dataset.actionValue,
+            };
+            sendPlayerAction(PLAYER_ID, actionData);
         }
         if (target.matches('#custom-action-submit')) {
             const input = document.getElementById('custom-action-input');
@@ -140,7 +195,7 @@ function setupActionListeners() {
 async function loadComponent(url, containerId, append = false) {
     try {
         const response = await fetch(url);
-        if (!response.ok) throw new Error(`Could not load ${url}`);
+        if (!response.ok) throw new Error(`Could not load ${url} - ${response.statusText}`);
         const text = await response.text();
         const container = document.getElementById(containerId);
         if (container) {
@@ -172,7 +227,7 @@ async function main() {
     console.log("[MAIN] 所有 HTML 元件載入完畢。");
 
     // 2. 初始化靜態 UI 功能
-    console.log("[MAIN] 開始初始化 UI 功能 (主題, 儀表板, 彈窗)...");
+    console.log("[MAIN] 開始初始化 UI 功能...");
     initThemeSwitcher();
     initDashboard();
     initModals();

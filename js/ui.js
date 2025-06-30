@@ -14,7 +14,7 @@ export function updateUI(gameState) {
         updateNarrative(gameState.world, gameState.narrative);
         updateActions(gameState.narrative ? gameState.narrative.options : []);
         updateDashboard(gameState.player, gameState.world);
-        updateModals(gameState.player);
+        updateModals(gameState.player); // <--- 現在這個函式會使用真實資料
         console.log("[UI] 所有介面更新函式執行完畢。");
     });
 }
@@ -30,7 +30,8 @@ function updateSceneInfo(player, narrative) {
     const atmosphereContainer = document.getElementById('scene-atmosphere-container');
     if (atmosphereContainer) {
         // TODO: 未來這裡的資料應來自 narrative.atmosphere
-        atmosphereContainer.innerHTML = `<div class="card py-2 px-4"><p class="font-bold text-center text-teal-500">和緩</p></div>`;
+        const atmosphere = narrative ? narrative.atmosphere : "未知";
+        atmosphereContainer.innerHTML = `<div class="card py-2 px-4"><p class="font-bold text-center text-teal-500">${atmosphere}</p></div>`;
     }
 }
 
@@ -43,6 +44,7 @@ function updateNarrative(world, narrative) {
     } else {
         const description = narrative ? narrative.description : `你身處於你的茅屋。`;
         container.innerHTML = `<p>${description}</p>`;
+        container.scrollTop = container.scrollHeight;
     }
 }
 
@@ -52,6 +54,7 @@ function updateActions(options) {
     
     if (options && options.length > 0) {
         container.innerHTML = options.map((option_text, index) => {
+            // 使用選項文字本身作為 value，這樣更靈活
             return `<button class="action-button" data-action-type="option" data-action-value="${option_text}">${index + 1}. ${option_text}</button>`;
         }).join('');
     } else {
@@ -70,9 +73,10 @@ function updateDashboard(player, world) {
     
     const worldInfoContainer = document.getElementById('world-info-cards-container');
     if (worldInfoContainer) {
+        const timeString = new Date(world.currentTime.value || world.currentTime).toLocaleString('zh-TW', { hour12: false });
         worldInfoContainer.innerHTML = `
-            <div class="card text-center"><h3 class="font-bold text-lg">時間</h3><p class="text-[var(--text-secondary)] text-sm">${new Date(world.currentTime.value || world.currentTime).toLocaleTimeString()}</p></div>
-            <div class="card text-center"><h3 class="font-bold text-lg">地點</h3><p class="text-[var(--text-secondary)] text-sm">${player.location}</p></div>
+            <div class="card text-center"><h3 class="font-bold text-lg">時間</h3><p class="text-[var(--text-secondary)] text-sm">${timeString}</p></div>
+            <div class="card text-center"><h3 class="font-bold text-lg">地點</h3><p class="text-[var(--text-secondary)] text-sm">${player.location_name || player.location}</p></div>
             <div class="card text-center"><h3 class="font-bold text-lg">天氣</h3><p class="text-[var(--text-secondary)] text-sm">${world.currentWeather}, ${world.currentTemperature}°C</p></div>
             <div class="card !p-3"><h3 class="font-bold text-center text-lg mb-1">所屬</h3><div class="text-center text-sm text-[var(--text-secondary)]"><p>${player.faction.name}</p><p>首領: ${player.faction.leader}</p><p>規模: ${player.faction.scale}</p></div></div>
         `;
@@ -80,33 +84,64 @@ function updateDashboard(player, world) {
 
     const questBox = document.getElementById('quest-box');
     if(questBox) {
-        const mockQuests = [ { title: "初來乍到", desc: "搞清楚自己在哪裡...", objectives: [{text: "與部落的人交談", completed: true}, {text: "了解部落的現況", completed: false}] } ];
-        questBox.innerHTML = mockQuests.map(q => `<div class="card"><h3 class="font-bold text-yellow-500">${q.title}</h3><p class="text-sm text-[var(--text-secondary)] mt-1">${q.desc}</p><ul class="list-disc list-inside text-sm mt-2 space-y-1">${q.objectives.map(o => `<li class="${o.completed ? 'text-green-500' : ''}">${o.completed ? `<s>${o.text}</s> (完成)` : o.text}</li>`).join('')}</ul></div>`).join('');
+        // TODO: 任務列表未來應來自 gameState.player.quests
+        questBox.innerHTML = ''; 
     }
 }
 
+/**
+ * 更新所有彈出視窗的內容 (使用真實資料)
+ * @param {object} player 
+ */
 function updateModals(player) {
+    // 更新數值彈窗
     const statsContainer = document.getElementById('stats-modal-content');
     if (statsContainer) {
         const attr = player.attributes;
         statsContainer.innerHTML = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div class="card"><h4 class="text-lg font-bold text-[var(--accent-color)]">力量 (${attr.strength})</h4><p class="text-sm text-[var(--text-secondary)] mt-1">影響物理傷害、負重能力與部份需要體力的行動成功率。</p></div><div class="card"><h4 class="text-lg font-bold text-[var(--accent-color)]">智力 (${attr.intelligence})</h4><p class="text-sm text-[var(--text-secondary)] mt-1">影響學習速度、觀察力、說服能力與使用複雜道具的成功率。</p></div><div class="card"><h4 class="text-lg font-bold text-[var(--accent-color)]">敏捷 (${attr.agility})</h4><p class="text-sm text-[var(--text-secondary)] mt-1">影響戰鬥中的閃避與命中率、行動速度與進行潛行等精細操作的成功率。</p></div><div class="card"><h4 class="text-lg font-bold text-[var(--accent-color)]">幸運 (${attr.luck})</h4><p class="text-sm text-[var(--text-secondary)] mt-1">一個神秘的數值，似乎會影響隨機事件的結果、物品掉落率與爆擊機率。</p></div></div>`;
     }
 
+    // 更新記憶彈窗
     const memoryContainer = document.getElementById('memory-modal-content');
     if(memoryContainer) {
-        const mockMemories = [ { time: "大荒曆3年，春15日", title: "在河邊醒來", desc: "你在黑石部落旁的河邊被人發現，失去了所有記憶。" }, { time: "大荒曆3年，春15日", title: "與小溪的初次見面", desc: "一位名叫小溪的少女在你醒來時照顧你。" }, ];
-        memoryContainer.querySelector('ul').innerHTML = mockMemories.map(m => `<li class="p-3 bg-[var(--bg-tertiary)] rounded-lg"><p class="font-bold">${m.title}</p><p class="text-sm text-[var(--text-secondary)]">${m.time} - ${m.desc}</p></li>`).join('');
+        // TODO: 記憶列表未來應來自 gameState.player.memories
+        memoryContainer.querySelector('ul').innerHTML = '<li class="text-gray-500 italic">暫無記憶...</li>';
     }
 
+    // 更新人脈彈窗 (使用真實資料)
     const networkContainer = document.getElementById('network-modal-content');
     if(networkContainer) {
-        const mockRelationships = [ { name: "小溪", title: "獸皮少女", affinity: 25, status: "友善", desc: "她似乎對你的到來充滿好奇。" }, { name: "烈風", title: "獵首", affinity: -15, status: "警惕", desc: "他把你視為對部落的威脅。" } ];
-        networkContainer.innerHTML = mockRelationships.map(r => `<div class="card"><div class="flex justify-between items-center"><h3 class="font-bold">${r.name} (${r.title})</h3><span class="${r.affinity > 0 ? 'text-blue-500' : 'text-red-500'} font-semibold">${r.status} (${r.affinity})</span></div><p class="text-sm text-[var(--text-secondary)] mt-1">${r.desc}</p></div>`).join('');
+        const relationships = player.relationships || [];
+        if (relationships.length > 0) {
+            networkContainer.innerHTML = relationships.map(r => `
+                <div class="card">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold">${r.name} (${r.title})</h3>
+                        <span class="${r.affinity >= 0 ? 'text-blue-500' : 'text-red-500'} font-semibold">${r.status} (${r.affinity})</span>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            networkContainer.innerHTML = '<p class="text-gray-500 italic">目前沒有任何人脈關係。</p>';
+        }
     }
 
+    // 更新裝備彈窗 (使用真實資料)
     const equipmentContainer = document.getElementById('equipment-modal-content');
     if(equipmentContainer) {
-        const mockInventory = [ { name: "奇怪的石頭", desc: "一顆在河邊撿到的、發出微光的石頭。", icon: "石" }, { name: "破舊的布衣", desc: "身上僅有的衣物，看不出原本的材質。", icon: "衣" } ];
-        equipmentContainer.innerHTML = mockInventory.map(i => `<div class="card flex items-center space-x-4"><div class="w-12 h-12 bg-[var(--bg-tertiary)] rounded-lg flex items-center justify-center font-bold text-xl">${i.icon}</div><div><h3 class="font-bold">${i.name}</h3><p class="text-sm text-[var(--text-secondary)]">${i.desc}</p></div></div>`).join('');
+        const inventory = player.inventory || [];
+        if (inventory.length > 0) {
+            equipmentContainer.innerHTML = inventory.map(i => `
+                <div class="card flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-[var(--bg-tertiary)] rounded-lg flex items-center justify-center font-bold text-xl">${i.name.charAt(0)}</div>
+                    <div>
+                        <h3 class="font-bold">${i.name} (x${i.quantity})</h3>
+                        <p class="text-sm text-[var(--text-secondary)]">${i.description}</p>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            equipmentContainer.innerHTML = '<p class="text-gray-500 italic">你的背包空空如也。</p>';
+        }
     }
 }

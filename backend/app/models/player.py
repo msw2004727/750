@@ -1,12 +1,13 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
-# --- 新增的模型 ---
+# --- 新增/修改的模型 ---
 class InventoryItem(BaseModel):
     id: str
     name: str
-    description: str
+    description: str # 這將是玩家看到的描述 (可能是模糊的)
     quantity: int
+    identified: bool # 是否已鑑定
 
 class Relationship(BaseModel):
     id: str
@@ -14,7 +15,8 @@ class Relationship(BaseModel):
     title: str
     affinity: int
     status: str
-    
+    unlocked_backstory: List[str] # 玩家已解鎖的背景故事片段
+
 # --- 原有的模型 ---
 class PlayerStatus(BaseModel):
     health: int
@@ -39,8 +41,7 @@ class Player(BaseModel):
     status: PlayerStatus
     attributes: PlayerAttributes
     location: str
+    location_name: Optional[str] = None # 加入地點名稱
     faction: PlayerFaction
-    # 新增的欄位，使用 List[] 來定義列表，並給予預設空列表
     inventory: List[InventoryItem] = Field(default_factory=list)
     relationships: List[Relationship] = Field(default_factory=list)
-    # memories: List[...] = Field(default_factory=list) # 記憶未來可以依此類推加入

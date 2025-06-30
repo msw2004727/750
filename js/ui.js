@@ -20,8 +20,10 @@ export function updateUI(gameState) {
     
     // 使用 requestAnimationFrame 確保流暢的畫面更新
     requestAnimationFrame(() => {
-        // 呼叫從 render.js 導入的函式來執行實際的畫面渲染工作
-        updateSceneInfo(gameState.player, gameState.narrative);
+        // (新) 將 gameState.scene_characters 傳遞給 updateSceneInfo 函式
+        updateSceneInfo(gameState.player, gameState.narrative, gameState.scene_characters);
+        
+        // 其他更新函式保持不變
         updateNarrative(gameState.world, gameState.narrative);
         updateActions(gameState.narrative ? gameState.narrative.options : []);
         updateDashboard(gameState.player, gameState.world);

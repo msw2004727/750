@@ -94,7 +94,7 @@
 
         <!-- 頁籤內容 -->
         <main>
-            <!-- 1. 遊戲企劃 -->
+             <!-- 遊戲企劃 -->
             <div id="concept" class="tab-content active">
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md prose max-w-none">
                     <h2 class="text-2xl font-bold mb-4">遊戲企劃與核心玩法</h2>
@@ -106,18 +106,10 @@
 
                     <h3>遊戲玩法與特色機制</h3>
                     <ul>
-                        <li>
-                            <strong>動態世界系統：</strong> 遊戲世界擁有獨立的時間流動（年月日、時辰）、天氣變化與溫度。這些因素將直接影響劇情描述、NPC的行為以及特定事件的觸發，營造出一個生動真實的環境。
-                        </li>
-                        <li>
-                            <strong>玩家即主角：</strong> 遊戲不預設主角的性格。玩家的選擇、對話風格和行為模式將直接塑造主角的個性和名聲。外貌等特徵也會隨著遊戲時間、經歷和裝備而產生細微變化。
-                        </li>
-                        <li>
-                            <strong>深度NPC系統：</strong> 每個NPC（即使是AI隨機生成的）都擁有獨立的個性、背景故事、人際關係和記憶。他們會記得與玩家的互動，好感度的變化會直接影響他們的行為和對話。玩家的行動可以真實地改變NPC的命運，例如，若鎮長被殺，其他NPC會根據他們的野心和能力去角逐這個位置，甚至玩家自己也可以取而代之。
-                        </li>
-                        <li>
-                            <strong>資訊迷霧與探索（抽絲剝繭系統）：</strong> 遊戲的核心樂趣之一在於探索與發現。玩家初始接觸到的人事物都是充滿「迷霧」的。一個NPC的背景故事、一件物品的真正用途，都需要玩家透過對話、送禮、完成任務、或是從其他線索（如書籍、傳聞）中逐步發掘。這種設計旨在鼓勵玩家深入與世界互動，每一次的發現都充滿成就感。
-                        </li>
+                        <li><strong>動態世界系統：</strong> 遊戲世界擁有獨立的時間流動（年月日、時辰）、天氣變化與溫度。這些因素將直接影響劇情描述、NPC的行為以及特定事件的觸發，營造出一個生動真實的環境。</li>
+                        <li><strong>玩家即主角：</strong> 遊戲不預設主角的性格。玩家的選擇、對話風格和行為模式將直接塑造主角的個性和名聲。外貌等特徵也會隨著遊戲時間、經歷和裝備而產生細微變化。</li>
+                        <li><strong>深度NPC系統：</strong> 每個NPC（即使是AI隨機生成的）都擁有獨立的個性、背景故事、人際關係和記憶。他們會記得與玩家的互動，好感度的變化會直接影響他們的行為和對話。玩家的行動可以真實地改變NPC的命運，例如，若鎮長被殺，其他NPC會根據他們的野心和能力去角逐這個位置，甚至玩家自己也可以取而代之。</li>
+                        <li><strong>資訊迷霧與探索（抽絲剝繭系統）：</strong> 遊戲的核心樂趣之一在於探索與發現。玩家初始接觸到的人事物都是充滿「迷霧」的。一個NPC的背景故事、一件物品的真正用途，都需要玩家透過對話、送禮、完成任務、或是從其他線索（如書籍、傳聞）中逐步發掘。這種設計旨在鼓勵玩家深入與世界互動，每一次的發現都充滿成就感。</li>
                          <li>
                             <strong>永久性世界演化：</strong> 這是本遊戲最具野心的目標。當任何一位玩家在遊戲中觸發了重大事件，導致一個**全新的NPC、物品、地點或設施被創造出來時，這些新元素將被永久地記錄在核心資料庫中**。這意味著，後來的其他玩家在遊戲中，也能遇到這個由前人行動所創造出來的新元素，但他們同樣需要經過自己的探索流程去了解其全貌。最終，遊戲世界將成為所有玩家共同創造的結晶。
                         </li>
@@ -129,48 +121,103 @@
                         <br>
                         <strong>探索 (Explore)</strong> → <strong>互動 (Interact)</strong> → <strong>選擇 (Choose)</strong> → <strong>影響 (Impact)</strong> → <strong>反饋 (Feedback)</strong>
                      </p>
+                     
+                     <h3>開發願景與藍圖</h3>
+                     <p>為了確保專案能夠穩健地推進，我們將開發過程分為三個階段性的願景：</p>
+                     
+                     <h4>短期願景 (MVP - 最小可行性產品)</h4>
+                     <p><strong>目標：</strong> 建立一個穩定、可玩的核心體驗，讓玩家能在一個小範圍內（黑石部落）完整地體驗到遊戲的獨特魅力。</p>
+                     <ul>
+                        <li><strong>重點：</strong> 完善並穩定化「遊戲主迴圈」。確保玩家的每一次行動，都能觸發 AI 生成合理的劇情，並讓這個劇情正確地更新世界狀態（如時間），最終將全新的狀態反饋到玩家的介面上。</li>
+                        <li><strong>驗收標準：</strong>
+                            <ul>
+                                <li>玩家可以在「黑石部落」這個場景中自由行動。</li>
+                                <li>與部落中的 3-5 名核心 NPC 進行有意義的互動，並能看到好感度的初步變化。</li>
+                                <li>AI 能夠根據玩家行動，生成連貫、符合邏輯的短篇劇情和選項。</li>
+                                <li>遊戲時間能夠根據 AI 的指令自動推進。</li>
+                                <li>核心的「抽絲剝繭」機制初具雛形，例如，透過與某人對話，可以解鎖關於另一人的基礎資訊。</li>
+                            </ul>
+                        </li>
+                     </ul>
+
+                     <h4>中期願景 (擴展世界與玩法深度)</h4>
+                     <p><strong>目標：</strong> 打破單一場景的限制，擴展遊戲世界，並引入更多元的系統，讓遊戲的可玩性和重玩價值大幅提升。</p>
+                     <ul>
+                        <li><strong>重點：</strong> 豐富遊戲內容，並實作更深度的互動系統。</li>
+                        <li><strong>具體項目：</strong>
+                            <ul>
+                                <li><strong>世界擴張：</strong> AI 有能力創造出新的地點，例如一個鄰近的市集、一個山賊的巢穴或一座廢棄的寺廟，並讓這些地點永久存在於資料庫中。</li>
+                                <li><strong>跨場景任務：</strong> 引入需要玩家在多個地點之間穿梭的複雜任務線。</li>
+                                <li><strong>系統深化：</strong> 逐步加入如物品製作/合成、基礎技能學習等系統。</li>
+                                <li><strong>「迷霧系統」完全體：</strong> 玩家需要透過更多樣的方式（如閱讀書籍、偷聽對話、鑑定物品）來獲取資訊，AI 也能根據玩家已知的資訊量來生成不同的對話。</li>
+                            </ul>
+                        </li>
+                     </ul>
+
+                     <h4>長期願景 (一個活著的、由玩家共創的世界)</h4>
+                     <p><strong>目標：</strong> 實現最初的夢想——一個能夠自我演化、並由所有玩家的行動共同塑造其歷史的永久性世界。</p>
+                     <ul>
+                        <li><strong>重點：</strong> 強化 AI 的自主性與世界的永久性。</li>
+                         <li><strong>挑戰與實現：</strong>
+                            <ul>
+                                <li><strong>動態派系與關係網：</strong> NPC 之間的關係、各大勢力的興衰，不再是固定的劇本，而是會因為玩家（或 AI 觸發的事件）的介入而產生真實的連鎖反應。</li>
+                                <li><strong>玩家創造的傳奇：</strong> 當一個玩家完成了某個驚天動地的偉業（例如，獨自擊退了一次獸潮），這個事蹟將被記錄下來，成為後續玩家可以聽到的「江湖傳說」，甚至可能觸發新的任務。</li>
+                                <li><strong>無盡的內容：</strong> 遊戲不再有「主線通關」的概念。只要玩家持續探索，AI 就會持續生成新的挑戰、新的故事和新的謎團，讓這個世界永無止境。</li>
+                            </ul>
+                        </li>
+                     </ul>
                 </div>
             </div>
 
-            <!-- 2. 已完成進度 -->
+            <!-- 已完成進度 -->
             <div id="progress" class="tab-content">
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
                     <h2 class="text-2xl font-bold mb-4">專案進度總覽 (已完成)</h2>
                     <ul class="space-y-2">
                         <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段一] 專案可行性與架構規劃</strong></label></li>
                         <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段一] 前端介面設計 (UI)</strong></label></li>
-                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段一] 前端專案模組化</strong></label></li>
-                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段一] 資料庫結構設計</strong></label></li>
-                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段一] 後端基礎建設與雲端部署</strong></label></li>
-                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段二] 前後端串接</strong></label></li>
-                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段二] 核心互動邏輯</strong></label></li>
-                         <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段三] AI 服務整合</strong></label></li>
+                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段一] 前端專案模組化 (HTML/CSS/JS)</strong></label></li>
+                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段一] 資料庫結構設計 (Firebase Firestore)</strong></label></li>
+                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段一] 後端基礎建設與雲端部署 (Render)</strong></label></li>
+                        <li class="task-list-item completed ml-8"><input type="checkbox" checked disabled><label>解決包含路徑、套件依賴、環境變數在內的多項雲端部署問題。</label></li>
+                        <li class="task-list-item completed ml-8"><input type="checkbox" checked disabled><label>成功實現後端與 Firebase 資料庫的連接。</label></li>
+                        <li class="task-list-item completed ml-8"><input type="checkbox" checked disabled><label>建立並驗證了資料庫的自動化填充 (Seeding) 與讀取 API。</label></li>
+                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段二] 前後端串接與核心互動</strong></label></li>
+                         <li class="task-list-item completed ml-8"><input type="checkbox" checked disabled><label>前端能從後端 API 獲取資料並渲染初始介面。</label></li>
+                         <li class="task-list-item completed ml-8"><input type="checkbox" checked disabled><label>前端能將玩家行動（點擊、輸入）傳送至後端 API。</label></li>
+                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段三] AI 服務整合</strong></label></li>
+                         <li class="task-list-item completed ml-8"><input type="checkbox" checked disabled><label>後端建立可插拔的 AI 服務層 (ai_service)。</label></li>
+                         <li class="task-list-item completed ml-8"><input type="checkbox" checked disabled><label>成功連接外部 AI API (如 DeepSeek)。</label></li>
+                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>[階段三] Prompt 工程 (v1.0)</strong></label></li>
+                         <li class="task-list-item completed ml-8"><input type="checkbox" checked disabled><label>建立 `prompt_generator.py`，能根據遊戲狀態組裝結構化 Prompt。</label></li>
+                         <li class="task-list-item completed ml-8"><input type="checkbox" checked disabled><label>優化 Prompt，將地點 ID 轉換為顯示名稱，使其更人性化。</label></li>
                     </ul>
                 </div>
             </div>
 
-            <!-- 3. 未來開發目標 -->
+            <!-- 未來開發目標 -->
             <div id="future" class="tab-content">
-                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                    <h2 class="text-2xl font-bold mb-4">第三階段：AI 整合與遊戲迴圈</h2>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-bold mb-4">第三階段：AI 整合與遊戲迴圈 (收尾)</h2>
                      <ul class="space-y-2">
-                        <li class="task-list-item completed"><input type="checkbox" id="task3-1" checked disabled><label><strong>AI 服務整合：</strong>在後端建立了一個可插拔的 AI 服務，並成功與外部 API 連接。</label></li>
-                        <li class="task-list-item completed"><input type="checkbox" id="task3-2" checked disabled><label><strong>Prompt 工程：</strong>建立一個 Prompt 生成器，能根據當前遊戲狀態和玩家行動，組裝成一個結構化的指令給 AI。</label></li>
-                        <li class="task-list-item"><input type="checkbox" id="task3-3"><label><strong>AI 回應解析：</strong>建立一個解析器，能處理 AI 回傳的 JSON，並根據其中的指令更新資料庫（如：改變好感度、獲得物品、推進時間）。</p></label></li>
-                        <li class="task-list-item"><input type="checkbox" id="task3-4"><label><strong>建立遊戲主迴圈 (Game Loop)：</strong>將「接收行動 -> 呼叫 AI -> 解析回應 -> 更新資料庫 -> 回傳新狀態給前端」的完整流程串接起來。</label></li>
+                        <li class="task-list-item completed"><input type="checkbox" checked disabled><label><strong>AI 回應解析：</strong>後端已能解析 AI 回傳的 JSON 主體。</label></li>
+                        <li class="task-list-item completed"><input type="checkbox" id="task3-3-1" checked disabled><label><strong>實作資料庫更新：</strong>根據 AI 回應中的 `world_changes` 物件，真實地更新資料庫中的世界狀態（時間、天氣等）。</label></li>
+                        <li class="task-list-item completed"><input type="checkbox" id="task3-4" checked disabled><label><strong>建立遊戲主迴圈 (Game Loop)：</strong>將「接收行動 -> 呼叫 AI -> 解析回應 -> 更新資料庫 -> 回傳新狀態給前端」的完整流程串接起來。</label></li>
+                         <li class="task-list-item completed ml-8"><input type="checkbox" id="task3-4-1" checked disabled><label>前端 `event-listeners.js` 能夠接收後端回傳的 `next_gamestate`，並呼叫 `updateUI` 進行畫面刷新。</label></li>
                     </ul>
                 </div>
                  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mt-6">
                     <h2 class="text-2xl font-bold mb-4">第四階段：深度玩法與擴充</h2>
                      <ul class="space-y-2">
-                        <li class="task-list-item"><input type="checkbox" id="task4-1"><label><strong>實作「迷霧系統」：</strong>根據資料庫設計，完成 NPC 背景故事和物品鑑定的抽絲剝繭邏輯。</label></li>
-                        <li class="task-list-item"><input type="checkbox" id="task4-2"><label><strong>動態世界事件：</strong>設計一個系統，讓 AI 可以主動觸發或創造新的 NPC、任務、甚至地點，並由後端將其永久寫入資料庫。</label></li>
-                        <li class="task-list-item"><input type="checkbox" id="task4-3"><label><strong>擴充後端資料：</strong>讓後端 API 能回傳玩家的裝備、人脈、記憶等詳細資料，以取代前端的假資料。</label></li>
+                        <li class="task-list-item"><input type="checkbox" id="task4-1"><label><strong>擴充後端資料 API：</strong>讓 `/state` API 能一併回傳玩家的 inventory, relationships, memories 等子集合的詳細資料。</label></li>
+                        <li class="task-list-item"><input type="checkbox" id="task4-2"><label><strong>前端 UI 渲染真實資料：</strong>修改 `ui.js`，讓所有彈出視窗的內容都來自後端回傳的真實資料，移除所有 `mock` (假) 資料。</label></li>
+                        <li class="task-list-item"><input type="checkbox" id="task4-3"><label><strong>實作「迷霧系統」：</strong>根據資料庫設計，正式完成 NPC 背景和物品鑑定的抽絲剝繭邏輯。</label></li>
+                         <li class="task-list-item"><input type="checkbox" id="task4-4"><label><strong>動態世界事件：</strong>設計一個系統，讓 AI 可以主動觸發或創造新的 NPC、任務、甚至地點，並由後端將其永久寫入資料庫。</label></li>
                     </ul>
                 </div>
             </div>
 
-            <!-- 4. 使用工具與服務 -->
+            <!-- 使用工具與服務 -->
             <div id="tools" class="tab-content">
                  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
                     <h2 class="text-2xl font-bold mb-4">技術堆疊與服務列表</h2>
@@ -215,7 +262,6 @@
                 tab.addEventListener('click', function () {
                     tabs.forEach(item => item.classList.remove('active'));
                     contents.forEach(item => item.classList.remove('active'));
-
                     this.classList.add('active');
                     document.getElementById(this.dataset.tab).classList.add('active');
                 });
@@ -225,14 +271,10 @@
             const taskItems = document.querySelectorAll('.task-list-item');
             taskItems.forEach(item => {
                 const checkbox = item.querySelector('input[type="checkbox"]');
-                function applyStyle(cb) {
-                     item.classList.toggle('completed', cb.checked);
-                }
+                function applyStyle(cb) { item.classList.toggle('completed', cb.checked); }
                 if (checkbox) {
                     applyStyle(checkbox);
-                    if (!checkbox.disabled) {
-                         checkbox.addEventListener('change', function() { applyStyle(this); });
-                    }
+                    if (!checkbox.disabled) { checkbox.addEventListener('change', function() { applyStyle(this); }); }
                 }
             });
         });

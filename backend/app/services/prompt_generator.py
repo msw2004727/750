@@ -16,14 +16,11 @@ def generate_prompt(player_data: dict, world_data: dict, location_data: dict, ac
 
     # --- 1. 世界情境 ---
     current_time_obj = world_data.get('currentTime')
-    # 從 Firestore 的 Timestamp 物件中獲取 datetime 物件
     if isinstance(current_time_obj, datetime.datetime):
         world_time = current_time_obj.strftime('%Y-%m-%d %H:%M')
     else:
-        # 如果格式不對，提供一個預設值
         world_time = "時間未知"
 
-    # 使用傳入的地點名稱
     location_name = location_data.get('name', '未知地點')
 
     world_section = f"""
@@ -43,7 +40,6 @@ def generate_prompt(player_data: dict, world_data: dict, location_data: dict, ac
 """
 
     # --- 3. NPC 資訊 (未來可擴充) ---
-    # TODO: 根據玩家地點，從資料庫讀取在場的 NPC 資訊並加入到 Prompt 中
     npc_section = """
 # 在場的 NPC
 - (目前此處為空，未來需動態載入)
@@ -56,12 +52,15 @@ def generate_prompt(player_data: dict, world_data: dict, location_data: dict, ac
 1.  生成一段生動的故事描述 (story_description)。
 2.  生成 3 個合理的行動選項 (options)。
 3.  判斷場景的整體氛圍 (atmosphere)。
-4.  **[重要]** 根據劇情發展，在 `world_changes` 中描述世界應發生的具體變化。
+4.  **[世界演化]** 根據劇情發展，在 `world_changes` 中描述世界應發生的具體變化。
     - `time_unit` & `time_amount`: 估算一個合理流逝的時間。
     - `new_location_id`: 如果玩家移動到了新地點，請提供新地點的 ID。
     - `items_added`: 如果玩家獲得了物品，請提供物品 ID 和數量。
     - `items_removed`: 如果玩家失去了物品，請提供物品 ID 和數量。
-5.  嚴格按照以下 JSON 格式回傳你的創作，不要有任何額外解釋。
+5.  **[世界創造 - 可選]** 如果當前劇情達到了某個「里程碑」或「關鍵時刻」，你可以創造一個全新的、永久存在於世界的元素。如果沒有，請將 `world_creations` 設為 `null`。
+    - `new_npc`: 創造一個全新的人物。請務必為他設定一個獨特的 `id` (英文和底線)、`name` (姓名) 和 `title` (稱號)。
+    - `new_location`: 創造一個全新的地點。請務必為它設定一個獨特的 `id` 和 `name`。
+6.  嚴格按照以下 JSON 格式回傳你的創作，不要有任何額外解釋。
 
 ```json
 {
@@ -80,17 +79,6 @@ def generate_prompt(player_data: dict, world_data: dict, location_data: dict, ac
         { "item_id": "item_wooden_box", "quantity": 1 }
     ],
     "items_removed": []
-  }
+  },
+  "world_creations": null
 }
-
-```json
-"""
-
-    # --- 5. 組裝完整的 Prompt ---
-    full_prompt = f"{world_section}\n{player_section}\n{npc_section}\n{instruction_section}"
-
-    print("----------- GENERATED PROMPT -----------")
-    print(full_prompt)
-    print("--------------------------------------")
-
-    return full_prompt

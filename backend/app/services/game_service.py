@@ -3,7 +3,23 @@ from app.models.action import PlayerAction
 from app.services.ai_service import ai_service # <-- 匯入我們的 AI 服務
 
 class GameService:
-    # ... (get_player_data 和 get_world_state 保持不變) ...
+    @staticmethod
+    def get_player_data(player_id: str):
+        """從 Firestore 獲取指定玩家的資料"""
+        player_ref = db.collection('players').document(player_id)
+        player_doc = player_ref.get()
+        if player_doc.exists:
+            return player_doc.to_dict()
+        return None
+
+    @staticmethod
+    def get_world_state():
+        """從 Firestore 獲取目前的世界狀態"""
+        world_ref = db.collection('worlds').document('main_world')
+        world_doc = world_ref.get()
+        if world_doc.exists:
+            return world_doc.to_dict()
+        return None
 
     @staticmethod
     def process_player_action(player_id: str, action: PlayerAction):

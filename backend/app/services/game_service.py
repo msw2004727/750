@@ -1,4 +1,3 @@
-# app/services/game_service.py
 from app.core.firebase_config import db
 from app.models.action import PlayerAction # 匯入我們剛才建立的模型
 
@@ -19,7 +18,6 @@ class GameService:
             return world_doc.to_dict()
         return None
 
-    # --- 新增的方法 ---
     @staticmethod
     def process_player_action(player_id: str, action: PlayerAction):
         """

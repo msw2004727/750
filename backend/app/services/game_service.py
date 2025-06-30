@@ -4,18 +4,56 @@ from app.core.firebase_config import db
 from app.models.action import PlayerAction
 from app.services.ai_service import ai_service
 from app.services.prompt_generator import generate_prompt
-# 匯入 Firebase 的欄位更新工具
-from google.cloud.firestore_v1.field_path import FieldPath
 
 class GameService:
     @staticmethod
     def get_player_data(player_id: str):
-        """從 Firestore 獲取指定玩家的資料"""
+        """從 Firestore 獲取指定玩家的資料，並包含其子集合的內容"""
         player_ref = db.collection('players').document(player_id)
         player_doc = player_ref.get()
-        if player_doc.exists:
-            return player_doc.to_dict()
-        return None
+
+        if not player_doc.exists:
+            return None
+        
+        player_data = player_doc.to_dict()
+
+        # 1. 讀取 inventory 子集合
+        inventory_list = []
+        inventory_docs = player_ref.collection('inventory').stream()
+        for doc in inventory_docs:
+            item_id = doc.id
+            item_info_doc = db.collection('items').document(item_id).get()
+            if item_info_doc.exists:
+                item_data = item_info_doc.to_dict()
+                inventory_list.append({
+                    "id": item_id,
+                    "name": item_data.get('name'),
+                    "description": item_data.get('description'),
+                    "quantity": doc.to_dict().get('quantity')
+                })
+        player_data['inventory'] = inventory_list
+        print(f"[DB_READ] 讀取到 {len(inventory_list)} 件物品。")
+
+        # 2. 讀取 relationships 子集合
+        relationships_list = []
+        relationship_docs = player_ref.collection('relationships').stream()
+        for doc in relationship_docs:
+            npc_id = doc.id
+            npc_info_doc = db.collection('npcs').document(npc_id).get()
+            if npc_info_doc.exists:
+                npc_data = npc_info_doc.to_dict()
+                relationship_data = doc.to_dict()
+                relationships_list.append({
+                    "id": npc_id,
+                    "name": npc_data.get('name'),
+                    "title": npc_data.get('title'),
+                    "affinity": relationship_data.get('affinity'),
+                    "status": relationship_data.get('status')
+                })
+        player_data['relationships'] = relationships_list
+        print(f"[DB_READ] 讀取到 {len(relationships_list)} 條人脈關係。")
+
+        return player_data
 
     @staticmethod
     def get_world_state():
@@ -39,9 +77,7 @@ class GameService:
 
     @staticmethod
     def process_player_action(player_id: str, action: PlayerAction):
-        """
-        處理玩家行動、呼叫 AI、解析回應、更新資料庫，並回傳新的遊戲狀態。
-        """
+        """處理玩家行動、呼叫 AI、解析回應、更新資料庫，並回傳新的遊戲狀態。"""
         print(f"接收到玩家 {player_id} 的行動: {action.value}")
         
         player_data = GameService.get_player_data(player_id)
@@ -52,35 +88,32 @@ class GameService:
         if not all([player_data, world_data, location_data]):
             return {"status": "error", "message": "無法獲取完整的遊戲、玩家或地點資料。"}
 
-        # 1. 生成 Prompt
         prompt = generate_prompt(player_data, world_data, location_data, action.model_dump())
-        
-        # 2. 呼叫 AI
         ai_raw_response = ai_service.generate_narrative(prompt)
 
-        # 3. 解析 AI 回應
         try:
             ai_content_str = ai_raw_response['choices'][0]['message']['content']
             ai_data = json.loads(ai_content_str)
             print(f"[PARSER] 成功解析 AI JSON: {ai_data}")
             
-            # --- 關鍵新增：更新世界狀態 ---
             world_changes = ai_data.get("world_changes", {})
             if world_changes:
                 world_ref = db.collection('worlds').document('main_world')
                 updates = {}
-                # 處理時間推進
-                time_passed = world_changes.get("time_passed_hours", 0)
-                if time_passed > 0:
-                    # 使用 FieldValue.increment 來原子化地增加時間，更安全
-                    # 這裡我們先用簡單的讀取和寫入方式
+                time_unit = world_changes.get("time_unit", "minutes")
+                time_amount = world_changes.get("time_amount", 0)
+                if time_amount > 0:
                     current_time = world_data.get('currentTime')
                     if isinstance(current_time, datetime.datetime):
-                        new_time = current_time + datetime.timedelta(hours=time_passed)
-                        updates['currentTime'] = new_time
-                        print(f"[DB_UPDATE] 時間推進 {time_passed} 小時，新時間: {new_time.isoformat()}")
-
-                # 處理溫度變化
+                        delta = datetime.timedelta()
+                        if time_unit == "minutes": delta = datetime.timedelta(minutes=time_amount)
+                        elif time_unit == "hours": delta = datetime.timedelta(hours=time_amount)
+                        elif time_unit == "days": delta = datetime.timedelta(days=time_amount)
+                        if delta.total_seconds() > 0:
+                            new_time = current_time + delta
+                            updates['currentTime'] = new_time
+                            print(f"[DB_UPDATE] 時間推進 {time_amount} {time_unit}，新時間: {new_time.isoformat()}")
+                
                 temp_change = world_changes.get("temperature_change", 0)
                 if temp_change != 0:
                     current_temp = world_data.get('currentTemperature', 20)
@@ -88,23 +121,16 @@ class GameService:
                     updates['currentTemperature'] = new_temp
                     print(f"[DB_UPDATE] 溫度變化 {temp_change}°C，新溫度: {new_temp}")
                 
-                # 如果有需要更新的欄位，則執行更新
                 if updates:
                     world_ref.update(updates)
 
         except (json.JSONDecodeError, KeyError, IndexError, TypeError) as e:
             print(f"[ERROR] 解析或處理 AI 回應失敗: {e}")
-            return {
-                "status": "ai_response_error",
-                "message": f"AI 回應處理失敗: {e}",
-                "next_gamestate": None
-            }
+            return {"status": "ai_response_error", "message": f"AI 回應處理失敗: {e}", "next_gamestate": None}
         
-        # 4. 重新獲取更新後的新遊戲狀態
         new_player_data = GameService.get_player_data(player_id)
         new_world_data = GameService.get_world_state()
 
-        # 5. 組合新的遊戲狀態，並加入 AI 生成的內容
         next_gamestate = {
             "player": new_player_data,
             "world": new_world_data,
@@ -115,10 +141,6 @@ class GameService:
             }
         }
         
-        return {
-            "status": "action_processed",
-            "message": "已成功處理玩家行動並生成新劇情。",
-            "next_gamestate": next_gamestate
-        }
+        return {"status": "action_processed", "message": "已成功處理玩家行動並生成新劇情。", "next_gamestate": next_gamestate}
 
 game_service = GameService()

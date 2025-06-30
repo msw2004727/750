@@ -1,7 +1,6 @@
-# requirements.txt
+# backend/requirements.txt
 fastapi
 pydantic
 python-dotenv
 google-cloud-firestore
-gunicorn
 uvicorn

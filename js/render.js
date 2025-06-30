@@ -83,7 +83,10 @@ export function updateActions(options) {
     
     if (options && options.length > 0) {
         container.innerHTML = options.map((option_text, index) => {
-            return `<button class="action-button" data-action-type="option" data-action-value="${option_text}">${index + 1}. ${option_text}</button>`;
+            // 將選項文字也通過互動文字解析器，轉換為 HTML
+            const buttonContent = parseInteractiveText(option_text);
+            // 注意：data-action-value 仍然使用未經處理的原始文字，以確保發送到後端的資料是 AI 能理解的格式
+            return `<button class="action-button" data-action-type="option" data-action-value="${option_text}">${index + 1}. ${buttonContent}</button>`;
         }).join('');
     } else {
         container.innerHTML = `<p class="text-gray-500 text-center italic">沒有可執行的動作。</p>`;

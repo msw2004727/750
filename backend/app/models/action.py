@@ -1,16 +1,20 @@
-# backend/app/api/v1/endpoints/admin.py
-from fastapi import APIRouter
+# backend/app/models/action.py
+from pydantic import BaseModel, Field
+from typing import Optional, Literal
 
-router = APIRouter()
-
-@router.get("/seed-database", response_model=dict)
-def seed_database_endpoint():
+class PlayerAction(BaseModel):
     """
-    執行資料庫填充作業。
-    這是一個一次性使用的端點，用來初始化遊戲世界的基礎資料。
+    定義玩家可以執行的所有行動的資料結構。
     """
-    # (新) 將導入語句移動到函式內部
-    # 這可以解決循環導入的問題，因為只有在呼叫此 API 時才會執行導入
-    from app.services.seed_service import seed_service
-    
-    return seed_service.seed_database()
+    type: Literal['option', 'custom', 'item_action'] = Field(
+        ...,
+        description="行動的類型，用於區分是點擊AI選項、自訂輸入，還是與物品互動。"
+    )
+    value: str = Field(
+        ...,
+        description="行動的具體內容。對於 'option' 或 'custom'，這是文字描述；對於 'item_action'，這是具體操作，如 'pickup'、'examine'。"
+    )
+    target_id: Optional[str] = Field(
+        default=None,
+        description="行動的目標ID，主要用於 'item_action'，以指明操作的是哪個物品。"
+    )

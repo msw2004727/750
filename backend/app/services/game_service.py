@@ -1,31 +1,107 @@
+# backend/app/services/game_service.py
 import json
 import datetime
 from app.core.firebase_config import db
 from app.models.action import PlayerAction
 from app.services.ai_service import ai_service
 from app.services.prompt_generator import generate_prompt
+from google.cloud.firestore_v1.base_query import FieldFilter
+from google.cloud.firestore_v1.transaction import Transaction
+from google.cloud.firestore_v1.webrequest import transactional
 
+# --- Transactional Update Function ---
+# 這是我們新的核心，一個獨立的、帶有 @transactional 裝飾器的函式。
+# 這確保了內部所有的資料庫讀寫操作都是一個不可分割的整體。
+@transactional
+def _update_game_state_in_transaction(transaction: Transaction, player_id: str, world_changes: dict):
+    """
+    在一個資料庫事務中，安全地更新所有遊戲狀態。
+    """
+    player_ref = db.collection('players').document(player_id)
+    world_ref = db.collection('worlds').document('main_world')
+
+    # 1. 更新世界時間
+    time_unit = world_changes.get("time_unit", "minutes")
+    time_amount = world_changes.get("time_amount", 0)
+    if time_amount > 0:
+        # 在事務中，必須先 get 再 update
+        world_snapshot = world_ref.get(transaction=transaction)
+        current_time = world_snapshot.to_dict().get('currentTime')
+        if isinstance(current_time, datetime.datetime):
+            delta = datetime.timedelta(minutes=time_amount) if time_unit == "minutes" else datetime.timedelta(hours=time_amount)
+            new_time = current_time + delta
+            transaction.update(world_ref, {'currentTime': new_time})
+
+    # 2. 更新玩家位置
+    new_location_id = world_changes.get("new_location_id")
+    if new_location_id:
+        transaction.update(player_ref, {'location': new_location_id})
+
+    # 3. 更新玩家狀態 (health, hunger, etc.)
+    status_changes = world_changes.get("status_changes")
+    if status_changes and isinstance(status_changes, dict):
+        # 使用 FieldFilter 來安全地增減數值
+        status_updates = {f'status.{key}': firestore.Increment(value) for key, value in status_changes.items()}
+        if status_updates:
+            transaction.update(player_ref, status_updates)
+            
+    # 4. 更新玩家物品欄 - 移除物品
+    items_removed = world_changes.get("items_removed", [])
+    if items_removed:
+        inventory_ref = player_ref.collection('inventory')
+        for item in items_removed:
+            item_id = item.get("item_id")
+            quantity_to_remove = item.get("quantity", 1)
+            if not item_id: continue
+            
+            item_doc_ref = inventory_ref.document(item_id)
+            # 使用 FieldFilter 安全地減少數量
+            transaction.update(item_doc_ref, {'quantity': firestore.Increment(-quantity_to_remove)})
+            # 注意: 此處暫不處理數量變為 0 後刪除文件的邏輯，可作為後續優化
+
+    # 5. 更新玩家物品欄 - 新增物品
+    items_added = world_changes.get("items_added", [])
+    if items_added:
+        inventory_ref = player_ref.collection('inventory')
+        for item in items_added:
+            item_id = item.get("item_id")
+            quantity_to_add = item.get("quantity", 1)
+            if not item_id: continue
+
+            item_doc_ref = inventory_ref.document(item_id)
+            item_doc = item_doc_ref.get(transaction=transaction)
+
+            if item_doc.exists:
+                # 物品已存在，增加數量
+                transaction.update(item_doc_ref, {'quantity': firestore.Increment(quantity_to_add)})
+            else:
+                # 物品不存在，創建新文件
+                transaction.set(item_doc_ref, {
+                    'quantity': quantity_to_add,
+                    'identified': False # 新獲得的物品預設為未鑑定
+                })
+
+# --- Main Game Service Class ---
 class GameService:
     @staticmethod
     def get_player_data(player_id: str):
+        # (此函式保持不變，用於讀取並組合前端所需的資料)
         player_ref = db.collection('players').document(player_id)
         player_doc = player_ref.get()
         if not player_doc.exists: return None
         player_data = player_doc.to_dict()
 
-        # 讀取地點名稱並加入玩家資料
         location_id = player_data.get('location')
         location_data = GameService.get_location_data(location_id)
         player_data['location_name'] = location_data.get('name', '未知地點') if location_data else '未知地點'
 
-        # --- 關鍵修改：根據玩家認知來組合資料 ---
-
-        # 1. 讀取 inventory 子集合並判斷描述
         inventory_list = []
         inventory_docs = player_ref.collection('inventory').stream()
         for doc in inventory_docs:
             item_id = doc.id
             player_item_data = doc.to_dict()
+            if player_item_data.get('quantity', 0) <= 0: continue # 不顯示數量為 0 的物品
+            
             item_info_doc = db.collection('items').document(item_id).get()
             if item_info_doc.exists:
                 item_data = item_info_doc.to_dict()
@@ -39,7 +115,6 @@ class GameService:
                 })
         player_data['inventory'] = inventory_list
 
-        # 2. 讀取 relationships 子集合並篩選背景故事
         relationships_list = []
         relationship_docs = player_ref.collection('relationships').stream()
         for doc in relationship_docs:
@@ -48,18 +123,13 @@ class GameService:
             npc_info_doc = db.collection('npcs').document(npc_id).get()
             if npc_info_doc.exists:
                 npc_data = npc_info_doc.to_dict()
-                
-                # 根據玩家解鎖的索引，提取對應的背景故事
                 unlocked_indices = player_relationship_data.get('unlocked_backstory_indices', [])
                 full_backstory = npc_data.get('backstory', [])
                 unlocked_stories = [full_backstory[i] for i in unlocked_indices if i < len(full_backstory)]
                 
                 relationships_list.append({
-                    "id": npc_id,
-                    "name": npc_data.get('name'),
-                    "title": npc_data.get('title'),
-                    "affinity": player_relationship_data.get('affinity'),
-                    "status": player_relationship_data.get('status'),
+                    "id": npc_id, "name": npc_data.get('name'), "title": npc_data.get('title'),
+                    "affinity": player_relationship_data.get('affinity'), "status": player_relationship_data.get('status'),
                     "unlocked_backstory": unlocked_stories
                 })
         player_data['relationships'] = relationships_list
@@ -80,62 +150,68 @@ class GameService:
         
     @staticmethod
     def process_player_action(player_id: str, action: PlayerAction):
+        # 獲取當前狀態，用於生成 Prompt
         player_data = GameService.get_player_data(player_id)
         world_data = GameService.get_world_state()
         location_data = GameService.get_location_data(player_data.get('location')) if player_data else {}
-        if not all([player_data, world_data]): return {"status": "error"}
+        if not all([player_data, world_data, location_data]): 
+            return {"status": "error", "message": "無法獲取完整的遊戲狀態。"}
         
-        prompt = generate_prompt(player_data, world_data, location_data, action.model_dump())
-        ai_raw_response = ai_service.generate_narrative(prompt)
-        
+        # 檢查玩家是否選擇了移動
+        # 這是一個簡化的檢查，它假設移動選項的文字與路徑描述高度相關
+        chosen_action_value = action.model_dump().get('value', '')
+        for conn in location_data.get('connections', []):
+            if conn.get('path_description') in chosen_action_value:
+                # 如果是移動選項，直接設定 new_location_id，覆蓋 AI 可能的回應
+                ai_data_override = {"world_changes": {"new_location_id": conn.get('target_location_id'), "time_amount": conn.get('distance', 10)}}
+                print(f"[GameService] 偵測到移動指令，目標: {conn.get('target_location_id')}")
+                break
+        else:
+            ai_data_override = None
+
         try:
-            ai_content_str = ai_raw_response['choices'][0]['message']['content']
-            ai_data = json.loads(ai_content_str)
+            if ai_data_override:
+                # 如果是移動，我們跳過 AI 生成，直接使用預設的移動結果
+                ai_data = {
+                    "story_description": f"你決定{chosen_action_value}，踏上了新的旅程。",
+                    "options": ["繼續前進...", "觀察四周...", "稍作休息..."],
+                    "atmosphere": "旅行",
+                    "world_changes": ai_data_override["world_changes"],
+                    "world_creations": None
+                }
+            else:
+                # 如果不是移動，正常呼叫 AI
+                prompt = generate_prompt(player_data, world_data, location_data, action.model_dump())
+                ai_raw_response = ai_service.generate_narrative(prompt)
+                ai_content_str = ai_raw_response['choices'][0]['message']['content']
+                ai_data = json.loads(ai_content_str)
 
-            # --- 處理世界變化 ---
-            world_changes = ai_data.get("world_changes", {})
-            if world_changes:
-                world_ref = db.collection('worlds').document('main_world')
-                updates = {}
-                time_unit = world_changes.get("time_unit", "minutes")
-                time_amount = world_changes.get("time_amount", 0)
-                if time_amount > 0 and isinstance(world_data.get('currentTime'), datetime.datetime):
-                    delta = datetime.timedelta(minutes=time_amount) if time_unit == "minutes" else datetime.timedelta(hours=time_amount) if time_unit == "hours" else datetime.timedelta()
-                    if delta.total_seconds() > 0:
-                        new_time = world_data['currentTime'] + delta
-                        updates['currentTime'] = new_time
-                if updates: world_ref.update(updates)
+            # --- 核心修改：呼叫事務函式來處理所有資料庫寫入 ---
+            world_changes = ai_data.get("world_changes")
+            if world_changes and isinstance(world_changes, dict):
+                # 建立一個事務
+                transaction = db.transaction()
+                # 執行我們的事務函式
+                _update_game_state_in_transaction(transaction, player_id, world_changes)
 
-            # --- (新功能) 處理世界創造 ---
+            # 處理世界創造 (這部分不需要在同一個事務內，因為它不影響玩家的直接狀態)
             world_creations = ai_data.get("world_creations")
             if world_creations:
-                # 處理新 NPC
                 new_npc_data = world_creations.get("new_npc")
                 if new_npc_data and isinstance(new_npc_data, dict):
                     npc_id = new_npc_data.get("id")
-                    npc_name = new_npc_data.get("name")
-                    # 進行基本驗證，確保核心資料存在
-                    if npc_id and npc_name:
-                        # 檢查該 ID 是否已存在，避免覆蓋
-                        npc_ref = db.collection('npcs').document(npc_id)
-                        if not npc_ref.get().exists:
-                            npc_ref.set({
-                                "name": npc_name,
-                                "title": new_npc_data.get("title", ""),
-                                "backstory": new_npc_data.get("backstory", [])
-                            })
-                            print(f"[GameService] AI 創造了新的 NPC: {npc_name} (ID: {npc_id})")
-                        else:
-                            print(f"[GameService] AI 試圖創造已存在的 NPC (ID: {npc_id})，已略過。")
-                
-                # (未來可擴充) 處理新地點
-                # new_location_data = world_creations.get("new_location")
-                # if new_location_data: ...
+                    if npc_id and not db.collection('npcs').document(npc_id).get().exists:
+                        db.collection('npcs').document(npc_id).set(new_npc_data)
+                        print(f"[GameService] AI 創造了新的 NPC: {new_npc_data.get('name')}")
 
         except Exception as e:
-            print(f"[ERROR] 解析或處理 AI 回應失敗: {e}")
-            return {"status": "ai_response_error", "message": str(e)}
+            print(f"[ERROR] 處理行動或更新狀態時發生嚴重錯誤: {e}")
+            # 向上追蹤錯誤，方便偵錯
+            import traceback
+            traceback.print_exc()
+            return {"status": "error", "message": str(e)}
 
+        # 獲取並回傳「更新後」的全新遊戲狀態
         next_gamestate = {
             "player": GameService.get_player_data(player_id),
             "world": GameService.get_world_state(),

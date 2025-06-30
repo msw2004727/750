@@ -1,7 +1,8 @@
-# backend/requirements.txt
 fastapi
 pydantic
 python-dotenv
 google-cloud-firestore
 uvicorn
 firebase-admin
+openai # 用於呼叫 ChatGPT API
+requests # 用於呼叫多數其他模型的 RESTful API，例如 DeepSeek

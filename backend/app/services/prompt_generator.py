@@ -18,10 +18,8 @@ def generate_prompt(player_data: dict, world_data: dict, location_data: dict, ac
     # --- 1. 世界情境 ---
     current_time_obj = world_data.get('currentTime')
     if isinstance(current_time_obj, datetime.datetime):
-        # 將後端時間轉換為宋朝風格的時辰，提供給 AI 參考
         shichen = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"]
         hour = current_time_obj.hour
-        # 使用 Python 的整數除法 // 來進行計算
         shichen_index = ((hour + 1) // 2) % 12
         world_time = f"{current_time_obj.strftime('%Y-%m-%d')} {shichen[shichen_index]}時"
     else:
@@ -52,7 +50,7 @@ def generate_prompt(player_data: dict, world_data: dict, location_data: dict, ac
 - (目前此處為空，未來需動態載入)
 """
 
-    # --- 4. 對 AI 的指令與要求 (修正版本) ---
+    # --- 4. 對 AI 的指令與要求 (完整版) ---
     instruction_section = """
 # 你的任務
 作為一個富有創意的文字冒險遊戲敘事引擎，請嚴格遵循你的「世界情境」設定（宋朝背景），並根據以上所有情境：
@@ -64,28 +62,31 @@ def generate_prompt(player_data: dict, world_data: dict, location_data: dict, ac
     - `new_location_id`: 如果玩家移動到了新地點，請提供新地點的 ID。
     - `items_added`: 如果玩家獲得了物品，請提供物品 ID 和數量。
     - `items_removed`: 如果玩家失去了物品，請提供物品 ID 和數量。
-5.  **[世界創造 - 可選]** 如果當前劇情達到了某個「里程碑」或「關鍵時刻」，你可以創造一個全新的、永久存在於世界的元素。如果沒有，請將 `world_creations` 設為 `null`。
-    - `new_npc`: 創造一個全新的人物。請務必為他設定一個獨特的 `id` (英文和底線)、`name` (姓名) 和 `title` (稱號)。
-    - `new_location`: 創造一個全新的地點。請務必為它設定一個獨特的 `id` 和 `name`。
+    - `status_changes`: 如果玩家的狀態發生變化，請描述。例如 `{"health": 20, "hunger": -5}` 表示健康增加20，飢餓減少5。如果沒有變化，此欄位應為 `null` 或 `{}`。
+5.  **[世界創造 - 可選]** 如果劇情達到關鍵時刻，你可以創造一個全新的、永久存在於世界的元素。如果沒有，請將 `world_creations` 設為 `null`。
+    - `new_npc`: 創造一個全新的人物。
+    - `new_location`: 創造一個全新的地點。
 6.  嚴格按照以下 JSON 格式回傳你的創作，不要有任何額外解釋。
 
 ```json
+// --- 普通情況範例 ---
 {
-  "story_description": "你探索了茅屋，在床下發現了一個破舊的木箱。",
+  "story_description": "你在森林中採集草藥，不小心被毒蛇咬傷，但幸運的是，你找到了一株可以解毒的藥草並吃了下去。雖然餘毒未清，但總算保住了性命。",
   "options": [
-    "打開木箱",
-    "忽略木箱，直接出門",
-    "把木箱拖到屋外"
+    "繼續在附近搜索其他藥草",
+    "處理傷口後立刻返回村莊",
+    "尋找水源清洗傷口"
   ],
-  "atmosphere": "發現",
+  "atmosphere": "驚險",
   "world_changes": {
     "time_unit": "minutes",
-    "time_amount": 10,
+    "time_amount": 30,
     "new_location_id": null,
-    "items_added": [
-        { "item_id": "item_wooden_box", "quantity": 1 }
-    ],
-    "items_removed": []
+    "items_added": [],
+    "items_removed": [],
+    "status_changes": {
+        "health": -10
+    }
   },
   "world_creations": null
 }
@@ -104,7 +105,8 @@ def generate_prompt(player_data: dict, world_data: dict, location_data: dict, ac
     "time_amount": 5,
     "new_location_id": null,
     "items_added": [],
-    "items_removed": []
+    "items_removed": [],
+    "status_changes": {}
   },
   "world_creations": {
       "new_npc": {

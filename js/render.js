@@ -2,6 +2,22 @@
 import { formatSongDynastyTime } from './utils.js';
 
 /**
+ * (新) 輔助函式：解析帶有特殊標記的文字，並轉換為 HTML。
+ * @param {string} text - 包含 [顯示文字](type:id) 標記的原始文字。
+ * @returns {string} 轉換後的 HTML 字串。
+ */
+function parseInteractiveText(text) {
+    if (!text) return '';
+    // 使用正規表示式尋找所有符合格式的標記
+    const regex = /\[(.*?)\]\((.*?)\)/g;
+    return text.replace(regex, (match, displayText, fullId) => {
+        const [type, id] = fullId.split(':');
+        // 根據 type 決定要添加的 CSS class 和 data-* 屬性
+        return `<a href="#" class="interactive-element" data-interactive-type="${type}" data-interactive-id="${id}">${displayText}</a>`;
+    });
+}
+
+/**
  * 更新場景資訊 (在場角色、氛圍)
  * @param {object} player 
  * @param {object} narrative 
@@ -35,7 +51,8 @@ export function updateNarrative(world, narrative) {
         container.innerHTML = `<p class="text-red-500">錯誤: ${world.error}</p>`;
     } else {
         const description = narrative ? narrative.description : `你身處於你的茅屋。`;
-        container.innerHTML = `<p>${description}</p>`;
+        // 使用新的解析函式來處理描述文字
+        container.innerHTML = `<p>${parseInteractiveText(description)}</p>`;
         container.scrollTop = container.scrollHeight;
     }
 }

@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+:root {
+    --bg-primary: #f3f4f6; --bg-secondary: #ffffff; --bg-tertiary: #e5e7eb;
+    --text-primary: #1f2937; --text-secondary: #4b5563;
+    --border-color: #d1d5db; --accent-color: #2563eb;
+}
+.dark {
+    --bg-primary: #111827; --bg-secondary: #1f2937; --bg-tertiary: #374151;
+    --text-primary: #f9fafb; --text-secondary: #d1d5db;
+    --border-color: #4b5563; --accent-color: #3b82f6;
+}
+body {
+    font-family: 'Noto Sans TC', sans-serif; background-color: var(--bg-primary);
+    color: var(--text-primary); transition: background-color 0.3s, color 0.3s;
+}
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-secondary); }
+::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--accent-color); }
+.card {
+    background-color: var(--bg-secondary); border: 1px solid var(--border-color);
+    border-radius: 0.75rem; padding: 1rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    transition: all 0.3s;
+}
+.section-container {
+    background-color: var(--bg-secondary); border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+}
+.section-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 1rem 1.5rem; cursor: move; border-bottom: 1px solid var(--border-color);
+}
+.section-container.is-collapsed .section-header { border-bottom: 1px solid transparent; }
+.section-title { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
+.collapse-icon { cursor: pointer; transition: transform 0.3s ease; color: var(--text-secondary); }
+.is-collapsed .collapse-icon { transform: rotate(-90deg); }
+.section-content { padding: 1.5rem; padding-top: 1rem; transition: all 0.3s; }
+.action-button {
+    width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color);
+    border-radius: 0.5rem; text-align: left; background-color: var(--bg-secondary);
+    transition: all 0.2s ease-in-out;
+}
+.action-button:hover {
+    border-color: var(--accent-color); background-color: var(--bg-tertiary);
+    color: var(--accent-color); transform: translateY(-2px);
+}
+.sortable-ghost { opacity: 0.4; background: var(--bg-tertiary); }
+.modal-backdrop {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.6); display: flex;
+    justify-content: center; align-items: center; z-index: 50;
+}
+.modal-content {
+    background-color: var(--bg-secondary); padding: 1.5rem; border-radius: 0.75rem;
+    width: 90%; max-width: 600px; max-height: 80vh;
+    display: flex; flex-direction: column;
+}
+.memory-sort-btn.active { background-color: var(--accent-color); color: white; }
+.memory-sort-btn:not(.active) { background-color: var(--bg-tertiary); color: var(--text-secondary); }

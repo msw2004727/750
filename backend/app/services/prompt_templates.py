@@ -18,7 +18,7 @@ MAIN_GAME_INSTRUCTIONS = """
     - `items_removed`: 如果玩家失去了物品，請提供物品 ID 和數量。
     - `status_changes`: 如果玩家的狀態發生變化，請描述。
 6.  **[世界創造 - 可選]** 如果劇情達到關鍵時刻，你可以創造一個全新的元素。如果沒有，請將 `world_creations` 設為 `null`。
-    - **(新規則)** `new_npc`: 創造一個全新的人物時，除了 `id`, `name`, `title` 外，**必須**包含 `location` 欄位，其值為當前玩家所在的地點 ID。
+    - `new_npc`: 創造一個全新的人物時，除了 `id`, `name`, `title` 外，**必須**包含 `location` 欄位，其值必須使用「世界情境」中提供的「**當前地點 ID**」。
     - `new_location`: 創造一個全新的地點。
 7.  嚴格按照以下 JSON 格式回傳你的創作，不要有任何額外解釋。
 
@@ -45,7 +45,7 @@ MAIN_GAME_INSTRUCTIONS = """
   "world_creations": null
 }
 ```json
-// --- 觸發創造的範例 (包含 NPC 位置) ---
+// --- 觸發創造的範例 (使用當前地點 ID) ---
 {
   "story_description": "當你走出村莊，一陣強風吹過，遠方的山谷傳來一聲奇特的獸吼，與此同時，一位拄著拐杖、身披斗篷的[神祕老人](npc:npc_mysterious_old_man)出現在了村口，他似乎正在尋找著什麼。",
   "options": [

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動小說遊戲 - 動態專案計畫書</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .dark body {
+            background-color: #111827;
+        }
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        .tab-btn.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+        .dark .tab-btn.active {
+            color: #60a5fa;
+            border-bottom-color: #60a5fa;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .task-list-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0;
+            transition: color 0.3s;
+        }
+        .task-list-item input[type="checkbox"] {
+            margin-right: 0.75rem;
+            width: 1.25rem;
+            height: 1.25rem;
+            accent-color: #3b82f6;
+        }
+        .task-list-item.completed > label {
+            text-decoration: line-through;
+            color: #6b7280;
+        }
+        .dark .task-list-item.completed > label {
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body class="dark:bg-gray-900 dark:text-gray-100">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 dark:text-white">互動小說遊戲專案</h1>
+            <p class="text-lg text-gray-600 dark:text-gray-400 mt-2">一份持續更新的動態開發藍圖</p>
+        </header>
+
+        <!-- 頁籤導覽 -->
+        <nav class="flex justify-center border-b border-gray-200 dark:border-gray-700 mb-8">
+            <button class="tab-btn active" data-tab="progress">已完成進度</button>
+            <button class="tab-btn" data-tab="tools">使用工具與服務</button>
+            <button class="tab-btn" data-tab="future">未來開發目標</button>
+        </nav>
+
+        <!-- 頁籤內容 -->
+        <main>
+            <!-- 1. 已完成進度 -->
+            <div id="progress" class="tab-content active animate-fade-in">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-bold mb-4">第一階段：基礎建設 (已完成)</h2>
+                    <ul class="space-y-2">
+                        <li class="task-list-item completed">
+                            <input type="checkbox" id="task1-1" checked disabled>
+                            <label for="task1-1"><strong>專案可行性與架構規劃：</strong>確立遊戲核心玩法、AI 定位，並設計「遊戲引擎 + AI + 資料庫」的核心架構。</label>
+                        </li>
+                        <li class="task-list-item completed">
+                            <input type="checkbox" id="task1-2" checked disabled>
+                            <label for="task1-2"><strong>前端介面設計 (UI)：</strong>逐步迭代並完成了一個功能完整、高互動性的 UI 原型。</label>
+                        </li>
+                        <li class="task-list-item completed ml-8">
+                            <input type="checkbox" id="task1-2-1" checked disabled>
+                            <label for="task1-2-1">實現深/淺色主題與自適應佈局。</label>
+                        </li>
+                         <li class="task-list-item completed ml-8">
+                            <input type="checkbox" id="task1-2-2" checked disabled>
+                            <label for="task1-2-2">實現儀表板資訊欄位的拖曳與收折功能。</label>
+                        </li>
+                         <li class="task-list-item completed ml-8">
+                            <input type="checkbox" id="task1-2-3" checked disabled>
+                            <label for="task1-2-3">新增「數值」、「記憶」、「人脈」、「裝備」等彈出視窗。</label>
+                        </li>
+                         <li class="task-list-item completed ml-8">
+                            <input type="checkbox" id="task1-2-4" checked disabled>
+                            <label for="task1-2-4">新增「在場角色」與「現場氛圍」等即時場景資訊欄位。</label>
+                        </li>
+                        <li class="task-list-item completed">
+                            <input type="checkbox" id="task1-3" checked disabled>
+                            <label for="task1-3"><strong>前端專案模組化：</strong>將單一 HTML 檔案拆分為結構清晰的獨立元件 (HTML/CSS/JS)，為未來開發奠定基礎。</label>
+                        </li>
+                        <li class="task-list-item completed">
+                            <input type="checkbox" id="task1-4" checked disabled>
+                            <label for="task1-4"><strong>資料庫結構設計：</strong>基於「迷霧系統」理念，設計了一套可擴充的 Firebase Firestore 資料結構。</label>
+                        </li>
+                         <li class="task-list-item completed">
+                            <input type="checkbox" id="task1-5" checked disabled>
+                            <label for="task1-5"><strong>後端基礎建設：</strong>使用 Python FastAPI 建立後端專案，並成功部署至 Render 雲端平台。</label>
+                        </li>
+                        <li class="task-list-item completed ml-8">
+                            <input type="checkbox" id="task1-5-1" checked disabled>
+                            <label for="task1-5-1">解決包含路徑、套件依賴、環境變數在內的多項雲端部署問題。</label>
+                        </li>
+                         <li class="task-list-item completed ml-8">
+                            <input type="checkbox" id="task1-5-2" checked disabled>
+                            <label for="task1-5-2">成功實現後端與 Firebase 資料庫的連接。</label>
+                        </li>
+                         <li class="task-list-item completed ml-8">
+                            <input type="checkbox" id="task1-5-3" checked disabled>
+                            <label for="task1-5-3">建立並驗證了資料庫的自動化填充 (Seeding) 與讀取 API。</label>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 2. 使用工具與服務 -->
+            <div id="tools" class="tab-content">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-bold mb-4">技術堆疊與服務列表</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="p-4">類別</th>
+                                    <th class="p-4">工具 / 服務</th>
+                                    <th class="p-4">主要用途</th>
+                                    <th class="p-4">備註</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b dark:border-gray-700">
+                                    <td class="p-4 font-bold">前端</td>
+                                    <td class="p-4">HTML5, CSS3, JavaScript</td>
+                                    <td class="p-4">建構遊戲介面的基礎</td>
+                                    <td class="p-4">採用 ES Module 進行模組化管理。</td>
+                                </tr>
+                                <tr class="border-b dark:border-gray-700">
+                                    <td class="p-4 font-bold"></td>
+                                    <td class="p-4">Tailwind CSS</td>
+                                    <td class="p-4">快速建構 UI 樣式，提供原子化 CSS 框架</td>
+                                    <td class="p-4"></td>
+                                </tr>
+                                <tr class="border-b dark:border-gray-700">
+                                    <td class="p-4 font-bold"></td>
+                                    <td class="p-4">SortableJS</td>
+                                    <td class="p-4">實現儀表板欄位的拖曳功能</td>
+                                    <td class="p-4"></td>
+                                </tr>
+                                 <tr class="border-b dark:border-gray-700">
+                                    <td class="p-4 font-bold">後端</td>
+                                    <td class="p-4">Python</td>
+                                    <td class="p-4">作為後端開發的主要語言</td>
+                                    <td class="p-4"></td>
+                                </tr>
+                                 <tr class="border-b dark:border-gray-700">
+                                    <td class="p-4 font-bold"></td>
+                                    <td class="p-4">FastAPI</td>
+                                    <td class="p-4">高效能的非同步 API 框架</td>
+                                    <td class="p-4"></td>
+                                </tr>
+                                 <tr class="border-b dark:border-gray-700">
+                                    <td class="p-4 font-bold"></td>
+                                    <td class="p-4">Uvicorn</td>
+                                    <td class="p-4">負責啟動並運行 FastAPI 應用程式的伺服器</td>
+                                    <td class="p-4"></td>
+                                </tr>
+                                <tr class="border-b dark:border-gray-700">
+                                    <td class="p-4 font-bold">資料庫</td>
+                                    <td class="p-4">Firebase Firestore</td>
+                                    <td class="p-4">儲存所有遊戲資料，提供即時雲端資料庫服務</td>
+                                    <td class="p-4"></td>
+                                </tr>
+                                <tr class="border-b dark:border-gray-700">
+                                    <td class="p-4 font-bold">部署</td>
+                                    <td class="p-4">Render</td>
+                                    <td class="p-4">託管後端 Python 應用程式的雲端平台</td>
+                                    <td class="p-4"></td>
+                                </tr>
+                                <tr class="border-b dark:border-gray-700">
+                                    <td class="p-4 font-bold"></td>
+                                    <td class="p-4">GitHub</td>
+                                    <td class="p-4">程式碼版本控制與 CI/CD 觸發</td>
+                                    <td class="p-4">Render 會自動從此處拉取最新程式碼部署。</td>
+                                </tr>
+                                <tr class="border-b dark:border-gray-700">
+                                    <td class="p-4 font-bold">核心</td>
+                                    <td class="p-4">大型語言模型 (AI)</td>
+                                    <td class="p-4">動態生成劇情、對話與世界事件</td>
+                                    <td class="p-4 text-gray-500 italic">尚未整合</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. 未來開發目標 -->
+            <div id="future" class="tab-content">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                    <h2 class="text-2xl font-bold mb-4">第二階段：核心玩法實現</h2>
+                     <ul class="space-y-2">
+                        <li class="task-list-item">
+                            <input type="checkbox" id="task2-1">
+                            <label for="task2-1"><strong>前後端串接：</strong>讓前端介面能呼叫後端 API，並動態渲染真實的遊戲資料。</label>
+                        </li>
+                         <li class="task-list-item ml-8">
+                            <input type="checkbox" id="task2-1-1">
+                            <label for="task2-1-1">撰寫 `updateUI(gameState)` 函式，將後端回傳的 JSON 資料填入對應的 HTML 容器中。</label>
+                        </li>
+                        <li class="task-list-item">
+                            <input type="checkbox" id="task2-2">
+                            <label for="task2-2"><strong>核心互動邏輯：</strong>實現玩家選擇選項或手動輸入後，能將指令傳送至後端。</label>
+                        </li>
+                         <li class="task-list-item ml-8">
+                            <input type="checkbox" id="task2-2-1">
+                            <label for="task2-2-1">為前端的選項按鈕和輸入框新增事件監聽器。</label>
+                        </li>
+                         <li class="task-list-item ml-8">
+                            <input type="checkbox" id="task2-2-2">
+                            <label for="task2-2-2">建立後端 API 端點 (例如 `POST /api/v1/game/action`) 來接收玩家的行動指令。</label>
+                        </li>
+                    </ul>
+                </div>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mt-6">
+                    <h2 class="text-2xl font-bold mb-4">第三階段：AI 整合與遊戲迴圈</h2>
+                     <ul class="space-y-2">
+                        <li class="task-list-item">
+                            <input type="checkbox" id="task3-1">
+                            <label for="task3-1"><strong>AI 服務整合：</strong>在後端建立一個服務，專門用來呼叫大型語言模型的 API。</label>
+                        </li>
+                        <li class="task-list-item">
+                            <input type="checkbox" id="task3-2">
+                            <label for="task3-2"><strong>Prompt 工程：</strong>建立一個 Prompt 生成器，能根據當前遊戲狀態（從資料庫讀取）和玩家行動，組裝成一個結構化的指令給 AI。</label>
+                        </li>
+                         <li class="task-list-item">
+                            <input type="checkbox" id="task3-3">
+                            <label for="task3-3"><strong>AI 回應解析：</strong>建立一個解析器，能處理 AI 回傳的 JSON，並根據其中的指令更新資料庫（如：改變好感度、獲得物品、推進時間）。</p>
+                        </li>
+                        <li class="task-list-item">
+                            <input type="checkbox" id="task3-4">
+                            <label for="task3-4"><strong>建立遊戲主迴圈 (Game Loop)：</strong>將「接收行動 -> 呼叫 AI -> 解析回應 -> 更新資料庫 -> 傳送新狀態給前端」的完整流程串接起來。</label>
+                        </li>
+                    </ul>
+                </div>
+                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mt-6">
+                    <h2 class="text-2xl font-bold mb-4">第四階段：深度玩法與擴充</h2>
+                     <ul class="space-y-2">
+                        <li class="task-list-item">
+                            <input type="checkbox" id="task4-1">
+                            <label for="task4-1"><strong>實作「迷霧系統」：</strong>根據資料庫設計，完成 NPC 背景故事和物品鑑定的抽絲剝繭邏輯。</label>
+                        </li>
+                         <li class="task-list-item">
+                            <input type="checkbox" id="task4-2">
+                            <label for="task4-2"><strong>動態世界事件：</strong>設計一個系統，讓 AI 可以主動觸發或創造新的 NPC、任務、甚至地點，並由後端將其永久寫入資料庫。</label>
+                        </li>
+                        <li class="task-list-item">
+                            <input type="checkbox" id="task4-3">
+                            <label for="task4-3"><strong>技能/製作系統：</strong>(可選) 擴充資料庫結構，加入更複雜的遊戲系統。</label>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const contents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function () {
+                    tabs.forEach(item => item.classList.remove('active'));
+                    contents.forEach(item => item.classList.remove('active'));
+
+                    this.classList.add('active');
+                    document.getElementById(this.dataset.tab).classList.add('active');
+                });
+            });
+
+            const taskItems = document.querySelectorAll('.task-list-item');
+            taskItems.forEach(item => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                if (checkbox && !checkbox.disabled) {
+                    // 初始化時根據 checkbox 狀態設定樣式
+                    if (checkbox.checked) {
+                        item.classList.add('completed');
+                    }
+                    
+                    checkbox.addEventListener('change', function() {
+                        item.classList.toggle('completed', this.checked);
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,4 +1,3 @@
-# app/services/seed_service.py
 import datetime
 from app.core.firebase_config import db
 
@@ -25,27 +24,20 @@ class SeedService:
         player_ref.set({
             'name': "阿明",
             'appearance': "一個看起來有些迷茫的年輕人。",
-            'location': "blackstone_village_hut",
-            'status': {
-                'health': 100,
-                'hunger': 80
-            },
-            'attributes': {
-                'strength': 10,
-                'intelligence': 10,
-                'agility': 10,
-                'luck': 10
-            },
-            'faction': {
-                'id': "blackstone_village",
-                'name': "黑石部落",
-                'leader': "石山",
-                'scale': "小型"
-            }
+            'location': "blackstone_village_hut", # 玩家的初始地點 ID
+            'status': { 'health': 100, 'hunger': 80 },
+            'attributes': { 'strength': 10, 'intelligence': 10, 'agility': 10, 'luck': 10 },
+            'faction': { 'id': "blackstone_village", 'name': "黑石部落", 'leader': "石山", 'scale': "小型" }
         })
         print(" -> 玩家資料 (players/player_001) 已寫入。")
         
-        # 3. 可以在這裡新增更多 NPC、物品、任務的初始資料...
+        # --- 新增：寫入地點資料 ---
+        location_ref = db.collection('locations').document('blackstone_village_hut')
+        location_ref.set({
+            "name": "你的茅屋",
+            "description": "一間簡陋但還算乾淨的茅屋，位於黑石部落的邊緣。角落裡有一張鋪著乾草的床。"
+        })
+        print(" -> 地點資料 (locations/blackstone_village_hut) 已寫入。")
         
         print("資料庫填充完畢！")
         return {"status": "success", "message": "Database seeded successfully."}

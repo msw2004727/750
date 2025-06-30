@@ -6,17 +6,19 @@ const PLAYER_ID = 'player_001';
 // 處理後端對行動的回應
 function handleActionResponse(result) {
     console.log("[ACTION] 收到後端回應:", result);
-    const narrativeBox = document.getElementById('narrative-box');
-    if (narrativeBox) {
-        // 先顯示一個即時的反饋訊息
-        narrativeBox.innerHTML += `<p class="text-blue-500 italic mt-4">${result.message}</p>`;
-        narrativeBox.scrollTop = narrativeBox.scrollHeight; // 自動滾動到底部
-    }
 
-    // 未來，我們會用 result.next_gamestate 來全面更新 UI
-    // if (result.next_gamestate) {
-    //     updateUI(result.next_gamestate);
-    // }
+    // 檢查後端是否回傳了下一個遊戲狀態
+    if (result && result.next_gamestate) {
+        // 使用新的遊戲狀態，來全面刷新整個介面！
+        updateUI(result.next_gamestate);
+    } else {
+        // 如果沒有，可能是一個錯誤，顯示在畫面上
+        const narrativeBox = document.getElementById('narrative-box');
+        if (narrativeBox) {
+            narrativeBox.innerHTML += `<p class="text-red-500 italic mt-4">錯誤: ${result.message || '未知的後端回應'}</p>`;
+            narrativeBox.scrollTop = narrativeBox.scrollHeight;
+        }
+    }
 }
 
 export function setupActionListeners() {
@@ -46,6 +48,13 @@ export function setupActionListeners() {
 
         if (actionData) {
             try {
+                // 顯示一個“處理中”的提示
+                const narrativeBox = document.getElementById('narrative-box');
+                if (narrativeBox) {
+                    narrativeBox.innerHTML += `<p class="text-gray-500 italic mt-4">處理中...</p>`;
+                    narrativeBox.scrollTop = narrativeBox.scrollHeight;
+                }
+
                 // 發送行動並等待後端回應
                 const result = await sendPlayerAction(PLAYER_ID, actionData);
                 handleActionResponse(result);

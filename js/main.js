@@ -10,9 +10,16 @@ const PLAYER_ID = 'player_001';
 async function loadComponent(url, containerId, append = false) {
     try {
         const response = await fetch(url);
-        if (!response.ok) throw new Error(`Could not load ${url}`);
+        if (!response.ok) throw new Error(`Could not load ${url} - ${response.statusText}`);
         const text = await response.text();
-        document.getElementById(containerId).innerHTML += append ? text : text;
+        const container = document.getElementById(containerId);
+        if (container) {
+            if (append) {
+                container.innerHTML += text;
+            } else {
+                container.innerHTML = text;
+            }
+        }
     } catch (error) {
         console.error(`載入元件 ${url} 時發生錯誤:`, error);
     }
@@ -42,11 +49,17 @@ async function main() {
     // 3. 獲取初始遊戲狀態並更新畫面
     try {
         const gameState = await fetchGameState(PLAYER_ID);
-        updateUI(gameState);
+        if (gameState) {
+            updateUI(gameState);
+        } else {
+            throw new Error("獲取到的 gameState 為空。");
+        }
     } catch (error) {
         console.error("[MAIN] 初始化遊戲失敗:", error);
-        // 可以在畫面上顯示一個全局的錯誤訊息
-        document.body.innerHTML = `<div class="text-red-500 text-center p-8">遊戲載入失敗，請稍後再試。</div>`;
+        const narrativeBox = document.getElementById('narrative-box');
+        if (narrativeBox) {
+            narrativeBox.innerHTML = `<div class="text-red-500 p-4">遊戲載入失敗，請確認後端伺服器是否正常運行。錯誤訊息: ${error.message}</div>`;
+        }
     }
 
     console.log("[MAIN] 遊戲初始化流程結束。");

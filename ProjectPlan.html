@@ -66,75 +66,56 @@
             <p class="text-lg text-gray-600 dark:text-gray-400 mt-2">一份持續更新的動態開發藍圖</p>
         </header>
 
-        <!-- 頁籤導覽 -->
         <nav class="flex justify-center border-b border-gray-200 dark:border-gray-700 mb-8">
-            <button class="tab-btn active" data-tab="progress">已完成進度</button>
+            <button class="tab-btn active" data-tab="future">未來開發目標</button>
+            <button class="tab-btn" data-tab="progress">已完成進度</button>
             <button class="tab-btn" data-tab="tools">使用工具與服務</button>
-            <button class="tab-btn" data-tab="future">未來開發目標</button>
         </nav>
 
-        <!-- 頁籤內容 -->
         <main>
-            <!-- 1. 已完成進度 -->
-            <div id="progress" class="tab-content active animate-fade-in">
+            <div id="progress" class="tab-content">
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                    <h2 class="text-2xl font-bold mb-4">第一階段：基礎建設 (已完成)</h2>
+                    <h2 class="text-2xl font-bold mb-4">第一、二階段進度 (已完成)</h2>
                     <ul class="space-y-2">
                         <li class="task-list-item completed">
-                            <input type="checkbox" id="task1-1" checked disabled>
-                            <label for="task1-1"><strong>專案可行性與架構規劃：</strong>確立遊戲核心玩法、AI 定位，並設計「遊戲引擎 + AI + 資料庫」的核心架構。</label>
+                            <input type="checkbox" checked disabled><label><strong>專案可行性與架構規劃</strong></label>
                         </li>
                         <li class="task-list-item completed">
-                            <input type="checkbox" id="task1-2" checked disabled>
-                            <label for="task1-2"><strong>前端介面設計 (UI)：</strong>逐步迭代並完成了一個功能完整、高互動性的 UI 原型。</label>
+                            <input type="checkbox" checked disabled><label><strong>前端介面設計 (UI)</strong></label>
                         </li>
                         <li class="task-list-item completed ml-8">
-                            <input type="checkbox" id="task1-2-1" checked disabled>
-                            <label for="task1-2-1">實現深/淺色主題與自適應佈局。</label>
+                            <input type="checkbox" checked disabled><label>實現深/淺色主題與自適應佈局。</label>
                         </li>
                          <li class="task-list-item completed ml-8">
-                            <input type="checkbox" id="task1-2-2" checked disabled>
-                            <label for="task1-2-2">實現儀表板資訊欄位的拖曳與收折功能。</label>
+                            <input type="checkbox" checked disabled><label>實現儀表板資訊欄位的拖曳與收折功能。</label>
                         </li>
                          <li class="task-list-item completed ml-8">
-                            <input type="checkbox" id="task1-2-3" checked disabled>
-                            <label for="task1-2-3">新增「數值」、「記憶」、「人脈」、「裝備」等彈出視窗。</label>
+                            <input type="checkbox" checked disabled><label>新增「數值」、「記憶」、「人脈」、「裝備」等彈出視窗。</label>
                         </li>
                          <li class="task-list-item completed ml-8">
-                            <input type="checkbox" id="task1-2-4" checked disabled>
-                            <label for="task1-2-4">新增「在場角色」與「現場氛圍」等即時場景資訊欄位。</label>
+                            <input type="checkbox" checked disabled><label>新增「在場角色」與「現場氛圍」等即時場景資訊欄位。</label>
                         </li>
                         <li class="task-list-item completed">
-                            <input type="checkbox" id="task1-3" checked disabled>
-                            <label for="task1-3"><strong>前端專案模組化：</strong>將單一 HTML 檔案拆分為結構清晰的獨立元件 (HTML/CSS/JS)，為未來開發奠定基礎。</label>
+                            <input type="checkbox" checked disabled><label><strong>前端專案模組化</strong></label>
                         </li>
                         <li class="task-list-item completed">
-                            <input type="checkbox" id="task1-4" checked disabled>
-                            <label for="task1-4"><strong>資料庫結構設計：</strong>基於「迷霧系統」理念，設計了一套可擴充的 Firebase Firestore 資料結構。</label>
+                            <input type="checkbox" checked disabled><label><strong>資料庫結構設計</strong></label>
                         </li>
                          <li class="task-list-item completed">
-                            <input type="checkbox" id="task1-5" checked disabled>
-                            <label for="task1-5"><strong>後端基礎建設：</strong>使用 Python FastAPI 建立後端專案，並成功部署至 Render 雲端平台。</label>
+                            <input type="checkbox" checked disabled><label><strong>後端基礎建設與雲端部署</strong></label>
                         </li>
-                        <li class="task-list-item completed ml-8">
-                            <input type="checkbox" id="task1-5-1" checked disabled>
-                            <label for="task1-5-1">解決包含路徑、套件依賴、環境變數在內的多項雲端部署問題。</label>
+                        <li class="task-list-item completed">
+                            <input type="checkbox" checked disabled><label><strong>[階段二] 前後端串接：</strong>讓前端能從後端 API 獲取資料並渲染。</label>
                         </li>
-                         <li class="task-list-item completed ml-8">
-                            <input type="checkbox" id="task1-5-2" checked disabled>
-                            <label for="task1-5-2">成功實現後端與 Firebase 資料庫的連接。</label>
-                        </li>
-                         <li class="task-list-item completed ml-8">
-                            <input type="checkbox" id="task1-5-3" checked disabled>
-                            <label for="task1-5-3">建立並驗證了資料庫的自動化填充 (Seeding) 與讀取 API。</label>
+                        <li class="task-list-item completed">
+                            <input type="checkbox" checked disabled><label><strong>[階段二] 核心互動邏輯：</strong>讓前端能將玩家行動傳送至後端。</label>
                         </li>
                     </ul>
                 </div>
             </div>
 
-            <!-- 2. 使用工具與服務 -->
             <div id="tools" class="tab-content">
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
                     <h2 class="text-2xl font-bold mb-4">技術堆疊與服務列表</h2>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
@@ -213,39 +194,13 @@
                 </div>
             </div>
 
-            <!-- 3. 未來開發目標 -->
-            <div id="future" class="tab-content">
+            <div id="future" class="tab-content active">
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-                    <h2 class="text-2xl font-bold mb-4">第二階段：核心玩法實現</h2>
-                     <ul class="space-y-2">
-                        <li class="task-list-item">
-                            <input type="checkbox" id="task2-1">
-                            <label for="task2-1"><strong>前後端串接：</strong>讓前端介面能呼叫後端 API，並動態渲染真實的遊戲資料。</label>
-                        </li>
-                         <li class="task-list-item ml-8">
-                            <input type="checkbox" id="task2-1-1">
-                            <label for="task2-1-1">撰寫 `updateUI(gameState)` 函式，將後端回傳的 JSON 資料填入對應的 HTML 容器中。</label>
-                        </li>
-                        <li class="task-list-item">
-                            <input type="checkbox" id="task2-2">
-                            <label for="task2-2"><strong>核心互動邏輯：</strong>實現玩家選擇選項或手動輸入後，能將指令傳送至後端。</label>
-                        </li>
-                         <li class="task-list-item ml-8">
-                            <input type="checkbox" id="task2-2-1">
-                            <label for="task2-2-1">為前端的選項按鈕和輸入框新增事件監聽器。</label>
-                        </li>
-                         <li class="task-list-item ml-8">
-                            <input type="checkbox" id="task2-2-2">
-                            <label for="task2-2-2">建立後端 API 端點 (例如 `POST /api/v1/game/action`) 來接收玩家的行動指令。</label>
-                        </li>
-                    </ul>
-                </div>
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mt-6">
                     <h2 class="text-2xl font-bold mb-4">第三階段：AI 整合與遊戲迴圈</h2>
                      <ul class="space-y-2">
                         <li class="task-list-item">
                             <input type="checkbox" id="task3-1">
-                            <label for="task3-1"><strong>AI 服務整合：</strong>在後端建立一個服務，專門用來呼叫大型語言模型的 API。</label>
+                            <label for="task3-1"><strong>AI 服務整合：</strong>在後端建立一個服務，專門用來呼叫大型語言模型的 API (例如 OpenAI GPT 或 Google Gemini)。</label>
                         </li>
                         <li class="task-list-item">
                             <input type="checkbox" id="task3-2">
@@ -257,7 +212,7 @@
                         </li>
                         <li class="task-list-item">
                             <input type="checkbox" id="task3-4">
-                            <label for="task3-4"><strong>建立遊戲主迴圈 (Game Loop)：</strong>將「接收行動 -> 呼叫 AI -> 解析回應 -> 更新資料庫 -> 傳送新狀態給前端」的完整流程串接起來。</label>
+                            <label for="task3-4"><strong>建立遊戲主迴圈 (Game Loop)：</strong>將「接收行動 -> 呼叫 AI -> 解析回應 -> 更新資料庫 -> 回傳新狀態給前端」的完整流程串接起來。</label>
                         </li>
                     </ul>
                 </div>
@@ -274,7 +229,7 @@
                         </li>
                         <li class="task-list-item">
                             <input type="checkbox" id="task4-3">
-                            <label for="task4-3"><strong>技能/製作系統：</strong>(可選) 擴充資料庫結構，加入更複雜的遊戲系統。</label>
+                            <label for="task4-3"><strong>擴充後端資料：</strong>讓後端 API 能回傳玩家的裝備、人脈、記憶等詳細資料，以取代前端的假資料。</label>
                         </li>
                     </ul>
                 </div>
@@ -286,7 +241,19 @@
         document.addEventListener('DOMContentLoaded', function () {
             const tabs = document.querySelectorAll('.tab-btn');
             const contents = document.querySelectorAll('.tab-content');
+            const defaultTab = 'future'; // 預設顯示 '未來開發目標'
 
+            // 初始化頁籤狀態
+            tabs.forEach(tab => {
+                const isDefault = tab.dataset.tab === defaultTab;
+                tab.classList.toggle('active', isDefault);
+            });
+            contents.forEach(content => {
+                const isDefault = content.id === defaultTab;
+                content.classList.toggle('active', isDefault);
+            });
+
+            // 頁籤點擊事件
             tabs.forEach(tab => {
                 tab.addEventListener('click', function () {
                     tabs.forEach(item => item.classList.remove('active'));
@@ -297,21 +264,41 @@
                 });
             });
 
+            // 核取方塊點擊事件
             const taskItems = document.querySelectorAll('.task-list-item');
             taskItems.forEach(item => {
                 const checkbox = item.querySelector('input[type="checkbox"]');
-                if (checkbox && !checkbox.disabled) {
-                    // 初始化時根據 checkbox 狀態設定樣式
-                    if (checkbox.checked) {
-                        item.classList.add('completed');
-                    }
+                
+                function applyStyle(cb) {
+                     item.classList.toggle('completed', cb.checked);
+                }
+
+                if (checkbox) {
+                    // 初始化樣式
+                    applyStyle(checkbox);
                     
-                    checkbox.addEventListener('change', function() {
-                        item.classList.toggle('completed', this.checked);
-                    });
+                    if (!checkbox.disabled) {
+                         checkbox.addEventListener('change', function() {
+                            applyStyle(this);
+                        });
+                    }
                 }
             });
         });
     </script>
 </body>
 </html>
+```
+
+---
+
+### 下一步是什麼？
+
+從計畫書上可以清楚看到，我們的下一個重大里程碑是**第三階段：AI 整合與遊戲迴圈**。
+
+這將是為我們的遊戲世界注入「靈魂」的一步。我們將要：
+1.  選擇一個 AI 模型（例如 OpenAI 的 GPT 系列或 Google 的 Gemini 系列）。
+2.  在後端專案中，撰寫呼叫 AI API 的程式碼。
+3.  開始設計我們的核心「Prompt」，也就是我們與 AI 溝通的「咒語」。
+
+準備好後，我們就可以開始這個最令人興奮的部

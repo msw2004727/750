@@ -53,25 +53,33 @@ def generate_prompt(player_data: dict, world_data: dict, location_data: dict, ac
     instruction_section = """
 # 你的任務
 作為一個富有創意的文字冒險遊戲敘事引擎，請根據以上所有情境：
-1.  生成一段生動、符合當前氛圍的故事描述 (story_description)。
-2.  根據新的劇情，為玩家提供 3 個合理且有趣的行動選項 (options)。
-3.  判斷當前場景的整體氛圍 (atmosphere)。
-4.  **[重要]** 根據玩家行動的複雜程度，估算一個合理的流逝時間，並在 `world_changes` 中提供 `time_unit` ("minutes", "hours", "days") 和 `time_amount` (數字)。例如，「環顧四周」可能只需要幾分鐘，「長途旅行」可能需要數小時或數天。
-5.  嚴格按照以下 JSON 格式回傳你的創作，不要包含任何 JSON 格式以外的文字或解釋。
+1.  生成一段生動的故事描述 (story_description)。
+2.  生成 3 個合理的行動選項 (options)。
+3.  判斷場景的整體氛圍 (atmosphere)。
+4.  **[重要]** 根據劇情發展，在 `world_changes` 中描述世界應發生的具體變化。
+    - `time_unit` & `time_amount`: 估算一個合理流逝的時間。
+    - `new_location_id`: 如果玩家移動到了新地點，請提供新地點的 ID。
+    - `items_added`: 如果玩家獲得了物品，請提供物品 ID 和數量。
+    - `items_removed`: 如果玩家失去了物品，請提供物品 ID 和數量。
+5.  嚴格按照以下 JSON 格式回傳你的創作，不要有任何額外解釋。
 
 ```json
 {
-  "story_description": "這裡是你生成的故事描述...",
+  "story_description": "你探索了茅屋，在床下發現了一個破舊的木箱。",
   "options": [
-    "選項一的文字...",
-    "選項二的文字...",
-    "選項三的文字..."
+    "打開木箱",
+    "忽略木箱，直接出門",
+    "把木箱拖到屋外"
   ],
-  "atmosphere": "這裡是你判斷的場景氛圍",
+  "atmosphere": "發現",
   "world_changes": {
     "time_unit": "minutes",
-    "time_amount": 15,
-    "temperature_change": 0
+    "time_amount": 10,
+    "new_location_id": null,
+    "items_added": [
+        { "item_id": "item_wooden_box", "quantity": 1 }
+    ],
+    "items_removed": []
   }
 }
 ```

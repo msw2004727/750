@@ -1,13 +1,13 @@
 # backend/app/services/prompt_generator.py
 import datetime
-from .prompt_templates import MAIN_GAME_INSTRUCTIONS # 從新檔案導入指令模板
+from .prompt_templates import MAIN_GAME_INSTRUCTIONS
 
 def generate_prompt(player_data: dict, world_data: dict, location_data: dict, action_data: dict) -> str:
     """
     根據當前遊戲狀態和玩家行動，組合出完整的 Prompt。
     """
 
-    # --- 1. 組合世界情境 ---
+    # --- 1. 組合世界情境 (包含地點 ID) ---
     current_time_obj = world_data.get('currentTime')
     if isinstance(current_time_obj, datetime.datetime):
         shichen = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"]
@@ -18,12 +18,15 @@ def generate_prompt(player_data: dict, world_data: dict, location_data: dict, ac
         world_time = "時間未知"
 
     location_name = location_data.get('name', '未知地點')
+    # (新) 從 player_data 中獲取當前地點的 ID
+    location_id = player_data.get('location', 'unknown_location')
 
     world_section = f"""
 # 世界情境
 - 世界觀: 中國宋朝
 - 當前時間: {world_time}
-- 當前地點: {location_name}
+- 當前地點名稱: {location_name}
+- (重要) 當前地點 ID: {location_id}
 - 地點描述: {location_data.get('description', '周圍一片模糊。')}
 - 天氣: {world_data.get('currentWeather', '未知')}
 """
@@ -36,10 +39,9 @@ def generate_prompt(player_data: dict, world_data: dict, location_data: dict, ac
 - 玩家行動: 玩家選擇了 '{action_data.get('value')}'
 """
 
-    # --- 3. (新) 組合當前地點的出口資訊 ---
+    # --- 3. 組合當前地點的出口資訊 ---
     connections = location_data.get('connections', [])
     if connections:
-        # 將每個出口的資訊格式化成一行文字
         connections_text = "\n".join([
             f"- {conn.get('path_description', '一條未知的路')} (風險: {conn.get('travel_risk', '未知')}, 耗時: 約 {conn.get('distance', '?')} 分鐘)"
             for conn in connections
@@ -55,8 +57,6 @@ def generate_prompt(player_data: dict, world_data: dict, location_data: dict, ac
 """
 
     # --- 4. 組合最終的 Prompt ---
-    # 將所有部分組合起來，並加入從 templates 導入的指令
-    # 注意: 我們將 connections_section 放在了 player_section 和指令之間
     full_prompt = f"{world_section}\n{player_section}\n{connections_section}\n{MAIN_GAME_INSTRUCTIONS}"
 
     print("----------- GENERATED PROMPT -----------")

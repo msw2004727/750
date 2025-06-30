@@ -14,8 +14,8 @@ MAIN_GAME_INSTRUCTIONS = """
 5.  **[世界演化]** 根據劇情發展，在 `world_changes` 中描述世界應發生的具體變化。
     - `time_unit` & `time_amount`: 估算一個合理流逝的時間。
     - `new_location_id`: 如果玩家移動到了新地點，請提供新地點的 ID。
-    - `items_added`: 如果玩家獲得了物品，請提供物品 ID 和數量。
-    - `items_removed`: 如果玩家失去了物品，請提供物品 ID 和數量。
+    - `items_added`: 如果玩家獲得了物品，請提供一個包含 `{"item_id": "...", "quantity": ...}` 字典的**列表**。
+    - `items_removed`: 如果玩家失去了物品，請提供一個包含 `{"item_id": "...", "quantity": ...}` 字典的**列表**。
     - `status_changes`: 如果玩家的狀態發生變化，請描述。
 6.  **[世界創造 - 可選]** 如果劇情達到關鍵時刻，你可以創造一個全新的元素。如果沒有，請將 `world_creations` 設為 `null`。
     - `new_npc`: 創造一個全新的人物時，除了 `id`, `name`, `title` 外，**必須**包含 `location` 欄位，其值必須使用「世界情境」中提供的「**當前地點 ID**」。
@@ -23,9 +23,9 @@ MAIN_GAME_INSTRUCTIONS = """
 7.  嚴格按照以下 JSON 格式回傳你的創作，不要有任何額外解釋。
 
 ```json
-// --- 普通情況範例 ---
+// --- 普通情況範例 (包含物品增減) ---
 {
-  "story_description": "你在森林中採集草藥，不小心被毒蛇咬傷，但幸運的是，你找到了一株可以解毒的藥草並吃了下去。雖然餘毒未清，但總算保住了性命。",
+  "story_description": "你在森林中採集草藥，不小心被毒蛇咬傷，但幸運的是，你找到了一株[解毒草](item:item_antidote_herb)並吃了下去。雖然餘毒未清，但總算保住了性命。",
   "options": [
     "繼續在附近搜索其他藥草",
     "處理傷口後立刻返回村莊",
@@ -36,8 +36,12 @@ MAIN_GAME_INSTRUCTIONS = """
     "time_unit": "minutes",
     "time_amount": 30,
     "new_location_id": null,
-    "items_added": [],
-    "items_removed": [],
+    "items_added": [
+      { "item_id": "item_antidote_herb", "quantity": 1 }
+    ],
+    "items_removed": [
+      { "item_id": "item_antidote_herb", "quantity": 1 }
+    ],
     "status_changes": {
         "health": -10
     }
@@ -72,5 +76,3 @@ MAIN_GAME_INSTRUCTIONS = """
       }
   }
 }
-```
-"""

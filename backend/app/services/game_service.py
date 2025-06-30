@@ -5,7 +5,7 @@ from app.core.firebase_config import db
 from app.models.action import PlayerAction
 from app.services.ai_service import ai_service
 from app.services.prompt_generator import generate_prompt
-# 從新的 state_manager 導入存檔函式
+# 從 state_manager 導入存檔函式
 from app.services.state_manager import update_game_state_in_transaction
 
 class GameService:
@@ -76,14 +76,12 @@ class GameService:
         
     @staticmethod
     def process_player_action(player_id: str, action: PlayerAction):
-        # 1. 獲取當前狀態
         player_data = GameService.get_player_data(player_id)
         world_data = GameService.get_world_state()
         location_data = GameService.get_location_data(player_data.get('location')) if player_data else {}
         if not all([player_data, world_data, location_data]):
             return {"status": "error", "message": "無法獲取完整的遊戲狀態。"}
 
-        # 2. 判斷玩家行動類型 (移動 vs. 其他)
         chosen_action_value = action.model_dump().get('value', '')
         ai_data_override = None
         for conn in location_data.get('connections', []):
@@ -99,7 +97,6 @@ class GameService:
                 break
         
         try:
-            # 3. 獲取 AI 回應 (或使用移動的預設回應)
             if ai_data_override:
                 ai_data = {
                     "story_description": f"你決定{chosen_action_value}，踏上了新的旅程。",
@@ -113,14 +110,20 @@ class GameService:
                 ai_raw_response = ai_service.generate_narrative(prompt)
                 ai_content_str = ai_raw_response['choices'][0]['message']['content']
                 ai_data = json.loads(ai_content_str)
+            
+            # --- (新) 安全檢查 ---
+            # 檢查 AI 回傳的資料在解析後，是否為我們預期的字典格式
+            if not isinstance(ai_data, dict):
+                # 如果不是，就主動拋出一個我們自訂的錯誤
+                raise TypeError(f"AI 未回傳有效的 JSON 物件。收到的內容: '{str(ai_data)[:100]}...'")
 
-            # 4. 執行狀態更新 (呼叫 state_manager)
+            # 執行狀態更新
             world_changes = ai_data.get("world_changes")
             if world_changes and isinstance(world_changes, dict):
                 transaction = db.transaction()
                 update_game_state_in_transaction(transaction, player_id, world_changes)
 
-            # 5. 處理世界創造
+            # 處理世界創造
             world_creations = ai_data.get("world_creations")
             if world_creations:
                 new_npc_data = world_creations.get("new_npc")
@@ -130,11 +133,15 @@ class GameService:
                         db.collection('npcs').document(npc_id).set(new_npc_data)
                         print(f"[GameService] AI 創造了新的 NPC: {new_npc_data.get('name')}")
 
+        except json.JSONDecodeError:
+             # AI 回傳的不是有效的 JSON 字串
+            return {"status": "error", "message": "AI 回應格式錯誤，無法解析。"}
         except Exception as e:
             traceback.print_exc()
+            # 將其他所有錯誤（包含我們自訂的 TypeError）都回傳給前端
             return {"status": "error", "message": str(e)}
 
-        # 6. 獲取並回傳「更新後」的全新遊戲狀態
+        # 獲取並回傳「更新後」的全新遊戲狀態
         next_gamestate = {
             "player": GameService.get_player_data(player_id),
             "world": GameService.get_world_state(),

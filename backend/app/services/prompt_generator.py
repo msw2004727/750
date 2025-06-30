@@ -62,7 +62,7 @@ def generate_prompt(player_data: dict, world_data: dict, location_data: dict, ac
     - `new_location`: 創造一個全新的地點。請務必為它設定一個獨特的 `id` 和 `name`。
 6.  嚴格按照以下 JSON 格式回傳你的創作，不要有任何額外解釋。
 
-```json
+}
 {
   "story_description": "你探索了茅屋，在床下發現了一個破舊的木箱。",
   "options": [

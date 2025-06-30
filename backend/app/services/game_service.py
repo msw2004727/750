@@ -5,13 +5,11 @@ from app.core.firebase_config import db
 from app.models.action import PlayerAction
 from app.services.ai_service import ai_service
 from app.services.prompt_generator import generate_prompt
-# 從 state_manager 導入存檔函式
 from app.services.state_manager import update_game_state_in_transaction
 
 class GameService:
     @staticmethod
     def get_player_data(player_id: str):
-        # (此函式保持不變，用於讀取並組合前端所需的資料)
         player_ref = db.collection('players').document(player_id)
         player_doc = player_ref.get()
         if not player_doc.exists: return None
@@ -82,40 +80,72 @@ class GameService:
         if not all([player_data, world_data, location_data]):
             return {"status": "error", "message": "無法獲取完整的遊戲狀態。"}
 
-        chosen_action_value = action.model_dump().get('value', '')
-        ai_data_override = None
-        for conn in location_data.get('connections', []):
-            if conn.get('path_description') in chosen_action_value:
-                ai_data_override = {
-                    "world_changes": {
-                        "new_location_id": conn.get('target_location_id'),
-                        "time_amount": conn.get('distance', 10),
-                        "time_unit": "minutes"
-                    }
-                }
-                print(f"[GameService] 偵測到移動指令，目標: {conn.get('target_location_id')}")
-                break
+        action_dict = action.model_dump()
+        action_type = action_dict.get('type')
+        chosen_action_value = action_dict.get('value', '')
+        ai_data = None
         
         try:
-            if ai_data_override:
-                ai_data = {
-                    "story_description": f"你決定{chosen_action_value}，踏上了新的旅程。",
-                    "options": ["繼續前進...", "觀察四周...", "稍作休息..."],
-                    "atmosphere": "旅行",
-                    "world_changes": ai_data_override["world_changes"],
-                    "world_creations": None
-                }
-            else:
-                prompt = generate_prompt(player_data, world_data, location_data, action.model_dump())
-                ai_raw_response = ai_service.generate_narrative(prompt)
-                ai_content_str = ai_raw_response['choices'][0]['message']['content']
-                ai_data = json.loads(ai_content_str)
+            # --- (新) 核心改造：根據行動類型進行分流 ---
+
+            # 情況一：玩家執行了精準的「物品互動」
+            if action_type == 'item_action':
+                target_id = action_dict.get('target_id')
+                item_name = "未知物品" # 預設名稱
+                
+                # 為了在敘述中顯示正確的物品名稱，我們需要查詢一下
+                item_info_doc = db.collection('items').document(target_id).get()
+                if item_info_doc.exists:
+                    item_name = item_info_doc.to_dict().get('name', item_name)
+
+                if chosen_action_value == 'pickup':
+                    ai_data = {
+                        "story_description": f"你撿起了地上的「{item_name}」。",
+                        "options": ["繼續探索", "查看背包"],
+                        "atmosphere": "獲得",
+                        "world_changes": {"items_added": [{"item_id": target_id, "quantity": 1}], "time_amount": 1}
+                    }
+                elif chosen_action_value == 'drop':
+                    ai_data = {
+                        "story_description": f"你將身上的「{item_name}」丟在了地上。",
+                        "options": ["離開這裡", "後悔了，把它撿回來"],
+                        "atmosphere": "平常",
+                        "world_changes": {"items_removed": [{"item_id": target_id, "quantity": 1}], "time_amount": 1}
+                    }
+                elif chosen_action_value == 'examine':
+                     # 對於「查看」，我們需要讓 AI 來生成描述，但這是一個單獨的邏輯，我們先保留框架
+                    ai_data = { "story_description": f"你仔細地端詳著「{item_name}」，但暫時沒看出什麼特別之處。", "options": ["收起來", "繼續研究"], "atmosphere": "觀察" }
             
-            # --- (新) 安全檢查 ---
-            # 檢查 AI 回傳的資料在解析後，是否為我們預期的字典格式
+            # 情況二：玩家執行了傳統的「選項」或「自訂」行動
+            else:
+                # 檢查是否為移動指令
+                is_movement = False
+                for conn in location_data.get('connections', []):
+                    if conn.get('path_description') in chosen_action_value:
+                        ai_data = {
+                            "story_description": f"你決定{chosen_action_value}，踏上了新的旅程。",
+                            "options": ["繼續前進...", "觀察四周...", "稍作休息..."],
+                            "atmosphere": "旅行",
+                            "world_changes": {
+                                "new_location_id": conn.get('target_location_id'),
+                                "time_amount": conn.get('distance', 10),
+                                "time_unit": "minutes"
+                            }
+                        }
+                        is_movement = True
+                        break
+                
+                # 如果不是移動，才呼叫 AI
+                if not is_movement:
+                    prompt = generate_prompt(player_data, world_data, location_data, action_dict)
+                    ai_raw_response = ai_service.generate_narrative(prompt)
+                    ai_content_str = ai_raw_response['choices'][0]['message']['content']
+                    ai_data = json.loads(ai_content_str)
+
+            # --- 後續處理流程不變 ---
+
             if not isinstance(ai_data, dict):
-                # 如果不是，就主動拋出一個我們自訂的錯誤
-                raise TypeError(f"AI 未回傳有效的 JSON 物件。收到的內容: '{str(ai_data)[:100]}...'")
+                raise TypeError(f"AI 或內部邏輯未產生有效的資料結構。")
 
             # 執行狀態更新
             world_changes = ai_data.get("world_changes")
@@ -133,12 +163,8 @@ class GameService:
                         db.collection('npcs').document(npc_id).set(new_npc_data)
                         print(f"[GameService] AI 創造了新的 NPC: {new_npc_data.get('name')}")
 
-        except json.JSONDecodeError:
-             # AI 回傳的不是有效的 JSON 字串
-            return {"status": "error", "message": "AI 回應格式錯誤，無法解析。"}
         except Exception as e:
             traceback.print_exc()
-            # 將其他所有錯誤（包含我們自訂的 TypeError）都回傳給前端
             return {"status": "error", "message": str(e)}
 
         # 獲取並回傳「更新後」的全新遊戲狀態

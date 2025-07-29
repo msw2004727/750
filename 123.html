@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 戰士模型展示</title>
+    <style>
+        /* CSS 基本設定，讓 3D 場景填滿整個視窗 */
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+        /* 3D 畫布 */
+        #c {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        /* 載入提示文字的樣式 */
+        #loading-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2em;
+            transition: opacity 0.5s;
+        }
+        /* 版權資訊的樣式 */
+        #info {
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
+            text-align: center;
+            padding: 5px;
+            background-color: rgba(0, 0, 0, 0.5);
+            font-size: 14px;
+        }
+        a {
+            color: #87ceeb;
+        }
+    </style>
+</head>
+<body>
+    <!-- 3D 渲染的畫布 -->
+    <canvas id="c"></canvas>
+
+    <!-- 載入畫面 -->
+    <div id="loading-screen">
+        <div>⚔️ 載入中，請稍候...</div>
+    </div>
+
+    <!-- 版權資訊 -->
+    <div id="info">
+        模型來源: <a href="https://sketchfab.com/3d-models/knight-girl-d254288d716447829c42609029517173" target="_blank">"Knight Girl"</a> by anastasiaremeslennikova. Licensed under <a href="http://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>.
+    </div>
+
+    <!-- 引入 Three.js 核心函式庫 -->
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.156.1/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.156.1/examples/jsm/"
+        }
+    }
+    </script>
+
+    <!-- 主要的 JavaScript 程式碼 -->
+    <script type="module">
+        // 從 three.js 引入必要的模組
+        import * as THREE from 'three';
+        // 引入讓攝影機可以環繞觀察的控制器
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        // 引入載入 GLTF/GLB 格式模型的載入器
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // --- 主要函式 ---
+        function main() {
+            // 取得畫布元素
+            const canvas = document.querySelector('#c');
+            // 取得載入畫面元素
+            const loadingScreen = document.getElementById('loading-screen');
+
+            // 建立渲染器 (Renderer)，並開啟反鋸齒讓邊緣更平滑
+            const renderer = new THREE.WebGLRenderer({
+                canvas,
+                antialias: true,
+                alpha: true // 允許背景透明
+            });
+
+            // --- 攝影機設定 ---
+            const fov = 45; // 視野角度 (Field of View)
+            const aspect = window.innerWidth / window.innerHeight; // 畫布的長寬比
+            const near = 0.1; // 最近可視距離
+            const far = 100; // 最遠可視距離
+            const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+            camera.position.set(2, 2, 5); // 設定攝影機的初始位置
+
+            // --- 控制器設定 ---
+            const controls = new OrbitControls(camera, canvas);
+            controls.target.set(0, 1, 0); // 讓控制器圍繞著模型的中心點 (y=1 比較符合人形中心)
+            controls.update(); // 更新控制器狀態
+
+            // --- 場景設定 ---
+            const scene = new THREE.Scene();
+            
+            // --- 光照設定 ---
+            // 沒有光，模型會是全黑的
+            {
+                // 1. 環境光 (AmbientLight): 提供一個基礎的、均勻的光源，讓模型暗部不會死黑
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                scene.add(ambientLight);
+
+                // 2. 半球光 (HemisphereLight): 從場景上方和下方發出不同顏色的光，模擬天空和地面的反光
+                const skyColor = 0xB1E1FF;  // 淡藍色天空
+                const groundColor = 0xB97A20; // 棕色地面
+                const intensity = 1;
+                const hemisphereLight = new THREE.HemisphereLight(skyColor, groundColor, intensity);
+                scene.add(hemisphereLight);
+
+                // 3. 定向光 (DirectionalLight): 模擬太陽光，有方向性，可以產生陰影
+                const color = 0xFFFFFF;
+                const dirLight = new THREE.DirectionalLight(color, 2);
+                dirLight.position.set(5, 10, 7.5); // 設定光源方向
+                scene.add(dirLight);
+            }
+
+            // --- 模型載入 ---
+            {
+                // 實例化 GLTF 載入器
+                const gltfLoader = new GLTFLoader();
+                // 模型檔案的 URL
+                const url = 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@master/examples/models/gltf/Knight/Knight.gltf';
+
+                // 開始載入模型
+                gltfLoader.load(url, (gltf) => {
+                    // 當模型成功載入後執行的回呼函式
+                    const root = gltf.scene;
+                    scene.add(root); // 將模型加入到場景中
+
+                    // 隱藏載入畫面
+                    loadingScreen.style.opacity = '0';
+                    loadingScreen.addEventListener('transitionend', () => {
+                        loadingScreen.style.display = 'none';
+                    });
+
+                },
+                // (可選) 載入進度回呼
+                (xhr) => {
+                    console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                },
+                // (可選) 載入錯誤回呼
+                (error) => {
+                    console.error('載入模型時發生錯誤:', error);
+                    loadingScreen.innerText = '😭 模型載入失敗，請檢查網路連線或控制台錯誤訊息。';
+                });
+            }
+
+            // --- 渲染迴圈 ---
+            function render() {
+                // 檢查渲染器的畫布尺寸是否與客戶端尺寸匹配
+                const pixelRatio = window.devicePixelRatio;
+                const width = canvas.clientWidth * pixelRatio | 0;
+                const height = canvas.clientHeight * pixelRatio | 0;
+                const needResize = canvas.width !== width || canvas.height !== height;
+                if (needResize) {
+                    // 如果需要，就重新設定渲染器尺寸和攝影機長寬比
+                    renderer.setSize(width, height, false);
+                    camera.aspect = canvas.clientWidth / canvas.clientHeight;
+                    camera.updateProjectionMatrix();
+                }
+
+                // 透過攝影機渲染場景
+                renderer.render(scene, camera);
+
+                // 請求瀏覽器在下一幀繼續呼叫 render 函式，形成動畫迴圈
+                requestAnimationFrame(render);
+            }
+
+            // 啟動渲染迴圈
+            requestAnimationFrame(render);
+        }
+
+        // 執行主函式
+        main();
+    </script>
+</body>
+</html>

@@ -283,26 +283,20 @@ function findStagingSlotAt(clientX, clientY){
   return -1;
 }
 
-// PC 拖放到暫存區
-document.getElementById('stagingGrid').addEventListener('dragover', (e) => {
+// PC 拖放到暫存區（用 stagingArea 整體接收，事件委派）
+const stagingAreaEl = document.getElementById('stagingArea');
+stagingAreaEl.addEventListener('dragover', (e) => {
   e.preventDefault();
+  e.stopPropagation();
   stagingHighlight(true);
 });
-document.getElementById('stagingGrid').addEventListener('dragleave', () => { stagingHighlight(false); });
-document.getElementById('stagingGrid').addEventListener('drop', (e) => {
-  e.preventDefault();
-  stagingHighlight(false);
-  const key = e.dataTransfer.getData('text/plain');
-  if(key && TILES[key]) addToStaging(key, TILES[key].srcH);
+stagingAreaEl.addEventListener('dragleave', (e) => {
+  // 只在離開整個 stagingArea 時才關閉高亮
+  if(!stagingAreaEl.contains(e.relatedTarget)) stagingHighlight(false);
 });
-// 暫存區也接收整個 stagingArea
-document.getElementById('stagingArea').addEventListener('dragover', (e) => {
+stagingAreaEl.addEventListener('drop', (e) => {
   e.preventDefault();
-  stagingHighlight(true);
-});
-document.getElementById('stagingArea').addEventListener('dragleave', () => { stagingHighlight(false); });
-document.getElementById('stagingArea').addEventListener('drop', (e) => {
-  e.preventDefault();
+  e.stopPropagation();
   stagingHighlight(false);
   const key = e.dataTransfer.getData('text/plain');
   if(key && TILES[key]) addToStaging(key, TILES[key].srcH);
@@ -1506,7 +1500,7 @@ canvas.addEventListener('drop', (e) => {
   const gx = snap(g.gx), gy = snap(g.gy);
   if(!hasBlockAt(gx, gy, currentHeight, null, currentLayer)){
     saveSnapshot();
-    addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:TILES[key].color || key, srcH:TILES[key].srcH, yOffset:0});
+    addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:key, srcH:TILES[key].srcH, yOffset:0});
     draw();
   }
 });

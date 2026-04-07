@@ -220,18 +220,34 @@ function renderStagingCell(idx){
   if(oldLabel) oldLabel.remove();
   if(staging[idx]){
     if(staging[idx].combo){
-      // 組合：顯示第一個素材圖 + 數量標記
-      const first = staging[idx].combo[0];
-      const td = TILES[first.color];
-      if(td){
-        const img = document.createElement('img');
-        const src2 = SOURCES.find(s => s.prefix === first.color.charAt(0));
-        img.src = (src2 ? src2.base : '') + td.file;
-        cell.insertBefore(img, cell.firstChild);
+      // 組合：用 offscreen canvas 畫縮圖快照
+      const combo = staging[idx].combo;
+      const thumbCanvas = document.createElement('canvas');
+      const sz = 40;
+      thumbCanvas.width = sz; thumbCanvas.height = sz;
+      const tctx = thumbCanvas.getContext('2d');
+      tctx.imageSmoothingEnabled = false;
+      // 計算組合邊界
+      let cx1=Infinity,cx2=-Infinity,cy1=Infinity,cy2=-Infinity;
+      for(const t of combo){ cx1=Math.min(cx1,t.dx);cx2=Math.max(cx2,t.dx);cy1=Math.min(cy1,t.dy);cy2=Math.max(cy2,t.dy); }
+      const range = Math.max(cx2-cx1+1, cy2-cy1+1, 1);
+      const tileSize = Math.floor(sz / (range + 0.5));
+      const ox = sz/2, oy = sz*0.3;
+      for(const t of combo){
+        const ti = tileImages[t.color];
+        if(!ti) continue;
+        const rx = (t.dx - (cx1+cx2)/2) * tileSize * 0.5;
+        const ry = (t.dy - (cy1+cy2)/2) * tileSize * 0.5;
+        const px = ox + (rx - ry);
+        const py = oy + (rx + ry) * 0.5;
+        tctx.drawImage(ti, px - tileSize/2, py - tileSize/2, tileSize, tileSize);
       }
+      const img = document.createElement('img');
+      img.src = thumbCanvas.toDataURL();
+      cell.insertBefore(img, cell.firstChild);
       const lbl = document.createElement('span');
       lbl.className = 'staging-label';
-      lbl.textContent = staging[idx].combo.length + '組';
+      lbl.textContent = combo.length + '組';
       cell.appendChild(lbl);
     } else {
       const td = TILES[staging[idx].color];

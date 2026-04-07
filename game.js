@@ -1313,7 +1313,7 @@ function _showCtxMenu(x, y, items){
     const btn = document.createElement('div');
     btn.className = 'ctx-item';
     btn.textContent = item.label;
-    btn.addEventListener('click', () => { _hideCtxMenu(); item.action(); });
+    btn.addEventListener('click', () => { _hideCtxMenu(item.keepPanel ? false : true); item.action(); });
     menu.appendChild(btn);
   }
   document.body.appendChild(menu);
@@ -1321,9 +1321,9 @@ function _showCtxMenu(x, y, items){
   setTimeout(() => document.addEventListener('click', _hideCtxMenu, {once:true}), 10);
 }
 
-function _hideCtxMenu(){
+function _hideCtxMenu(alsoCloseProperty){
   if(S.ctxMenu){ S.ctxMenu.remove(); S.ctxMenu = null; }
-  _hidePropertyPanel();
+  if(alsoCloseProperty !== false) _hidePropertyPanel();
 }
 
 // ── Property panel for selected block ──
@@ -1458,7 +1458,7 @@ function onCtx(e){
     }});
   }
 
-  items.push({label:'選取物件', action:() => {
+  items.push({label:'選取物件', keepPanel: true, action:() => {
     _showPropertyPanel(hit, e.clientX, e.clientY);
   }});
 

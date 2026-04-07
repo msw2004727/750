@@ -7,7 +7,7 @@ import { saveSnapshot } from './history.js';
 import { triggerShake } from './renderer.js';
 import { stagingHighlight, findStagingSlotAt, addToStaging } from './staging.js';
 import { getRectLineCells, computeFillPreview } from './tools.js';
-import { mousePos, hitTest } from './hitTest.js';
+import { mousePos, hitTest, hitTestAll } from './hitTest.js';
 import { onCtx } from './contextMenu.js';
 import { minimapBounds, minimapToGrid } from './minimap.js';
 
@@ -68,6 +68,21 @@ export function onDown(e){
     _mmLastX = pos.x;
     _mmLastY = pos.y;
     return;
+  }
+
+  // Auto-select: click any block → switch to its height+layer
+  if(S.autoSelectMode){
+    const anyHit = hitTestAll(pos.x, pos.y);
+    if(anyHit){
+      S.currentHeight = anyHit.gz;
+      S.currentLayer = anyHit.layer;
+      document.getElementById('heightNum').textContent = S.currentHeight;
+      document.getElementById('layerNum').textContent = S.currentLayer;
+      S.autoSelectMode = false;
+      document.getElementById('chkAutoSelect').checked = false;
+      draw();
+      return;
+    }
   }
 
   const hit = hitTest(pos.x, pos.y);

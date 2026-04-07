@@ -33,3 +33,16 @@ export function hitTest(mx, my){
   }
   return null;
 }
+
+// Hit test across ALL heights and layers (for auto-select mode)
+export function hitTestAll(mx, my){
+  // Sort front-to-back: higher draw order = check first
+  const sorted = [...world.blocks].sort((a,b) => {
+    return (b.gx+b.gy)*100+b.gz - ((a.gx+a.gy)*100+a.gz);
+  });
+  for(const b of sorted){
+    const p = toScreen(b.gx, b.gy, b.gz);
+    if(_pointInCube(mx, my, p.x, p.y)) return b;
+  }
+  return null;
+}

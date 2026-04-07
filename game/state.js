@@ -36,11 +36,12 @@ export const S = {
 
   // Display toggles
   showCoords: false, showGrid: false, showVGrid: false,
-  showHover: false, showMinimap: false,
+  showHover: false, showMinimap: false, showLayerInfo: false,
   hoverBlock: null,
 
   // Tool modes
   selectMode: false, locateMode: false, copyMode: false,
+  autoSelectMode: false,
   brushMode: false, eraserMode: false,
   fillMode: false, rectMode: false, lineMode: false,
 

@@ -141,6 +141,25 @@ export function drawCube(gx, gy, gz, color, hl, block){
     ctx.fillStyle = '#fff';
     ctx.fillText(label, x, cy2);
   }
+
+  if(S.showLayerInfo && block){
+    const fontSize = Math.max(8, 10 * camera.zoom);
+    ctx.font = `bold ${fontSize}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const lx = x, ly = y - ch + th * 0.5;
+    // Background pill
+    const text = `H${gz} L${block.layer}`;
+    const tw2 = ctx.measureText(text).width;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.beginPath();
+    ctx.roundRect(lx - tw2/2 - 3, ly - fontSize/2 - 2, tw2 + 6, fontSize + 4, 3);
+    ctx.fill();
+    // Color by layer
+    const colors = ['#6af','#f8a','#af6','#fa6','#a6f','#6fa'];
+    ctx.fillStyle = colors[block.layer % colors.length];
+    ctx.fillText(text, lx, ly);
+  }
 }
 
 // ── Draw ghost preview ──

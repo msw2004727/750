@@ -48,11 +48,12 @@ const S = {
 
   // Display toggles
   showCoords: false, showGrid: false, showVGrid: false,
-  showHover: false, showMinimap: false,
+  showHover: false, showMinimap: false, showLayerInfo: false,
   hoverBlock: null,
 
   // Tool modes
   selectMode: false, locateMode: false, copyMode: false,
+  autoSelectMode: false,
   brushMode: false, eraserMode: false,
   fillMode: false, rectMode: false, lineMode: false,
 
@@ -1095,6 +1096,25 @@ function drawCube(gx, gy, gz, color, hl, block){
     ctx.fillStyle = '#fff';
     ctx.fillText(label, x, cy2);
   }
+
+  if(S.showLayerInfo && block){
+    const fontSize = Math.max(8, 10 * camera.zoom);
+    ctx.font = `bold ${fontSize}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const lx = x, ly = y - ch + th * 0.5;
+    // Background pill
+    const text = `H${gz} L${block.layer}`;
+    const tw2 = ctx.measureText(text).width;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.beginPath();
+    ctx.roundRect(lx - tw2/2 - 3, ly - fontSize/2 - 2, tw2 + 6, fontSize + 4, 3);
+    ctx.fill();
+    // Color by layer
+    const colors = ['#6af','#f8a','#af6','#fa6','#a6f','#6fa'];
+    ctx.fillStyle = colors[block.layer % colors.length];
+    ctx.fillText(text, lx, ly);
+  }
 }
 
 // ── Draw ghost preview ──
@@ -1258,6 +1278,19 @@ function _pointInCube(px, py, bx, by){
 function hitTest(mx, my){
   const filtered = world.blocks.filter(b => b.gz === S.currentHeight && b.layer === S.currentLayer);
   const sorted = filtered.sort((a,b) => {
+    return (b.gx+b.gy)*100+b.gz - ((a.gx+a.gy)*100+a.gz);
+  });
+  for(const b of sorted){
+    const p = toScreen(b.gx, b.gy, b.gz);
+    if(_pointInCube(mx, my, p.x, p.y)) return b;
+  }
+  return null;
+}
+
+// Hit test across ALL heights and layers (for auto-select mode)
+function hitTestAll(mx, my){
+  // Sort front-to-back: higher draw order = check first
+  const sorted = [...world.blocks].sort((a,b) => {
     return (b.gx+b.gy)*100+b.gz - ((a.gx+a.gy)*100+a.gz);
   });
   for(const b of sorted){
@@ -1753,6 +1786,21 @@ function onDown(e){
     _mmLastX = pos.x;
     _mmLastY = pos.y;
     return;
+  }
+
+  // Auto-select: click any block → switch to its height+layer
+  if(S.autoSelectMode){
+    const anyHit = hitTestAll(pos.x, pos.y);
+    if(anyHit){
+      S.currentHeight = anyHit.gz;
+      S.currentLayer = anyHit.layer;
+      document.getElementById('heightNum').textContent = S.currentHeight;
+      document.getElementById('layerNum').textContent = S.currentLayer;
+      S.autoSelectMode = false;
+      document.getElementById('chkAutoSelect').checked = false;
+      draw();
+      return;
+    }
   }
 
   const hit = hitTest(pos.x, pos.y);
@@ -2745,6 +2793,8 @@ document.getElementById('chkHover').addEventListener('change', (e) => { S.showHo
 document.getElementById('chkGrid').addEventListener('change', (e) => { S.showGrid = e.target.checked; draw(); });
 document.getElementById('chkVGrid').addEventListener('change', (e) => { S.showVGrid = e.target.checked; draw(); });
 document.getElementById('chkCoord').addEventListener('change', (e) => { S.showCoords = e.target.checked; draw(); });
+document.getElementById('chkLayerInfo').addEventListener('change', (e) => { S.showLayerInfo = e.target.checked; draw(); });
+document.getElementById('chkAutoSelect').addEventListener('change', (e) => { S.autoSelectMode = e.target.checked; });
 
 // ── Home button ──
 document.getElementById('homeBtn').addEventListener('click', () => {
@@ -2783,53 +2833,68 @@ const helpHTML = `
 <kbd>複製</kbd> 複製到相鄰空位 | <kbd>放入暫存</kbd> 存到暫存區<br>
 <kbd>組合放入暫存</kbd>（需先選取多個）| <kbd>刪除</kbd>
 
-<h3>工具箱（互斥）</h3>
-<kbd>筆刷</kbd> — 點素材選為筆刷，畫布上點擊/拖曳連續放置<br>
-<kbd>橡皮擦</kbd> — 點擊/拖曳連續刪除<br>
-<kbd>填充</kbd> — 游標移動顯示預覽，點擊確認填充（上限 500 格）<br>
-<kbd>矩形</kbd> — 按住拖曳畫矩形範圍，放開填充<br>
-<kbd>線段</kbd> — 按住拖曳畫線段路線，放開填充
+<h3>工具箱（互斥，同時只能開一個）</h3>
+<kbd>筆刷</kbd> — 先點素材選為筆刷，再在畫布上點擊/拖曳連續放置<br>
+<kbd>橡皮擦</kbd> — 點擊/拖曳連續刪除當前高度+圖層的方塊<br>
+<kbd>填充</kbd> — 游標移動顯示半透明預覽，點擊確認填充（上限 500 格）<br>
+<kbd>矩形</kbd> — 按住拖曳畫出矩形範圍，放開後填充整個矩形<br>
+<kbd>線段</kbd> — 按住拖曳畫出直線路徑，放開後沿線填充
+
+<h3>快捷類</h3>
+<kbd>選取</kbd> — 取代 Shift 鍵，點擊方塊高亮相連群組，拖曳空白處框選<br>
+<kbd>定位</kbd> — 點擊畫布上的方塊，自動跳到素材面板對應位置<br>
+<kbd>複製</kbd> — 取代 Ctrl 鍵，拖曳方塊產生副本<br>
+<kbd>自動選取</kbd> — 點擊任意方塊，自動切換到該方塊的高度+圖層
+
+<h3>顯示類</h3>
+<kbd>懸停</kbd> — 滑鼠移到方塊上時反白高亮<br>
+<kbd>格線</kbd> — 顯示各高度的水平等距格線，當前高度加亮<br>
+<kbd>立體</kbd> — 顯示垂直高度線和刻度標籤<br>
+<kbd>格線</kbd>+<kbd>立體</kbd> 同時勾選 → 當前高度顯示 3D 立體方格效果<br>
+<kbd>座標</kbd> — 在每個方塊上顯示 gx,gy 座標<br>
+<kbd>小地圖</kbd> — 右下角等距縮覽圖，可點擊/拖曳平移視角<br>
+<kbd>圖層標示</kbd> — 在每個方塊上顯示 H(高度) L(圖層) 標籤，顏色依圖層區分
+
+<h3>隱藏高度</h3>
+<kbd>下拉選單</kbd> — 選擇要操作的高度層<br>
+<kbd>隱藏/顯示</kbd> — 切換選中高度層的可見性<br>
+<kbd>全部顯示</kbd> — 一鍵恢復所有隱藏的高度層和圖層
 
 <h3>選取與整組操作</h3>
-<kbd>Shift</kbd>+<kbd>點擊</kbd> — 高亮相鄰方塊群組<br>
-<kbd>Shift</kbd>+<kbd>拖曳</kbd> — 框選區域<br>
+<kbd>Shift</kbd>+<kbd>點擊</kbd> — 高亮相鄰方塊群組（flood fill 連通）<br>
+<kbd>Shift</kbd>+<kbd>拖曳</kbd> — 框選矩形區域內的方塊<br>
 拖曳高亮方塊 — 整組移動<br>
-<kbd>Ctrl+C</kbd> / <kbd>Ctrl+V</kbd> — 複製/貼上選取<br>
+<kbd>Ctrl+C</kbd> / <kbd>Ctrl+V</kbd> — 複製/貼上選取組<br>
 點擊空白 — 取消高亮
 
 <h3>暫存區（左側 9 格）</h3>
 從素材面板或畫布拖曳到暫存區存放<br>
-點擊暫存格 — 放到畫面中央<br>
+相同素材自動堆疊（顯示 x2, x3...）<br>
+點擊暫存格 — 放到畫面中央（堆疊時數量 -1）<br>
 拖曳暫存格 — 放到指定位置<br>
-<kbd>✕</kbd> 清除該格
+<kbd>✕</kbd> 清除該格 | 手機雙擊 — 清除該格
 
 <h3>高度與圖層</h3>
-<kbd>高度 ▲▼</kbd> — 垂直高度（-5 ~ +5）<br>
-<kbd>圖層 ▲▼</kbd> — 重疊圖層（0 ~ 5）<br>
-<kbd>隱藏高度</kbd> — 隱藏/顯示指定高度層<br>
+<kbd>高度 ▲▼</kbd> — 切換垂直高度（-5 ~ +5）<br>
+<kbd>圖層 ▲▼</kbd> — 切換重疊圖層（0 ~ 5）<br>
 只能操作當前高度 + 圖層的方塊
 
-<h3>顯示類</h3>
-<kbd>懸停</kbd> 反白 | <kbd>座標</kbd> 顯示座標 | <kbd>小地圖</kbd> 右下縮覽<br>
-<kbd>格線</kbd> 水平格線 | <kbd>立體</kbd> 垂直格線<br>
-同時勾選格線 + 立體 → 3D 立體方格效果
-
 <h3>素材面板</h3>
-四組來源：Scrabling / Jumpstart / 3232iso / Strategy<br>
+五組來源：Scrabling / Jumpstart / 3232iso / Strategy / Medieval<br>
+類別下拉選「全部」可一次顯示該來源所有素材<br>
 <kbd>搜尋</kbd> — 輸入關鍵字篩選全部素材（檔名或編號）<br>
-點擊素材 — 放入暫存區 | 拖曳素材 — 直接放到畫布或暫存區
+點擊素材 — 放到畫面中央 | 拖曳素材 — 放到畫布或暫存區
 
 <h3>範本</h3>
 高亮 2+ 方塊 → <kbd>儲存</kbd> → 命名<br>
-選範本 → <kbd>放置</kbd> → 一鍵放入
+選範本 → <kbd>放置</kbd> → 一鍵放入 | <kbd>刪除</kbd> → 移除範本
 
 <h3>檔案操作</h3>
 <kbd>Ctrl+Z</kbd> 返回 | <kbd>Ctrl+Y</kbd> 復原<br>
-<kbd>儲存</kbd> JSON | <kbd>載入</kbd> JSON | <kbd>匯出圖</kbd> PNG<br>
-<kbd>原點</kbd> 回到 (0,0) | <kbd>清除全部</kbd>
-
-<h3>快捷類（取代鍵盤修飾鍵）</h3>
-<kbd>選取</kbd> 取代 Shift | <kbd>複製</kbd> 取代 Ctrl | <kbd>定位</kbd> 點方塊跳到素材面板
+<kbd>儲存</kbd> — 覆蓋存到瀏覽器（開啟時自動載入）<br>
+<kbd>另存</kbd> — 下載新 JSON 檔案<br>
+<kbd>載入</kbd> — 從 JSON 檔案讀取 | <kbd>匯出圖</kbd> — 下載 PNG 截圖<br>
+<kbd>原點</kbd> — 回到 (0,0) | <kbd>清除全部</kbd> — 刪除所有方塊
 
 <h3>手機操作</h3>
 單指拖曳方塊 — 移動 | 單指空白處 — 平移<br>

@@ -4,7 +4,7 @@ import { addBlock, removeBlock, shRemove, shAdd } from './spatialHash.js';
 import { saveSnapshot } from './history.js';
 import { triggerShake } from './renderer.js';
 import { addToStaging } from './staging.js';
-import { mousePos, hitTest } from './hitTest.js';
+import { mousePos, hitTest, hitTestAll } from './hitTest.js';
 
 let _ctxDismiss = null;
 function _showCtxMenu(x, y, items){
@@ -104,6 +104,11 @@ function _showPropertyPanel(block, cx, cy){
   function _updateBlock(){
     document.getElementById('_prop_高度').textContent = block.gz;
     document.getElementById('_prop_圖層').textContent = block.layer;
+    // Auto-switch to the block's new height+layer
+    S.currentHeight = block.gz;
+    S.currentLayer = block.layer;
+    document.getElementById('heightNum').textContent = S.currentHeight;
+    document.getElementById('layerNum').textContent = S.currentLayer;
   }
 
   _makeRow('高度', block.gz,
@@ -125,11 +130,25 @@ function _showPropertyPanel(block, cx, cy){
   document.body.appendChild(panel);
   _propPanel = panel;
 
-  // Click outside to close
+  // Click outside: auto-select clicked block or close
   setTimeout(() => {
     document.addEventListener('mousedown', function _outsideClick(e2){
       if(_propPanel && !_propPanel.contains(e2.target)){
         document.removeEventListener('mousedown', _outsideClick);
+        // Check if clicked another block → auto-select it
+        const r = canvas.getBoundingClientRect();
+        const mx = e2.clientX - r.left, my = e2.clientY - r.top;
+        if(e2.clientX >= r.left && e2.clientX <= r.right && e2.clientY >= r.top && e2.clientY <= r.bottom){
+          const nextHit = hitTestAll(mx, my);
+          if(nextHit){
+            _showPropertyPanel(nextHit, e2.clientX, e2.clientY);
+            S.currentHeight = nextHit.gz;
+            S.currentLayer = nextHit.layer;
+            document.getElementById('heightNum').textContent = S.currentHeight;
+            document.getElementById('layerNum').textContent = S.currentLayer;
+            return;
+          }
+        }
         _hidePropertyPanel();
       }
     });
@@ -174,7 +193,7 @@ export function onCtx(e){
     }});
   }
 
-  items.push({label:'選取物件', keepPanel: true, action:() => {
+  items.push({label:'更改層級', keepPanel: true, action:() => {
     _showPropertyPanel(hit, e.clientX, e.clientY);
   }});
 

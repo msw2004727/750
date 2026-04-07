@@ -119,34 +119,4 @@ canvas.addEventListener('touchend', (e) => {
   S.lastTapTime = now;
 });
 
-// ── Document-level touch pan (swipe anywhere outside canvas to pan view) ──
-// Works on toolbar, palette, empty space — anywhere except canvas itself.
-// Uses 8px threshold to distinguish tap from swipe.
-let _docPan = null; // {startX, startY, camX0, camY0, active}
-document.addEventListener('touchstart', (e) => {
-  if(e.touches.length !== 1) return;
-  const t = e.target;
-  // Skip canvas (has its own handlers) and form controls
-  if(t === canvas || t.closest('canvas')) return;
-  if(t.closest('button,input,select,.hl-btn,.help-modal,.staging-del')) return;
-  const touch = e.touches[0];
-  _docPan = { startX: touch.clientX, startY: touch.clientY, camX0: camera.x, camY0: camera.y, active: false };
-}, {passive:true});
-
-document.addEventListener('touchmove', (e) => {
-  if(!_docPan) return;
-  if(e.touches.length !== 1){ _docPan = null; return; }
-  const touch = e.touches[0];
-  const dx = touch.clientX - _docPan.startX;
-  const dy = touch.clientY - _docPan.startY;
-  if(!_docPan.active){
-    if(Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-    _docPan.active = true;
-  }
-  e.preventDefault();
-  camera.x = _docPan.camX0 + dx;
-  camera.y = _docPan.camY0 + dy;
-  draw();
-}, {passive:false});
-
-document.addEventListener('touchend', () => { _docPan = null; });
+// Mobile pan: canvas only (no document-level pan)

@@ -318,7 +318,8 @@ function getShakeOff(block){
 function drawCube(gx, gy, gz, color, hl, block){
   const p = toScreen(gx, gy, gz);
   const sh = getShakeOff(block);
-  const x = p.x + sh.sx, y = p.y + sh.sy;
+  const yOff = (block && block.yOffset || 0) * (CUBE_H * zoom / 5);
+  const x = p.x + sh.sx, y = p.y + sh.sy - yOff;
   const tw = TW * zoom, th = TH * zoom, ch = CUBE_H * zoom;
 
   const tileImg = tileImages[color];
@@ -838,6 +839,18 @@ function onUp(){
 
 function onWheel(e){
   e.preventDefault();
+  // 拖曳中滾輪：微調素材高度（1/5 格）
+  if(dragBlock && !dragBlock._copyMode){
+    const dir = e.deltaY < 0 ? 1 : -1;
+    const cur = dragBlock.yOffset || 0;
+    const next = Math.max(0, Math.min(5, cur + dir));
+    if(next !== cur){
+      dragBlock.yOffset = next;
+      draw();
+    }
+    return;
+  }
+  // 一般滾輪：縮放
   const pos = mousePos(e);
   const before = toGrid(pos.x, pos.y);
   const delta = e.deltaY > 0 ? 0.9 : 1.1;

@@ -915,48 +915,78 @@ function draw(){
   ctx.fillText(`${visible.length}/${blocks.length} blocks`, W - 8, H - 8);
   ctx.globalAlpha = 1;
 
-  // 小地圖
-  if(showMinimap && blocks.length > 0){
-    const mmW = 120, mmH = 90, mmX = W - mmW - 8, mmY = H - mmH - 22;
-    ctx.fillStyle = 'rgba(20,20,40,0.8)';
+  // 小地圖（正交俯瞰，可點擊跳轉）
+  if(showMinimap){
+    const mmW = 140, mmH = 100, mmX = W - mmW - 8, mmY = H - mmH - 22;
+    ctx.save();
+    ctx.fillStyle = 'rgba(15,15,30,0.85)';
     ctx.fillRect(mmX, mmY, mmW, mmH);
-    ctx.strokeStyle = '#555';
+    ctx.strokeStyle = '#444';
     ctx.lineWidth = 1;
     ctx.strokeRect(mmX, mmY, mmW, mmH);
-    // 計算方塊邊界
-    let bx1=Infinity,bx2=-Infinity,by1=Infinity,by2=-Infinity;
-    for(const b of blocks){ bx1=Math.min(bx1,b.gx);bx2=Math.max(bx2,b.gx);by1=Math.min(by1,b.gy);by2=Math.max(by2,b.gy); }
-    const range = Math.max(bx2-bx1+2, by2-by1+2, 4);
-    const scale2 = Math.min(mmW, mmH) / range * 0.8;
-    const ox = mmX + mmW/2, oy = mmY + mmH/2;
-    const cx2 = (bx1+bx2)/2, cy2 = (by1+by2)/2;
-    // 畫方塊點
-    for(const b of blocks){
-      const rx = (b.gx-cx2)*scale2, ry = (b.gy-cy2)*scale2;
-      const px = ox + (rx-ry)*0.7, py = oy + (rx+ry)*0.35 - b.gz*2;
-      ctx.fillStyle = b.gz === currentHeight ? '#8af' : '#456';
-      ctx.fillRect(px-1, py-1, 2, 2);
-    }
-    // 視窗框（四角等距菱形）
+
+    // 計算範圍：包含所有方塊 + 當前視窗
     const vr2 = getVisibleRange();
-    const corners2 = [
-      [vr2.minGx, vr2.minGy], [vr2.maxGx, vr2.minGy],
-      [vr2.maxGx, vr2.maxGy], [vr2.minGx, vr2.maxGy]
-    ];
-    ctx.strokeStyle = 'rgba(180,200,255,0.5)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for(let ci=0; ci<4; ci++){
-      const [cgx,cgy] = corners2[ci];
-      const rx = (cgx-cx2)*scale2, ry = (cgy-cy2)*scale2;
-      const ppx = ox + (rx-ry)*0.7, ppy = oy + (rx+ry)*0.35;
-      if(ci===0) ctx.moveTo(ppx, ppy); else ctx.lineTo(ppx, ppy);
+    let bx1 = vr2.minGx, bx2 = vr2.maxGx, by1 = vr2.minGy, by2 = vr2.maxGy;
+    for(const b of blocks){
+      bx1 = Math.min(bx1, b.gx); bx2 = Math.max(bx2, b.gx);
+      by1 = Math.min(by1, b.gy); by2 = Math.max(by2, b.gy);
     }
-    ctx.closePath();
-    ctx.stroke();
-    // 邊界框
-    ctx.strokeStyle = 'rgba(100,120,160,0.3)';
-    ctx.strokeRect(mmX, mmY, mmW, mmH);
+    bx1 -= 2; bx2 += 2; by1 -= 2; by2 += 2;
+    const rangeX = bx2 - bx1 || 1, rangeY = by2 - by1 || 1;
+    const sc = Math.min((mmW - 8) / rangeX, (mmH - 8) / rangeY);
+    const ox = mmX + mmW/2, oy = mmY + mmH/2;
+    const midX = (bx1+bx2)/2, midY = (by1+by2)/2;
+
+    // 裁切到小地圖範圍
+    ctx.beginPath();
+    ctx.rect(mmX, mmY, mmW, mmH);
+    ctx.clip();
+
+    // 格子背景
+    ctx.fillStyle = 'rgba(40,50,70,0.5)';
+    for(let gx = Math.floor(bx1); gx <= Math.ceil(bx2); gx++){
+      for(let gy = Math.floor(by1); gy <= Math.ceil(by2); gy++){
+        if((gx+gy)%2 === 0){
+          ctx.fillRect(ox + (gx-midX)*sc - sc/2, oy + (gy-midY)*sc - sc/2, sc, sc);
+        }
+      }
+    }
+
+    // 方塊
+    for(const b of blocks){
+      const px = ox + (b.gx - midX) * sc;
+      const py = oy + (b.gy - midY) * sc;
+      const s = Math.max(2, sc * 0.8);
+      if(b.gz === currentHeight && b.layer === currentLayer){
+        ctx.fillStyle = '#6af';
+      } else if(b.gz === currentHeight){
+        ctx.fillStyle = '#48a';
+      } else {
+        ctx.fillStyle = '#345';
+      }
+      ctx.fillRect(px - s/2, py - s/2, s, s);
+    }
+
+    // 視窗框
+    const vx1 = ox + (vr2.minGx - midX) * sc;
+    const vy1 = oy + (vr2.minGy - midY) * sc;
+    const vx2 = ox + (vr2.maxGx - midX) * sc;
+    const vy2 = oy + (vr2.maxGy - midY) * sc;
+    ctx.strokeStyle = 'rgba(255,220,100,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(vx1, vy1, vx2-vx1, vy2-vy1);
+
+    // 原點標記
+    const o0x = ox + (0 - midX) * sc;
+    const o0y = oy + (0 - midY) * sc;
+    ctx.fillStyle = 'rgba(255,100,100,0.7)';
+    ctx.fillRect(o0x-2, o0y-2, 4, 4);
+
+    ctx.restore();
+
+    // 儲存小地圖參數供點擊跳轉用
+    window._mm = {mmX, mmY, mmW, mmH, midX, midY, sc, ox, oy};
   }
 }
 
@@ -1044,6 +1074,21 @@ function hitTest(mx, my){
 function onDown(e){
   e.preventDefault();
   const pos = mousePos(e);
+
+  // 小地圖點擊跳轉
+  if(showMinimap && window._mm){
+    const mm = window._mm;
+    if(pos.x >= mm.mmX && pos.x <= mm.mmX+mm.mmW && pos.y >= mm.mmY && pos.y <= mm.mmY+mm.mmH){
+      const tgx = mm.midX + (pos.x - mm.ox) / mm.sc;
+      const tgy = mm.midY + (pos.y - mm.oy) / mm.sc;
+      const cp = toScreen(tgx, tgy, currentHeight);
+      camX += W/2 - cp.x;
+      camY += H/2 - cp.y;
+      draw();
+      return;
+    }
+  }
+
   const hit = hitTest(pos.x, pos.y);
 
   // 定位模式：跳到素材位置

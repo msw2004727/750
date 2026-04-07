@@ -1527,15 +1527,64 @@ function onDbl(e){
   }
 }
 
+// 右鍵選單
+let ctxMenu = null;
+function showCtxMenu(x, y, items){
+  hideCtxMenu();
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+  for(const item of items){
+    const btn = document.createElement('div');
+    btn.className = 'ctx-item';
+    btn.textContent = item.label;
+    btn.addEventListener('click', () => { hideCtxMenu(); item.action(); });
+    menu.appendChild(btn);
+  }
+  document.body.appendChild(menu);
+  ctxMenu = menu;
+  setTimeout(() => document.addEventListener('click', hideCtxMenu, {once:true}), 10);
+}
+function hideCtxMenu(){
+  if(ctxMenu){ ctxMenu.remove(); ctxMenu = null; }
+}
+
 function onCtx(e){
   e.preventDefault();
   const pos = mousePos(e);
   const hit = hitTest(pos.x, pos.y);
-  if(hit){
-    if(hit.gz !== currentHeight || hit.layer !== currentLayer) return;
+  if(!hit) return;
+  if(hit.gz !== currentHeight || hit.layer !== currentLayer) return;
+
+  const items = [];
+  // 放入暫存（單一）
+  items.push({label:'放入暫存', action:() => {
+    addToStaging(hit.color, hit.srcH);
+  }});
+
+  // 如果有高亮選取組 → 組合放入暫存
+  if(selectedBlocks.size > 1 && selectedBlocks.has(hit)){
+    items.push({label:'組合放入暫存 (' + selectedBlocks.size + ')', action:() => {
+      const sel = [...selectedBlocks];
+      const minGx = Math.min(...sel.map(b=>b.gx));
+      const minGy = Math.min(...sel.map(b=>b.gy));
+      const combo = sel.map(b => ({dx:b.gx-minGx, dy:b.gy-minGy, color:b.color, srcH:b.srcH, yOffset:b.yOffset||0}));
+      addToStaging(null, 0, combo);
+      saveSnapshot();
+      for(const b of sel) removeBlock(b);
+      selectedBlocks = new Set();
+      draw();
+    }});
+  }
+
+  // 刪除
+  items.push({label:'刪除', action:() => {
     if(computeReachable(hit.gx, hit.gy, hit.gz, hit).size <= 1){ triggerShake(hit); return; }
     saveSnapshot(); removeBlock(hit); draw();
-  }
+  }});
+
+  showCtxMenu(e.clientX, e.clientY, items);
 }
 
 // ── 事件綁定 ──

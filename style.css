@@ -388,6 +388,31 @@ body {
   cursor: grab;
   background: #16213e;
 }
+/* 右鍵選單（未來可改扇形） */
+.ctx-menu {
+  position: fixed;
+  z-index: 1000;
+  background: rgba(25,25,45,0.95);
+  border: 1px solid #555;
+  border-radius: 8px;
+  padding: 4px 0;
+  min-width: 120px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+.ctx-item {
+  padding: 6px 14px;
+  font-size: 12px;
+  color: #ccc;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.ctx-item:hover {
+  background: rgba(100,130,255,0.2);
+  color: #fff;
+}
+.ctx-item:first-child { border-radius: 6px 6px 0 0; }
+.ctx-item:last-child { border-radius: 0 0 6px 6px; }
+
 /* 手機適配 */
 @media (max-width: 600px){
   #helpPanel { columns: 1; }

@@ -1,4 +1,4 @@
-import { S, world } from './state.js';
+import { world } from './state.js';
 
 // ── Spatial hash index ──
 const spatialHash = new Map();

@@ -50,14 +50,14 @@
 ```
 ┌─────────────────────────────────────────────┐
 │  Editor Layer（可開關）                       │
-│  tools, palette, staging, combos, saveLoad  │
-│  history (undo/redo), ui                    │
+│  input, touch, tools, palette, staging      │
+│  combos, saveLoad, history, ui              │
 ├─────────────────────────────────────────────┤
 │  Engine Layer                               │
 │  World (entities + spatialHash)             │
 │  Camera (coords.js)                         │
 │  Renderer (renderer.js)                     │
-│  Input (input.js + touch.js)                │
+│  Geometry (geometry.js)                     │
 ├─────────────────────────────────────────────┤
 │  Data Layer                                 │
 │  state.js (S 物件), constants.js            │
@@ -68,17 +68,19 @@
 ## 模組化規則
 
 ### 狀態管理
-- 所有共享可變狀態集中在 `state.js` 的 `S` 物件
-- 模組透過 `import { S } from './state.js'` 存取
-- 讀取：`S.blocks`, `S.camX`, `S.zoom`
-- 寫入：`S.brushMode = false`, `S.dragBlock = null`
-- `canvas` 和 `ctx` 從 state.js 直接 export（不變的常數）
+- **camera**：視角狀態 → `import { camera } from './state.js'`
+  - 讀取：`camera.x`, `camera.y`, `camera.zoom`, `camera.W`, `camera.H`
+- **world**：世界資料 → `import { world } from './state.js'`
+  - 讀取：`world.blocks`
+- **S**：編輯器狀態 → `import { S } from './state.js'`
+  - 讀取/寫入：`S.brushMode`, `S.dragBlock`, `S.selectedBlocks` 等
+- **canvas / ctx**：從 state.js 直接 export（不變的常數）
 
-### draw() 循環依賴解法
-- `state.js` export `let draw` + `_setDraw(fn)`
-- `renderer.js` 定義實際 draw()，呼叫 `_setDraw(draw)` 註冊
-- 其他模組 `import { draw } from './state.js'` 呼叫
-- 打包時 build.js 自動移除此間接層
+### draw() 機制（GameLoop 驅動）
+- `state.js` export `function draw()` → 只設 `S._dirty = true`
+- `gameLoop.js` 的 rAF 迴圈檢查 dirty，呼叫 `_realDraw()` 繪製
+- `renderer.js` 透過 `setRealDraw(_drawActual)` 註冊實際繪製函式
+- 需要立即繪製時用 `drawNow()`（如匯出圖片）
 
 ### 跨模組函式引用
 - 若 A 模組需要 B 模組的函式但會造成循環 import
@@ -93,11 +95,56 @@
 5. 在 `build.js` 的 ORDER 陣列加入檔名（依賴順序）
 6. 執行 `node build.js` 驗證
 
-### 拆分判斷標準
-- 單一職責：一個模組只做一件事
-- 超過 300 行考慮拆分
-- 有獨立的初始化邏輯（addEventListener）適合獨立
-- 純資料/純計算優先抽出（最容易拆、最不容易出錯）
+### 檔案變更前必讀（強制規則）
+**每次建立或修改任何 game/ 下的 .js 檔案之前，必須先思考以下問題：**
+
+1. **這段程式碼屬於哪一層？** （Data / Engine / Editor）
+   - 放錯層 = 未來拆不開。Engine 層的東西絕對不能 import Editor 層。
+2. **該放在現有模組還是新建模組？**
+   - 判斷標準見下方「拆分規則」
+   - 如果現有模組已經做太多事（超過 300 行或多於 2 個職責），先拆再寫
+3. **新增的狀態放哪裡？**
+   - 引擎狀態 → `world` 或 `camera`
+   - 編輯器狀態 → `S`
+   - 禁止在模組內用 `let` 自建全域狀態（除非是純粹的模組內部私有變數）
+4. **會不會造成循環依賴？**
+   - 畫依賴圖：A → B → C → A？用 callback 註冊模式解開
+5. **build.js 有沒有更新？**
+   - 新增模組必須加入 ORDER 陣列，否則打包遺漏
+
+### 拆分規則
+
+#### 必須拆分的情況
+- 檔案超過 **300 行**
+- 一個檔案做 **2 件以上不相關的事**（例如同時處理輸入和繪製）
+- 同一段邏輯被 **3 個以上模組** 重複使用 → 抽成共用模組
+- 新增一整塊**獨立功能**（例如背包系統、對話系統）→ 新建模組
+
+#### 不該拆分的情況
+- 拆完後兩邊高度耦合、互相大量 import → 強行拆反而更亂
+- 程式碼不到 50 行且只被一個地方使用 → 留在原處
+- 只是「看起來長」但邏輯連貫（例如一個完整的 draw 流程）→ 不拆
+
+#### 拆分優先級（風險由低到高）
+1. **純資料** → 風險最低（如 tileData.js）
+2. **純計算/工具函式** → 無副作用，安全（如 tools.js, blocks.js）
+3. **獨立 UI 區塊** → 有 DOM 操作但範圍明確（如 staging.js, palette.js）
+4. **事件處理** → 最複雜，拆時確保狀態流向清晰（如 input.js）
+
+#### 命名慣例
+- 檔名用 **camelCase**：`gameLoop.js`, `spatialHash.js`
+- 函式/變數用 **camelCase**：`addBlock`, `toScreen`
+- 常數用 **UPPER_SNAKE**：`TILE`, `CUBE_H`
+- 私有函式（不 export）加底線前綴：`_drawActual`, `_realDraw`
+- 子物件用語義名詞：`camera`, `world`, `bus`
+
+#### 層級依賴規則（只能往下依賴，不能往上）
+```
+Editor → Engine → Data     ✓ 正確方向
+Engine → Editor             ✗ 禁止
+Data → Engine               ✗ 禁止
+同層互相依賴                 △ 盡量避免，必要時用 eventBus 解耦
+```
 
 ## 技術參數
 - TILE = 40, 等距角度 = 30°
@@ -145,32 +192,25 @@
 - 強制合併：grid (0,13)+(1,13)、(0,14)+(1,14)、(0,15)+(1,15)
 - 強制不合併：grid (3,8)、(3,10)（獨立小裝飾）
 
-## 未來規劃 — 架構基礎設施（4 步）
+## 已完成的架構基礎設施
 
-### Step 1: GameLoop + dirty flag
-- 新增 `game/gameLoop.js`
-- 取代目前到處呼叫 draw() 的模式
-- 任何狀態改變只標記 `dirty = true`，每幀統一繪製一次
-- 提供 `update(dt)` 鉤子供未來遊戲系統使用
-- 改動範圍：renderer.js（draw 不再被直接呼叫）、所有呼叫 draw() 的模組
+### GameLoop + dirty flag（gameLoop.js）
+- `draw()` 只設 `S._dirty = true`，gameLoop 每幀檢查並統一繪製一次
+- `drawNow()` 供匯出圖片等需要立即繪製的場景
+- `setRealDraw(fn)` 讓 renderer 註冊實際繪製函式
+- 動畫（shakeBlock、spritesheet）統一由 gameLoop 驅動
 
-### Step 2: EventBus
-- 新增 `game/eventBus.js`（~30 行 pub/sub）
-- API：`bus.on(event, handler)`, `bus.emit(event, data)`
-- 用途：模組間解耦通訊（放置方塊 → 觸發重算、UI 更新等）
-- 不急著全面替換，先建好基礎，逐步遷移
+### EventBus（eventBus.js）
+- `bus.on(event, handler)` / `bus.off(event, handler)` / `bus.emit(event, data)`
+- 已就位，待逐步遷移模組間直接呼叫為事件驅動
 
-### Step 3: Entity 擴展
-- 方塊資料從 `{gx, gy, gz, layer, color, srcH}` 擴展為 Entity
-- 新增 `type` 欄位（現有方塊 type = 'tile'）
-- 新增 `state` 物件（供遊戲邏輯使用：等級、血量、產量等）
-- renderer 和 spatialHash 不受影響（只看位置和外觀欄位）
-- 為未來的建築、角色、裝飾等不同實體類型做準備
+### Entity 擴展
+- `addBlock()` 和 `setBlocks()` 自動補全 `type:'tile'` + `state:{}`
+- 舊存檔載入時自動加上預設值，向後相容
+- 未來新實體類型直接帶不同 type（如 'building', 'character'）
 
-### Step 4: S 物件拆分
-- `S` 拆成有邊界的子物件：
-  - `world`：blocks/entities、spatialHash
-  - `camera`：camX, camY, zoom, W, H
-  - `editor`：工具模式、選取、暫存區、歷史
-- 各模組只 import 需要的子物件，建立明確的讀寫邊界
-- 為「遊戲模式 vs 編輯模式」切換做準備
+### State 拆分
+- `camera`：`{x, y, zoom, W, H}` — 從 state.js 獨立 export
+- `world`：`{blocks}` — 從 state.js 獨立 export
+- `S`：保留編輯器狀態（工具模式、選取、暫存區、歷史等）
+- 各模組按需 import：`import { S, camera, world } from './state.js'`

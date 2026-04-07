@@ -1,4 +1,3 @@
-import { TW, TH, CUBE_H } from './constants.js';
 import { TILES, SOURCES } from './tileData.js';
 import { S, camera, world, canvas, draw } from './state.js';
 import { toScreen, toGrid, snap } from './coords.js';
@@ -8,9 +7,12 @@ import { saveSnapshot } from './history.js';
 import { triggerShake } from './renderer.js';
 import { stagingHighlight, findStagingSlotAt, addToStaging } from './staging.js';
 import { getRectLineCells, computeFillPreview } from './tools.js';
+import { mousePos, hitTest } from './hitTest.js';
+import { onCtx } from './contextMenu.js';
+import { minimapBounds } from './minimap.js';
 
-// ── Canvas drag overlay ──
-function createCanvasDragOverlay(key){
+// ── Canvas drag overlay (private) ──
+function _createDragOverlay(key){
   if(S.canvasDragOverlay) S.canvasDragOverlay.remove();
   const td = TILES[key];
   if(!td) return;
@@ -24,83 +26,28 @@ function createCanvasDragOverlay(key){
   document.body.appendChild(el);
   S.canvasDragOverlay = el;
 }
-function updateCanvasDragOverlay(){
+function _updateDragOverlay(){
   if(S.canvasDragOverlay){
     S.canvasDragOverlay.style.left = (S.lastMouseClientX - 24) + 'px';
     S.canvasDragOverlay.style.top = (S.lastMouseClientY - 24) + 'px';
   }
 }
-function removeCanvasDragOverlay(){
+function _removeDragOverlay(){
   if(S.canvasDragOverlay){ S.canvasDragOverlay.remove(); S.canvasDragOverlay = null; }
 }
 
-// ── Hit test helpers ──
-export function mousePos(e){
-  const r = canvas.getBoundingClientRect();
-  const t = e.touches ? e.touches[0] : e;
-  return {x: t.clientX - r.left, y: t.clientY - r.top};
-}
-
-function pointInCube(px, py, bx, by){
-  const tw = TW*camera.zoom, th = TH*camera.zoom, ch = CUBE_H*camera.zoom;
-  const pts = [
-    {x:bx, y:by-ch},{x:bx-tw, y:by+th-ch},{x:bx-tw, y:by+th},
-    {x:bx, y:by+th*2},{x:bx+tw, y:by+th},{x:bx+tw, y:by+th-ch}
-  ];
-  let inside = false;
-  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
-    const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;
-    if(((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi)) inside=!inside;
-  }
-  return inside;
-}
-
-export function hitTest(mx, my){
-  const filtered = world.blocks.filter(b => b.gz === S.currentHeight && b.layer === S.currentLayer);
-  const sorted = filtered.sort((a,b) => {
-    return (b.gx+b.gy)*100+b.gz - ((a.gx+a.gy)*100+a.gz);
-  });
-  for(const b of sorted){
-    const p = toScreen(b.gx, b.gy, b.gz);
-    if(pointInCube(mx, my, p.x, p.y)) return b;
-  }
-  return null;
-}
-
-// ── Context menu ──
-function showCtxMenu(x, y, items){
-  hideCtxMenu();
-  const menu = document.createElement('div');
-  menu.className = 'ctx-menu';
-  menu.style.left = x + 'px';
-  menu.style.top = y + 'px';
-  for(const item of items){
-    const btn = document.createElement('div');
-    btn.className = 'ctx-item';
-    btn.textContent = item.label;
-    btn.addEventListener('click', () => { hideCtxMenu(); item.action(); });
-    menu.appendChild(btn);
-  }
-  document.body.appendChild(menu);
-  S.ctxMenu = menu;
-  setTimeout(() => document.addEventListener('click', hideCtxMenu, {once:true}), 10);
-}
-function hideCtxMenu(){
-  if(S.ctxMenu){ S.ctxMenu.remove(); S.ctxMenu = null; }
-}
-
-// jumpToTile is needed by onDown (locate mode) - imported lazily via window
-// It will be set by palette.js
+// jumpToTile callback registration (set by palette.js)
 let _jumpToTile = null;
 export function setJumpToTile(fn){ _jumpToTile = fn; }
 
-// ── Event handlers ──
+// ── onDown ──
 export function onDown(e){
   e.preventDefault();
   const pos = mousePos(e);
 
-  if(S.showMinimap && window._mm){
-    const mm = window._mm;
+  // Minimap click-to-jump
+  if(S.showMinimap && minimapBounds){
+    const mm = minimapBounds;
     if(pos.x >= mm.mmX && pos.x <= mm.mmX+mm.mmW && pos.y >= mm.mmY && pos.y <= mm.mmY+mm.mmH){
       const tgx = mm.midX + (pos.x - mm.ox) / mm.sc;
       const tgy = mm.midY + (pos.y - mm.oy) / mm.sc;
@@ -176,7 +123,7 @@ export function onDown(e){
     S.reachableSet = null;
     S.dragBlock = hit;
     S.dragBlock._copyMode = true;
-    createCanvasDragOverlay(hit.color);
+    _createDragOverlay(hit.color);
     if(!('ontouchstart' in window)) document.getElementById('stagingArea').style.pointerEvents = 'none';
     S.groupOffsets = null;
     const sp = toScreen(hit.gx, hit.gy, hit.gz);
@@ -206,7 +153,7 @@ export function onDown(e){
     if(hit && S.selectedBlocks.has(hit)){
       saveSnapshot();
       S.dragBlock = hit;
-      createCanvasDragOverlay(hit.color);
+      _createDragOverlay(hit.color);
       if(!('ontouchstart' in window)) document.getElementById('stagingArea').style.pointerEvents = 'none';
       S.groupOffsets = [];
       for(const b of S.selectedBlocks){
@@ -242,7 +189,7 @@ export function onDown(e){
     saveSnapshot();
     S.dragBlock = hit;
     S.groupOffsets = null;
-    createCanvasDragOverlay(hit.color);
+    _createDragOverlay(hit.color);
     if(!('ontouchstart' in window)) document.getElementById('stagingArea').style.pointerEvents = 'none';
     const sp = toScreen(hit.gx, hit.gy, hit.gz);
     S.dragOffX = pos.x - sp.x;
@@ -261,9 +208,10 @@ export function onDown(e){
   }
 }
 
+// ── onMove ──
 export function onMove(e){
   if(S.dragBlock){
-    updateCanvasDragOverlay();
+    _updateDragOverlay();
     if('ontouchstart' in window){
       stagingHighlight(findStagingSlotAt(S.lastMouseClientX, S.lastMouseClientY) >= 0);
     }
@@ -376,6 +324,7 @@ export function onMove(e){
   }
 }
 
+// ── onUp ──
 export function onUp(){
   if(S.brushPainting){
     S.brushPainting = false;
@@ -411,7 +360,7 @@ export function onUp(){
     return;
   }
   if(S.dragBlock){
-    removeCanvasDragOverlay();
+    _removeDragOverlay();
     document.getElementById('stagingArea').style.pointerEvents = 'auto';
     stagingHighlight(false);
     if('ontouchstart' in window){
@@ -458,7 +407,8 @@ export function onUp(){
   draw();
 }
 
-function onWheel(e){
+// ── onWheel ──
+function _onWheel(e){
   e.preventDefault();
   if(S.dragBlock && !S.dragBlock._copyMode){
     const dir = e.deltaY < 0 ? 1 : -1;
@@ -480,7 +430,8 @@ function onWheel(e){
   draw();
 }
 
-function onDbl(e){
+// ── onDbl ──
+export function onDbl(e){
   const pos = mousePos(e);
   const hit = hitTest(pos.x, pos.y);
   if(hit){
@@ -489,59 +440,12 @@ function onDbl(e){
     saveSnapshot(); removeBlock(hit); draw();
   }
 }
-export { onDbl };
-
-function onCtx(e){
-  e.preventDefault();
-  const pos = mousePos(e);
-  const hit = hitTest(pos.x, pos.y);
-  if(!hit) return;
-  if(hit.gz !== S.currentHeight || hit.layer !== S.currentLayer) return;
-
-  const items = [];
-  items.push({label:'複製', action:() => {
-    for(const [dx,dy] of [[1,0],[0,1],[-1,0],[0,-1]]){
-      const nx = hit.gx+dx, ny = hit.gy+dy;
-      if(!hasBlockAt(nx, ny, S.currentHeight, null, S.currentLayer)){
-        saveSnapshot();
-        addBlock({gx:nx, gy:ny, gz:hit.gz, layer:hit.layer, color:hit.color, srcH:hit.srcH, yOffset:hit.yOffset||0});
-        draw();
-        return;
-      }
-    }
-  }});
-
-  items.push({label:'放入暫存', action:() => {
-    addToStaging(hit.color, hit.srcH);
-  }});
-
-  if(S.selectedBlocks.size > 1 && S.selectedBlocks.has(hit)){
-    items.push({label:'組合放入暫存 (' + S.selectedBlocks.size + ')', action:() => {
-      const sel = [...S.selectedBlocks];
-      const minGx = Math.min(...sel.map(b=>b.gx));
-      const minGy = Math.min(...sel.map(b=>b.gy));
-      const combo = sel.map(b => ({dx:b.gx-minGx, dy:b.gy-minGy, color:b.color, srcH:b.srcH, yOffset:b.yOffset||0}));
-      addToStaging(null, 0, combo);
-      saveSnapshot();
-      for(const b of sel) removeBlock(b);
-      S.selectedBlocks = new Set();
-      draw();
-    }});
-  }
-
-  items.push({label:'刪除', action:() => {
-    if(computeReachable(hit.gx, hit.gy, hit.gz, hit).size <= 1){ triggerShake(hit); return; }
-    saveSnapshot(); removeBlock(hit); draw();
-  }});
-
-  showCtxMenu(e.clientX, e.clientY, items);
-}
 
 // ── Bind events ──
 canvas.addEventListener('mousedown', onDown);
 canvas.addEventListener('mousemove', onMove);
 document.addEventListener('mouseup', onUp);
-canvas.addEventListener('wheel', onWheel, {passive:false});
+canvas.addEventListener('wheel', _onWheel, {passive:false});
 canvas.addEventListener('dblclick', onDbl);
 canvas.addEventListener('contextmenu', onCtx);
 
@@ -557,5 +461,5 @@ document.addEventListener('touchmove', (e) => {
 window.addEventListener('blur', () => {
   if(S.tileDrag){ S.tileDrag.el.remove(); S.tileDrag = null; stagingHighlight(false); }
   if(S.mobileDragEl){ S.mobileDragEl.remove(); S.mobileDragEl = null; S.mobileDragKey = null; stagingHighlight(false); }
-  removeCanvasDragOverlay();
+  _removeDragOverlay();
 });

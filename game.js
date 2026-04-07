@@ -487,51 +487,65 @@ function findEmptySpot(){
 }
 
 
-// ── tools.js ──
+// ── geometry.js ──
+// ── Pure geometry computations (Engine layer, no state dependency) ──
 
-function getRectLineCells(x0, y0, x1, y1){
+function getRectCells(x0, y0, x1, y1){
   const cells = [];
-  if(S.rectMode){
-    const ax = Math.min(x0,x1), bx = Math.max(x0,x1);
-    const ay = Math.min(y0,y1), by = Math.max(y0,y1);
-    for(let x=ax;x<=bx;x++) for(let y=ay;y<=by;y++) cells.push([x,y]);
-  } else {
-    let cx=x0,cy=y0;
-    const dx=Math.abs(x1-cx),dy=Math.abs(y1-cy);
-    const sx=cx<x1?1:-1,sy=cy<y1?1:-1;
-    let err=dx-dy;
-    while(true){
-      cells.push([cx,cy]);
-      if(cx===x1&&cy===y1) break;
-      const e2=2*err;
-      if(e2>-dy){err-=dy;cx+=sx;}
-      if(e2<dx){err+=dx;cy+=sy;}
-    }
+  const ax = Math.min(x0,x1), bx = Math.max(x0,x1);
+  const ay = Math.min(y0,y1), by = Math.max(y0,y1);
+  for(let x=ax;x<=bx;x++) for(let y=ay;y<=by;y++) cells.push([x,y]);
+  return cells;
+}
+
+function getLineCells(x0, y0, x1, y1){
+  const cells = [];
+  let cx=x0, cy=y0;
+  const dx=Math.abs(x1-cx), dy=Math.abs(y1-cy);
+  const sx=cx<x1?1:-1, sy=cy<y1?1:-1;
+  let err=dx-dy;
+  while(true){
+    cells.push([cx,cy]);
+    if(cx===x1&&cy===y1) break;
+    const e2=2*err;
+    if(e2>-dy){err-=dy;cx+=sx;}
+    if(e2<dx){err+=dx;cy+=sy;}
   }
   return cells;
 }
 
-function computeFillPreview(gx, gy){
+function floodFill(startGx, startGy, isBlocked, maxCount){
   const result = [];
-  if(hasBlockAt(gx, gy, S.currentHeight, null, S.currentLayer)) return result;
+  if(isBlocked(startGx, startGy)) return result;
   const visited = new Set();
-  const queue = [[gx, gy]];
+  const queue = [[startGx, startGy]];
   const key = (x,y) => x+','+y;
-  visited.add(key(gx, gy));
-  const MAX = 500;
+  visited.add(key(startGx, startGy));
+  const MAX = maxCount || 500;
   while(queue.length > 0 && visited.size < MAX){
     const [cx, cy] = queue.shift();
     result.push([cx, cy]);
     for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
       const nx=cx+dx, ny=cy+dy;
       const k = key(nx, ny);
-      if(!visited.has(k) && !hasBlockAt(nx, ny, S.currentHeight, null, S.currentLayer)){
+      if(!visited.has(k) && !isBlocked(nx, ny)){
         visited.add(k);
         queue.push([nx, ny]);
       }
     }
   }
   return result;
+}
+
+
+// ── tools.js ──
+
+function getRectLineCells(x0, y0, x1, y1){
+  return S.rectMode ? getRectCells(x0, y0, x1, y1) : getLineCells(x0, y0, x1, y1);
+}
+
+function computeFillPreview(gx, gy){
+  return floodFill(gx, gy, (x, y) => hasBlockAt(x, y, S.currentHeight, null, S.currentLayer));
 }
 
 function clearDrawTools(except){
@@ -553,6 +567,179 @@ function updateBrushIndicator(){
   } else {
     el.style.display = 'none';
   }
+}
+
+
+// ── gridOverlay.js ──
+
+function drawGrid(vr){
+  if(!S.showGrid) return;
+  const R = Math.min(50, Math.max(Math.abs(vr.minGx), Math.abs(vr.maxGx), Math.abs(vr.minGy), Math.abs(vr.maxGy)) + 2);
+  const gz = S.currentHeight;
+  const th2 = TH * 2 * camera.zoom;
+
+  for(let h = -5; h <= 5; h++){
+    const isCurrent = (h === gz);
+    ctx.globalAlpha = isCurrent ? 0.25 : 0.05;
+    ctx.strokeStyle = isCurrent ? '#6a8aaa' : '#4a5568';
+    ctx.lineWidth = isCurrent ? 0.5 : 0.3;
+    for(let i = -R; i <= R; i++){
+      let a = toScreen(i, -R, h);
+      let b = toScreen(i, R, h);
+      ctx.beginPath();ctx.moveTo(a.x, a.y+th2);ctx.lineTo(b.x, b.y+th2);ctx.stroke();
+      a = toScreen(-R, i, h);
+      b = toScreen(R, i, h);
+      ctx.beginPath();ctx.moveTo(a.x, a.y+th2);ctx.lineTo(b.x, b.y+th2);ctx.stroke();
+    }
+  }
+
+  ctx.globalAlpha = 0.04;
+  ctx.fillStyle = '#aaccee';
+  const cA = toScreen(-R, -R, gz);
+  const cB = toScreen(R, -R, gz);
+  const cC = toScreen(R, R, gz);
+  const cD = toScreen(-R, R, gz);
+  ctx.beginPath();
+  ctx.moveTo(cA.x, cA.y+th2);
+  ctx.lineTo(cB.x, cB.y+th2);
+  ctx.lineTo(cC.x, cC.y+th2);
+  ctx.lineTo(cD.x, cD.y+th2);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.globalAlpha = 0.5;
+  ctx.strokeStyle = '#8ab8dd';
+  ctx.lineWidth = 1.5;
+  let a = toScreen(0, -R, gz), b = toScreen(0, R, gz);
+  ctx.beginPath();ctx.moveTo(a.x, a.y+th2);ctx.lineTo(b.x, b.y+th2);ctx.stroke();
+  a = toScreen(-R, 0, gz); b = toScreen(R, 0, gz);
+  ctx.beginPath();ctx.moveTo(a.x, a.y+th2);ctx.lineTo(b.x, b.y+th2);ctx.stroke();
+
+  const origin = toScreen(0, 0, gz);
+  ctx.globalAlpha = 0.7;
+  ctx.font = `${Math.max(10, 12*camera.zoom)}px monospace`;
+  ctx.fillStyle = '#8ab8dd';
+  ctx.textAlign = 'center';
+  ctx.fillText('H:'+gz, origin.x, origin.y + th2 + 14*camera.zoom);
+  ctx.globalAlpha = 1;
+}
+
+function drawVGrid(vr){
+  if(!S.showVGrid) return;
+  const R = Math.min(50, Math.max(Math.abs(vr.minGx), Math.abs(vr.maxGx), Math.abs(vr.minGy), Math.abs(vr.maxGy)) + 2);
+  const gz = S.currentHeight;
+  const th2 = TH * 2 * camera.zoom;
+
+  ctx.globalAlpha = 0.08;
+  ctx.strokeStyle = '#6a8aaa';
+  ctx.lineWidth = 0.3;
+  for(let i = -R; i <= R; i++){
+    for(let j = -R; j <= R; j++){
+      const top = toScreen(i, j, 5);
+      const bot = toScreen(i, j, -5);
+      ctx.beginPath();
+      ctx.moveTo(top.x, top.y + th2);
+      ctx.lineTo(bot.x, bot.y + th2);
+      ctx.stroke();
+    }
+  }
+
+  ctx.globalAlpha = 0.15;
+  ctx.strokeStyle = '#8ab8dd';
+  ctx.lineWidth = 0.5;
+  for(let i = -R; i <= R; i++){
+    for(let j = -R; j <= R; j++){
+      const top = toScreen(i, j, gz + 1);
+      const bot = toScreen(i, j, gz);
+      ctx.beginPath();
+      ctx.moveTo(top.x, top.y + th2);
+      ctx.lineTo(bot.x, bot.y + th2);
+      ctx.stroke();
+    }
+  }
+
+  ctx.globalAlpha = 0.5;
+  ctx.font = `${Math.max(8, 9*camera.zoom)}px monospace`;
+  ctx.textAlign = 'left';
+  for(let h = -5; h <= 5; h++){
+    const p = toScreen(0, 0, h);
+    ctx.fillStyle = h === gz ? '#FFD700' : '#8ab8dd';
+    ctx.fillText(h === gz ? '>'+h : ''+h, p.x + 5, p.y + th2 + 3);
+  }
+  ctx.globalAlpha = 1;
+}
+
+
+// ── minimap.js ──
+
+// Minimap data for click-to-jump (replaces window._mm)
+let minimapBounds = null;
+
+function drawMinimap(vr){
+  if(!S.showMinimap){ minimapBounds = null; return; }
+
+  const mmW = 140, mmH = 100, mmX = camera.W - mmW - 8, mmY = camera.H - mmH - 22;
+  ctx.save();
+  ctx.fillStyle = 'rgba(15,15,30,0.85)';
+  ctx.fillRect(mmX, mmY, mmW, mmH);
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(mmX, mmY, mmW, mmH);
+
+  let bx1 = vr.minGx, bx2 = vr.maxGx, by1 = vr.minGy, by2 = vr.maxGy;
+  for(const b of world.blocks){
+    bx1 = Math.min(bx1, b.gx); bx2 = Math.max(bx2, b.gx);
+    by1 = Math.min(by1, b.gy); by2 = Math.max(by2, b.gy);
+  }
+  bx1 -= 2; bx2 += 2; by1 -= 2; by2 += 2;
+  const rangeX = bx2 - bx1 || 1, rangeY = by2 - by1 || 1;
+  const sc = Math.min((mmW - 8) / rangeX, (mmH - 8) / rangeY);
+  const ox = mmX + mmW/2, oy = mmY + mmH/2;
+  const midX = (bx1+bx2)/2, midY = (by1+by2)/2;
+
+  ctx.beginPath();
+  ctx.rect(mmX, mmY, mmW, mmH);
+  ctx.clip();
+
+  ctx.fillStyle = 'rgba(40,50,70,0.5)';
+  for(let gx = Math.floor(bx1); gx <= Math.ceil(bx2); gx++){
+    for(let gy = Math.floor(by1); gy <= Math.ceil(by2); gy++){
+      if((gx+gy)%2 === 0){
+        ctx.fillRect(ox + (gx-midX)*sc - sc/2, oy + (gy-midY)*sc - sc/2, sc, sc);
+      }
+    }
+  }
+
+  for(const b of world.blocks){
+    const px = ox + (b.gx - midX) * sc;
+    const py = oy + (b.gy - midY) * sc;
+    const sz = Math.max(2, sc * 0.8);
+    if(b.gz === S.currentHeight && b.layer === S.currentLayer){
+      ctx.fillStyle = '#6af';
+    } else if(b.gz === S.currentHeight){
+      ctx.fillStyle = '#48a';
+    } else {
+      ctx.fillStyle = '#345';
+    }
+    ctx.fillRect(px - sz/2, py - sz/2, sz, sz);
+  }
+
+  const vx1 = ox + (vr.minGx - midX) * sc;
+  const vy1 = oy + (vr.minGy - midY) * sc;
+  const vx2 = ox + (vr.maxGx - midX) * sc;
+  const vy2 = oy + (vr.maxGy - midY) * sc;
+  ctx.strokeStyle = 'rgba(255,220,100,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(vx1, vy1, vx2-vx1, vy2-vy1);
+
+  const o0x = ox + (0 - midX) * sc;
+  const o0y = oy + (0 - midY) * sc;
+  ctx.fillStyle = 'rgba(255,100,100,0.7)';
+  ctx.fillRect(o0x-2, o0y-2, 4, 4);
+
+  ctx.restore();
+
+  minimapBounds = {mmX, mmY, mmW, mmH, midX, midY, sc, ox, oy};
 }
 
 
@@ -700,107 +887,6 @@ function drawGhost(gx, gy, gz, color, valid){
   ctx.setLineDash([]); ctx.globalAlpha = 1;
 }
 
-// ── Draw grid ──
-function drawGrid(){
-  if(!S.showGrid) return;
-  const vr = getVisibleRange();
-  const R = Math.min(50, Math.max(Math.abs(vr.minGx), Math.abs(vr.maxGx), Math.abs(vr.minGy), Math.abs(vr.maxGy)) + 2);
-  const gz = S.currentHeight;
-  const th2 = TH * 2 * camera.zoom;
-
-  for(let h = -5; h <= 5; h++){
-    const isCurrent = (h === gz);
-    ctx.globalAlpha = isCurrent ? 0.25 : 0.05;
-    ctx.strokeStyle = isCurrent ? '#6a8aaa' : '#4a5568';
-    ctx.lineWidth = isCurrent ? 0.5 : 0.3;
-    for(let i = -R; i <= R; i++){
-      let a = toScreen(i, -R, h);
-      let b = toScreen(i, R, h);
-      ctx.beginPath();ctx.moveTo(a.x, a.y+th2);ctx.lineTo(b.x, b.y+th2);ctx.stroke();
-      a = toScreen(-R, i, h);
-      b = toScreen(R, i, h);
-      ctx.beginPath();ctx.moveTo(a.x, a.y+th2);ctx.lineTo(b.x, b.y+th2);ctx.stroke();
-    }
-  }
-
-  ctx.globalAlpha = 0.04;
-  ctx.fillStyle = '#aaccee';
-  const cA = toScreen(-R, -R, gz);
-  const cB = toScreen(R, -R, gz);
-  const cC = toScreen(R, R, gz);
-  const cD = toScreen(-R, R, gz);
-  ctx.beginPath();
-  ctx.moveTo(cA.x, cA.y+th2);
-  ctx.lineTo(cB.x, cB.y+th2);
-  ctx.lineTo(cC.x, cC.y+th2);
-  ctx.lineTo(cD.x, cD.y+th2);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.globalAlpha = 0.5;
-  ctx.strokeStyle = '#8ab8dd';
-  ctx.lineWidth = 1.5;
-  let a = toScreen(0, -R, gz), b = toScreen(0, R, gz);
-  ctx.beginPath();ctx.moveTo(a.x, a.y+th2);ctx.lineTo(b.x, b.y+th2);ctx.stroke();
-  a = toScreen(-R, 0, gz); b = toScreen(R, 0, gz);
-  ctx.beginPath();ctx.moveTo(a.x, a.y+th2);ctx.lineTo(b.x, b.y+th2);ctx.stroke();
-
-  const origin = toScreen(0, 0, gz);
-  ctx.globalAlpha = 0.7;
-  ctx.font = `${Math.max(10, 12*camera.zoom)}px monospace`;
-  ctx.fillStyle = '#8ab8dd';
-  ctx.textAlign = 'center';
-  ctx.fillText('H:'+gz, origin.x, origin.y + th2 + 14*camera.zoom);
-  ctx.globalAlpha = 1;
-}
-
-// ── Draw vertical grid ──
-function drawVGrid(){
-  if(!S.showVGrid) return;
-  const vr = getVisibleRange();
-  const R = Math.min(50, Math.max(Math.abs(vr.minGx), Math.abs(vr.maxGx), Math.abs(vr.minGy), Math.abs(vr.maxGy)) + 2);
-  const gz = S.currentHeight;
-  const th2 = TH * 2 * camera.zoom;
-
-  ctx.globalAlpha = 0.08;
-  ctx.strokeStyle = '#6a8aaa';
-  ctx.lineWidth = 0.3;
-  for(let i = -R; i <= R; i++){
-    for(let j = -R; j <= R; j++){
-      const top = toScreen(i, j, 5);
-      const bot = toScreen(i, j, -5);
-      ctx.beginPath();
-      ctx.moveTo(top.x, top.y + th2);
-      ctx.lineTo(bot.x, bot.y + th2);
-      ctx.stroke();
-    }
-  }
-
-  ctx.globalAlpha = 0.15;
-  ctx.strokeStyle = '#8ab8dd';
-  ctx.lineWidth = 0.5;
-  for(let i = -R; i <= R; i++){
-    for(let j = -R; j <= R; j++){
-      const top = toScreen(i, j, gz + 1);
-      const bot = toScreen(i, j, gz);
-      ctx.beginPath();
-      ctx.moveTo(top.x, top.y + th2);
-      ctx.lineTo(bot.x, bot.y + th2);
-      ctx.stroke();
-    }
-  }
-
-  ctx.globalAlpha = 0.5;
-  ctx.font = `${Math.max(8, 9*camera.zoom)}px monospace`;
-  ctx.textAlign = 'left';
-  for(let h = -5; h <= 5; h++){
-    const p = toScreen(0, 0, h);
-    ctx.fillStyle = h === gz ? '#FFD700' : '#8ab8dd';
-    ctx.fillText(h === gz ? '>'+h : ''+h, p.x + 5, p.y + th2 + 3);
-  }
-  ctx.globalAlpha = 1;
-}
-
 // ── Main draw ──
 function _drawActual(){
   ctx.clearRect(0,0,camera.W,camera.H);
@@ -819,7 +905,7 @@ function _drawActual(){
     }
   }
 
-  drawGrid();
+  drawGrid(vr);
 
   if(S.dragBlock){
     const tgx = snap(S.dragBlock._dragGx);
@@ -833,7 +919,7 @@ function _drawActual(){
     if(b.gz >= S.currentHeight) drawCube(b.gx, b.gy, b.gz, b.color, b===S.dragBlock, b);
   }
 
-  drawVGrid();
+  drawVGrid(vr);
 
   if(S.boxSelect){
     ctx.setLineDash([4,4]);
@@ -878,7 +964,9 @@ function _drawActual(){
   }
 
   if(S.brushPainting && S.rectStart && (S.rectMode||S.lineMode) && S.brushTile){
-    const cells = getRectLineCells(S.rectStart.gx, S.rectStart.gy, S.brushCursorGx, S.brushCursorGy);
+    const cells = S.rectMode
+      ? getRectCells(S.rectStart.gx, S.rectStart.gy, S.brushCursorGx, S.brushCursorGy)
+      : getLineCells(S.rectStart.gx, S.rectStart.gy, S.brushCursorGx, S.brushCursorGy);
     ctx.globalAlpha = 0.4;
     for(const [cx,cy] of cells){
       drawCube(cx, cy, S.currentHeight, S.brushTile.color, false, null);
@@ -903,74 +991,117 @@ function _drawActual(){
   ctx.fillText(`${visible.length}/${world.blocks.length} blocks`, camera.W - 8, camera.H - 8);
   ctx.globalAlpha = 1;
 
-  if(S.showMinimap){
-    const mmW = 140, mmH = 100, mmX = camera.W - mmW - 8, mmY = camera.H - mmH - 22;
-    ctx.save();
-    ctx.fillStyle = 'rgba(15,15,30,0.85)';
-    ctx.fillRect(mmX, mmY, mmW, mmH);
-    ctx.strokeStyle = '#444';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(mmX, mmY, mmW, mmH);
-
-    const vr2 = getVisibleRange();
-    let bx1 = vr2.minGx, bx2 = vr2.maxGx, by1 = vr2.minGy, by2 = vr2.maxGy;
-    for(const b of world.blocks){
-      bx1 = Math.min(bx1, b.gx); bx2 = Math.max(bx2, b.gx);
-      by1 = Math.min(by1, b.gy); by2 = Math.max(by2, b.gy);
-    }
-    bx1 -= 2; bx2 += 2; by1 -= 2; by2 += 2;
-    const rangeX = bx2 - bx1 || 1, rangeY = by2 - by1 || 1;
-    const sc = Math.min((mmW - 8) / rangeX, (mmH - 8) / rangeY);
-    const ox = mmX + mmW/2, oy = mmY + mmH/2;
-    const midX = (bx1+bx2)/2, midY = (by1+by2)/2;
-
-    ctx.beginPath();
-    ctx.rect(mmX, mmY, mmW, mmH);
-    ctx.clip();
-
-    ctx.fillStyle = 'rgba(40,50,70,0.5)';
-    for(let gx2 = Math.floor(bx1); gx2 <= Math.ceil(bx2); gx2++){
-      for(let gy2 = Math.floor(by1); gy2 <= Math.ceil(by2); gy2++){
-        if((gx2+gy2)%2 === 0){
-          ctx.fillRect(ox + (gx2-midX)*sc - sc/2, oy + (gy2-midY)*sc - sc/2, sc, sc);
-        }
-      }
-    }
-
-    for(const b of world.blocks){
-      const px = ox + (b.gx - midX) * sc;
-      const py = oy + (b.gy - midY) * sc;
-      const sz = Math.max(2, sc * 0.8);
-      if(b.gz === S.currentHeight && b.layer === S.currentLayer){
-        ctx.fillStyle = '#6af';
-      } else if(b.gz === S.currentHeight){
-        ctx.fillStyle = '#48a';
-      } else {
-        ctx.fillStyle = '#345';
-      }
-      ctx.fillRect(px - sz/2, py - sz/2, sz, sz);
-    }
-
-    const vx1 = ox + (vr2.minGx - midX) * sc;
-    const vy1 = oy + (vr2.minGy - midY) * sc;
-    const vx2 = ox + (vr2.maxGx - midX) * sc;
-    const vy2 = oy + (vr2.maxGy - midY) * sc;
-    ctx.strokeStyle = 'rgba(255,220,100,0.6)';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(vx1, vy1, vx2-vx1, vy2-vy1);
-
-    const o0x = ox + (0 - midX) * sc;
-    const o0y = oy + (0 - midY) * sc;
-    ctx.fillStyle = 'rgba(255,100,100,0.7)';
-    ctx.fillRect(o0x-2, o0y-2, 4, 4);
-
-    ctx.restore();
-    window._mm = {mmX, mmY, mmW, mmH, midX, midY, sc, ox, oy};
-  }
+  drawMinimap(vr);
 }
 
 // Register with gameLoop
 setRealDraw(_drawActual);
+
+
+// ── hitTest.js ──
+
+function mousePos(e){
+  const r = canvas.getBoundingClientRect();
+  const t = e.touches ? e.touches[0] : e;
+  return {x: t.clientX - r.left, y: t.clientY - r.top};
+}
+
+function _pointInCube(px, py, bx, by){
+  const tw = TW*camera.zoom, th = TH*camera.zoom, ch = CUBE_H*camera.zoom;
+  const pts = [
+    {x:bx, y:by-ch},{x:bx-tw, y:by+th-ch},{x:bx-tw, y:by+th},
+    {x:bx, y:by+th*2},{x:bx+tw, y:by+th},{x:bx+tw, y:by+th-ch}
+  ];
+  let inside = false;
+  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+    const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;
+    if(((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi)) inside=!inside;
+  }
+  return inside;
+}
+
+function hitTest(mx, my){
+  const filtered = world.blocks.filter(b => b.gz === S.currentHeight && b.layer === S.currentLayer);
+  const sorted = filtered.sort((a,b) => {
+    return (b.gx+b.gy)*100+b.gz - ((a.gx+a.gy)*100+a.gz);
+  });
+  for(const b of sorted){
+    const p = toScreen(b.gx, b.gy, b.gz);
+    if(_pointInCube(mx, my, p.x, p.y)) return b;
+  }
+  return null;
+}
+
+
+// ── contextMenu.js ──
+
+function _showCtxMenu(x, y, items){
+  _hideCtxMenu();
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+  for(const item of items){
+    const btn = document.createElement('div');
+    btn.className = 'ctx-item';
+    btn.textContent = item.label;
+    btn.addEventListener('click', () => { _hideCtxMenu(); item.action(); });
+    menu.appendChild(btn);
+  }
+  document.body.appendChild(menu);
+  S.ctxMenu = menu;
+  setTimeout(() => document.addEventListener('click', _hideCtxMenu, {once:true}), 10);
+}
+
+function _hideCtxMenu(){
+  if(S.ctxMenu){ S.ctxMenu.remove(); S.ctxMenu = null; }
+}
+
+function onCtx(e){
+  e.preventDefault();
+  const pos = mousePos(e);
+  const hit = hitTest(pos.x, pos.y);
+  if(!hit) return;
+  if(hit.gz !== S.currentHeight || hit.layer !== S.currentLayer) return;
+
+  const items = [];
+  items.push({label:'複製', action:() => {
+    for(const [dx,dy] of [[1,0],[0,1],[-1,0],[0,-1]]){
+      const nx = hit.gx+dx, ny = hit.gy+dy;
+      if(!hasBlockAt(nx, ny, S.currentHeight, null, S.currentLayer)){
+        saveSnapshot();
+        addBlock({gx:nx, gy:ny, gz:hit.gz, layer:hit.layer, color:hit.color, srcH:hit.srcH, yOffset:hit.yOffset||0});
+        draw();
+        return;
+      }
+    }
+  }});
+
+  items.push({label:'放入暫存', action:() => {
+    addToStaging(hit.color, hit.srcH);
+  }});
+
+  if(S.selectedBlocks.size > 1 && S.selectedBlocks.has(hit)){
+    items.push({label:'組合放入暫存 (' + S.selectedBlocks.size + ')', action:() => {
+      const sel = [...S.selectedBlocks];
+      const minGx = Math.min(...sel.map(b=>b.gx));
+      const minGy = Math.min(...sel.map(b=>b.gy));
+      const combo = sel.map(b => ({dx:b.gx-minGx, dy:b.gy-minGy, color:b.color, srcH:b.srcH, yOffset:b.yOffset||0}));
+      addToStaging(null, 0, combo);
+      saveSnapshot();
+      for(const b of sel) removeBlock(b);
+      S.selectedBlocks = new Set();
+      draw();
+    }});
+  }
+
+  items.push({label:'刪除', action:() => {
+    if(computeReachable(hit.gx, hit.gy, hit.gz, hit).size <= 1){ triggerShake(hit); return; }
+    saveSnapshot(); removeBlock(hit); draw();
+  }});
+
+  _showCtxMenu(e.clientX, e.clientY, items);
+}
 
 
 // ── history.js ──
@@ -1238,8 +1369,8 @@ initStagingGrid();
 
 // ── input.js ──
 
-// ── Canvas drag overlay ──
-function createCanvasDragOverlay(key){
+// ── Canvas drag overlay (private) ──
+function _createDragOverlay(key){
   if(S.canvasDragOverlay) S.canvasDragOverlay.remove();
   const td = TILES[key];
   if(!td) return;
@@ -1253,82 +1384,27 @@ function createCanvasDragOverlay(key){
   document.body.appendChild(el);
   S.canvasDragOverlay = el;
 }
-function updateCanvasDragOverlay(){
+function _updateDragOverlay(){
   if(S.canvasDragOverlay){
     S.canvasDragOverlay.style.left = (S.lastMouseClientX - 24) + 'px';
     S.canvasDragOverlay.style.top = (S.lastMouseClientY - 24) + 'px';
   }
 }
-function removeCanvasDragOverlay(){
+function _removeDragOverlay(){
   if(S.canvasDragOverlay){ S.canvasDragOverlay.remove(); S.canvasDragOverlay = null; }
 }
 
-// ── Hit test helpers ──
-function mousePos(e){
-  const r = canvas.getBoundingClientRect();
-  const t = e.touches ? e.touches[0] : e;
-  return {x: t.clientX - r.left, y: t.clientY - r.top};
-}
-
-function pointInCube(px, py, bx, by){
-  const tw = TW*camera.zoom, th = TH*camera.zoom, ch = CUBE_H*camera.zoom;
-  const pts = [
-    {x:bx, y:by-ch},{x:bx-tw, y:by+th-ch},{x:bx-tw, y:by+th},
-    {x:bx, y:by+th*2},{x:bx+tw, y:by+th},{x:bx+tw, y:by+th-ch}
-  ];
-  let inside = false;
-  for(let i=0,j=pts.length-1;i<pts.length;j=i++){
-    const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;
-    if(((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi)) inside=!inside;
-  }
-  return inside;
-}
-
-function hitTest(mx, my){
-  const filtered = world.blocks.filter(b => b.gz === S.currentHeight && b.layer === S.currentLayer);
-  const sorted = filtered.sort((a,b) => {
-    return (b.gx+b.gy)*100+b.gz - ((a.gx+a.gy)*100+a.gz);
-  });
-  for(const b of sorted){
-    const p = toScreen(b.gx, b.gy, b.gz);
-    if(pointInCube(mx, my, p.x, p.y)) return b;
-  }
-  return null;
-}
-
-// ── Context menu ──
-function showCtxMenu(x, y, items){
-  hideCtxMenu();
-  const menu = document.createElement('div');
-  menu.className = 'ctx-menu';
-  menu.style.left = x + 'px';
-  menu.style.top = y + 'px';
-  for(const item of items){
-    const btn = document.createElement('div');
-    btn.className = 'ctx-item';
-    btn.textContent = item.label;
-    btn.addEventListener('click', () => { hideCtxMenu(); item.action(); });
-    menu.appendChild(btn);
-  }
-  document.body.appendChild(menu);
-  S.ctxMenu = menu;
-  setTimeout(() => document.addEventListener('click', hideCtxMenu, {once:true}), 10);
-}
-function hideCtxMenu(){
-  if(S.ctxMenu){ S.ctxMenu.remove(); S.ctxMenu = null; }
-}
-
-// jumpToTile is needed by onDown (locate mode) - imported lazily via window
-// It will be set by palette.js
+// jumpToTile callback registration (set by palette.js)
 
 
-// ── Event handlers ──
+// ── onDown ──
 function onDown(e){
   e.preventDefault();
   const pos = mousePos(e);
 
-  if(S.showMinimap && window._mm){
-    const mm = window._mm;
+  // Minimap click-to-jump
+  if(S.showMinimap && minimapBounds){
+    const mm = minimapBounds;
     if(pos.x >= mm.mmX && pos.x <= mm.mmX+mm.mmW && pos.y >= mm.mmY && pos.y <= mm.mmY+mm.mmH){
       const tgx = mm.midX + (pos.x - mm.ox) / mm.sc;
       const tgy = mm.midY + (pos.y - mm.oy) / mm.sc;
@@ -1404,7 +1480,7 @@ function onDown(e){
     S.reachableSet = null;
     S.dragBlock = hit;
     S.dragBlock._copyMode = true;
-    createCanvasDragOverlay(hit.color);
+    _createDragOverlay(hit.color);
     if(!('ontouchstart' in window)) document.getElementById('stagingArea').style.pointerEvents = 'none';
     S.groupOffsets = null;
     const sp = toScreen(hit.gx, hit.gy, hit.gz);
@@ -1434,7 +1510,7 @@ function onDown(e){
     if(hit && S.selectedBlocks.has(hit)){
       saveSnapshot();
       S.dragBlock = hit;
-      createCanvasDragOverlay(hit.color);
+      _createDragOverlay(hit.color);
       if(!('ontouchstart' in window)) document.getElementById('stagingArea').style.pointerEvents = 'none';
       S.groupOffsets = [];
       for(const b of S.selectedBlocks){
@@ -1470,7 +1546,7 @@ function onDown(e){
     saveSnapshot();
     S.dragBlock = hit;
     S.groupOffsets = null;
-    createCanvasDragOverlay(hit.color);
+    _createDragOverlay(hit.color);
     if(!('ontouchstart' in window)) document.getElementById('stagingArea').style.pointerEvents = 'none';
     const sp = toScreen(hit.gx, hit.gy, hit.gz);
     S.dragOffX = pos.x - sp.x;
@@ -1489,9 +1565,10 @@ function onDown(e){
   }
 }
 
+// ── onMove ──
 function onMove(e){
   if(S.dragBlock){
-    updateCanvasDragOverlay();
+    _updateDragOverlay();
     if('ontouchstart' in window){
       stagingHighlight(findStagingSlotAt(S.lastMouseClientX, S.lastMouseClientY) >= 0);
     }
@@ -1604,6 +1681,7 @@ function onMove(e){
   }
 }
 
+// ── onUp ──
 function onUp(){
   if(S.brushPainting){
     S.brushPainting = false;
@@ -1639,7 +1717,7 @@ function onUp(){
     return;
   }
   if(S.dragBlock){
-    removeCanvasDragOverlay();
+    _removeDragOverlay();
     document.getElementById('stagingArea').style.pointerEvents = 'auto';
     stagingHighlight(false);
     if('ontouchstart' in window){
@@ -1686,7 +1764,8 @@ function onUp(){
   draw();
 }
 
-function onWheel(e){
+// ── onWheel ──
+function _onWheel(e){
   e.preventDefault();
   if(S.dragBlock && !S.dragBlock._copyMode){
     const dir = e.deltaY < 0 ? 1 : -1;
@@ -1708,6 +1787,7 @@ function onWheel(e){
   draw();
 }
 
+// ── onDbl ──
 function onDbl(e){
   const pos = mousePos(e);
   const hit = hitTest(pos.x, pos.y);
@@ -1718,57 +1798,11 @@ function onDbl(e){
   }
 }
 
-function onCtx(e){
-  e.preventDefault();
-  const pos = mousePos(e);
-  const hit = hitTest(pos.x, pos.y);
-  if(!hit) return;
-  if(hit.gz !== S.currentHeight || hit.layer !== S.currentLayer) return;
-
-  const items = [];
-  items.push({label:'複製', action:() => {
-    for(const [dx,dy] of [[1,0],[0,1],[-1,0],[0,-1]]){
-      const nx = hit.gx+dx, ny = hit.gy+dy;
-      if(!hasBlockAt(nx, ny, S.currentHeight, null, S.currentLayer)){
-        saveSnapshot();
-        addBlock({gx:nx, gy:ny, gz:hit.gz, layer:hit.layer, color:hit.color, srcH:hit.srcH, yOffset:hit.yOffset||0});
-        draw();
-        return;
-      }
-    }
-  }});
-
-  items.push({label:'放入暫存', action:() => {
-    addToStaging(hit.color, hit.srcH);
-  }});
-
-  if(S.selectedBlocks.size > 1 && S.selectedBlocks.has(hit)){
-    items.push({label:'組合放入暫存 (' + S.selectedBlocks.size + ')', action:() => {
-      const sel = [...S.selectedBlocks];
-      const minGx = Math.min(...sel.map(b=>b.gx));
-      const minGy = Math.min(...sel.map(b=>b.gy));
-      const combo = sel.map(b => ({dx:b.gx-minGx, dy:b.gy-minGy, color:b.color, srcH:b.srcH, yOffset:b.yOffset||0}));
-      addToStaging(null, 0, combo);
-      saveSnapshot();
-      for(const b of sel) removeBlock(b);
-      S.selectedBlocks = new Set();
-      draw();
-    }});
-  }
-
-  items.push({label:'刪除', action:() => {
-    if(computeReachable(hit.gx, hit.gy, hit.gz, hit).size <= 1){ triggerShake(hit); return; }
-    saveSnapshot(); removeBlock(hit); draw();
-  }});
-
-  showCtxMenu(e.clientX, e.clientY, items);
-}
-
 // ── Bind events ──
 canvas.addEventListener('mousedown', onDown);
 canvas.addEventListener('mousemove', onMove);
 document.addEventListener('mouseup', onUp);
-canvas.addEventListener('wheel', onWheel, {passive:false});
+canvas.addEventListener('wheel', _onWheel, {passive:false});
 canvas.addEventListener('dblclick', onDbl);
 canvas.addEventListener('contextmenu', onCtx);
 
@@ -1784,7 +1818,7 @@ document.addEventListener('touchmove', (e) => {
 window.addEventListener('blur', () => {
   if(S.tileDrag){ S.tileDrag.el.remove(); S.tileDrag = null; stagingHighlight(false); }
   if(S.mobileDragEl){ S.mobileDragEl.remove(); S.mobileDragEl = null; S.mobileDragKey = null; stagingHighlight(false); }
-  removeCanvasDragOverlay();
+  _removeDragOverlay();
 });
 
 

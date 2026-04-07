@@ -1,9 +1,11 @@
 import { TW, TH, CUBE_H } from './constants.js';
 import { TILES, tileImages } from './tileData.js';
-import { S, camera, world, canvas, ctx } from './state.js';
+import { S, camera, world, ctx } from './state.js';
 import { toScreen, toGrid, snap } from './coords.js';
-import { getRectLineCells } from './tools.js';
+import { getRectCells, getLineCells } from './geometry.js';
 import { setRealDraw } from './gameLoop.js';
+import { drawGrid, drawVGrid } from './gridOverlay.js';
+import { drawMinimap } from './minimap.js';
 
 // ── Shake animation (gameLoop handles the timing) ──
 export function triggerShake(block){
@@ -147,107 +149,6 @@ function drawGhost(gx, gy, gz, color, valid){
   ctx.setLineDash([]); ctx.globalAlpha = 1;
 }
 
-// ── Draw grid ──
-function drawGrid(){
-  if(!S.showGrid) return;
-  const vr = getVisibleRange();
-  const R = Math.min(50, Math.max(Math.abs(vr.minGx), Math.abs(vr.maxGx), Math.abs(vr.minGy), Math.abs(vr.maxGy)) + 2);
-  const gz = S.currentHeight;
-  const th2 = TH * 2 * camera.zoom;
-
-  for(let h = -5; h <= 5; h++){
-    const isCurrent = (h === gz);
-    ctx.globalAlpha = isCurrent ? 0.25 : 0.05;
-    ctx.strokeStyle = isCurrent ? '#6a8aaa' : '#4a5568';
-    ctx.lineWidth = isCurrent ? 0.5 : 0.3;
-    for(let i = -R; i <= R; i++){
-      let a = toScreen(i, -R, h);
-      let b = toScreen(i, R, h);
-      ctx.beginPath();ctx.moveTo(a.x, a.y+th2);ctx.lineTo(b.x, b.y+th2);ctx.stroke();
-      a = toScreen(-R, i, h);
-      b = toScreen(R, i, h);
-      ctx.beginPath();ctx.moveTo(a.x, a.y+th2);ctx.lineTo(b.x, b.y+th2);ctx.stroke();
-    }
-  }
-
-  ctx.globalAlpha = 0.04;
-  ctx.fillStyle = '#aaccee';
-  const cA = toScreen(-R, -R, gz);
-  const cB = toScreen(R, -R, gz);
-  const cC = toScreen(R, R, gz);
-  const cD = toScreen(-R, R, gz);
-  ctx.beginPath();
-  ctx.moveTo(cA.x, cA.y+th2);
-  ctx.lineTo(cB.x, cB.y+th2);
-  ctx.lineTo(cC.x, cC.y+th2);
-  ctx.lineTo(cD.x, cD.y+th2);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.globalAlpha = 0.5;
-  ctx.strokeStyle = '#8ab8dd';
-  ctx.lineWidth = 1.5;
-  let a = toScreen(0, -R, gz), b = toScreen(0, R, gz);
-  ctx.beginPath();ctx.moveTo(a.x, a.y+th2);ctx.lineTo(b.x, b.y+th2);ctx.stroke();
-  a = toScreen(-R, 0, gz); b = toScreen(R, 0, gz);
-  ctx.beginPath();ctx.moveTo(a.x, a.y+th2);ctx.lineTo(b.x, b.y+th2);ctx.stroke();
-
-  const origin = toScreen(0, 0, gz);
-  ctx.globalAlpha = 0.7;
-  ctx.font = `${Math.max(10, 12*camera.zoom)}px monospace`;
-  ctx.fillStyle = '#8ab8dd';
-  ctx.textAlign = 'center';
-  ctx.fillText('H:'+gz, origin.x, origin.y + th2 + 14*camera.zoom);
-  ctx.globalAlpha = 1;
-}
-
-// ── Draw vertical grid ──
-function drawVGrid(){
-  if(!S.showVGrid) return;
-  const vr = getVisibleRange();
-  const R = Math.min(50, Math.max(Math.abs(vr.minGx), Math.abs(vr.maxGx), Math.abs(vr.minGy), Math.abs(vr.maxGy)) + 2);
-  const gz = S.currentHeight;
-  const th2 = TH * 2 * camera.zoom;
-
-  ctx.globalAlpha = 0.08;
-  ctx.strokeStyle = '#6a8aaa';
-  ctx.lineWidth = 0.3;
-  for(let i = -R; i <= R; i++){
-    for(let j = -R; j <= R; j++){
-      const top = toScreen(i, j, 5);
-      const bot = toScreen(i, j, -5);
-      ctx.beginPath();
-      ctx.moveTo(top.x, top.y + th2);
-      ctx.lineTo(bot.x, bot.y + th2);
-      ctx.stroke();
-    }
-  }
-
-  ctx.globalAlpha = 0.15;
-  ctx.strokeStyle = '#8ab8dd';
-  ctx.lineWidth = 0.5;
-  for(let i = -R; i <= R; i++){
-    for(let j = -R; j <= R; j++){
-      const top = toScreen(i, j, gz + 1);
-      const bot = toScreen(i, j, gz);
-      ctx.beginPath();
-      ctx.moveTo(top.x, top.y + th2);
-      ctx.lineTo(bot.x, bot.y + th2);
-      ctx.stroke();
-    }
-  }
-
-  ctx.globalAlpha = 0.5;
-  ctx.font = `${Math.max(8, 9*camera.zoom)}px monospace`;
-  ctx.textAlign = 'left';
-  for(let h = -5; h <= 5; h++){
-    const p = toScreen(0, 0, h);
-    ctx.fillStyle = h === gz ? '#FFD700' : '#8ab8dd';
-    ctx.fillText(h === gz ? '>'+h : ''+h, p.x + 5, p.y + th2 + 3);
-  }
-  ctx.globalAlpha = 1;
-}
-
 // ── Main draw ──
 function _drawActual(){
   ctx.clearRect(0,0,camera.W,camera.H);
@@ -266,7 +167,7 @@ function _drawActual(){
     }
   }
 
-  drawGrid();
+  drawGrid(vr);
 
   if(S.dragBlock){
     const tgx = snap(S.dragBlock._dragGx);
@@ -280,7 +181,7 @@ function _drawActual(){
     if(b.gz >= S.currentHeight) drawCube(b.gx, b.gy, b.gz, b.color, b===S.dragBlock, b);
   }
 
-  drawVGrid();
+  drawVGrid(vr);
 
   if(S.boxSelect){
     ctx.setLineDash([4,4]);
@@ -325,7 +226,9 @@ function _drawActual(){
   }
 
   if(S.brushPainting && S.rectStart && (S.rectMode||S.lineMode) && S.brushTile){
-    const cells = getRectLineCells(S.rectStart.gx, S.rectStart.gy, S.brushCursorGx, S.brushCursorGy);
+    const cells = S.rectMode
+      ? getRectCells(S.rectStart.gx, S.rectStart.gy, S.brushCursorGx, S.brushCursorGy)
+      : getLineCells(S.rectStart.gx, S.rectStart.gy, S.brushCursorGx, S.brushCursorGy);
     ctx.globalAlpha = 0.4;
     for(const [cx,cy] of cells){
       drawCube(cx, cy, S.currentHeight, S.brushTile.color, false, null);
@@ -350,70 +253,7 @@ function _drawActual(){
   ctx.fillText(`${visible.length}/${world.blocks.length} blocks`, camera.W - 8, camera.H - 8);
   ctx.globalAlpha = 1;
 
-  if(S.showMinimap){
-    const mmW = 140, mmH = 100, mmX = camera.W - mmW - 8, mmY = camera.H - mmH - 22;
-    ctx.save();
-    ctx.fillStyle = 'rgba(15,15,30,0.85)';
-    ctx.fillRect(mmX, mmY, mmW, mmH);
-    ctx.strokeStyle = '#444';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(mmX, mmY, mmW, mmH);
-
-    const vr2 = getVisibleRange();
-    let bx1 = vr2.minGx, bx2 = vr2.maxGx, by1 = vr2.minGy, by2 = vr2.maxGy;
-    for(const b of world.blocks){
-      bx1 = Math.min(bx1, b.gx); bx2 = Math.max(bx2, b.gx);
-      by1 = Math.min(by1, b.gy); by2 = Math.max(by2, b.gy);
-    }
-    bx1 -= 2; bx2 += 2; by1 -= 2; by2 += 2;
-    const rangeX = bx2 - bx1 || 1, rangeY = by2 - by1 || 1;
-    const sc = Math.min((mmW - 8) / rangeX, (mmH - 8) / rangeY);
-    const ox = mmX + mmW/2, oy = mmY + mmH/2;
-    const midX = (bx1+bx2)/2, midY = (by1+by2)/2;
-
-    ctx.beginPath();
-    ctx.rect(mmX, mmY, mmW, mmH);
-    ctx.clip();
-
-    ctx.fillStyle = 'rgba(40,50,70,0.5)';
-    for(let gx2 = Math.floor(bx1); gx2 <= Math.ceil(bx2); gx2++){
-      for(let gy2 = Math.floor(by1); gy2 <= Math.ceil(by2); gy2++){
-        if((gx2+gy2)%2 === 0){
-          ctx.fillRect(ox + (gx2-midX)*sc - sc/2, oy + (gy2-midY)*sc - sc/2, sc, sc);
-        }
-      }
-    }
-
-    for(const b of world.blocks){
-      const px = ox + (b.gx - midX) * sc;
-      const py = oy + (b.gy - midY) * sc;
-      const sz = Math.max(2, sc * 0.8);
-      if(b.gz === S.currentHeight && b.layer === S.currentLayer){
-        ctx.fillStyle = '#6af';
-      } else if(b.gz === S.currentHeight){
-        ctx.fillStyle = '#48a';
-      } else {
-        ctx.fillStyle = '#345';
-      }
-      ctx.fillRect(px - sz/2, py - sz/2, sz, sz);
-    }
-
-    const vx1 = ox + (vr2.minGx - midX) * sc;
-    const vy1 = oy + (vr2.minGy - midY) * sc;
-    const vx2 = ox + (vr2.maxGx - midX) * sc;
-    const vy2 = oy + (vr2.maxGy - midY) * sc;
-    ctx.strokeStyle = 'rgba(255,220,100,0.6)';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(vx1, vy1, vx2-vx1, vy2-vy1);
-
-    const o0x = ox + (0 - midX) * sc;
-    const o0y = oy + (0 - midY) * sc;
-    ctx.fillStyle = 'rgba(255,100,100,0.7)';
-    ctx.fillRect(o0x-2, o0y-2, 4, 4);
-
-    ctx.restore();
-    window._mm = {mmX, mmY, mmW, mmH, midX, midY, sc, ox, oy};
-  }
+  drawMinimap(vr);
 }
 
 // Register with gameLoop

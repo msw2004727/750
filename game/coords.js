@@ -1,5 +1,5 @@
 import { TW, TH, CUBE_H } from './constants.js';
-import { S, camera, canvas, ctx, draw } from './state.js';
+import { camera, canvas, ctx, draw } from './state.js';
 
 export function toScreen(gx, gy, gz){
   return {

@@ -80,85 +80,91 @@ function _drawFlatGrid(R, gz, th2){
   ctx.fill();
 }
 
-// 3D cube wireframe grid (when both Grid + VGrid are on)
+// 3D cube grid — batched: all same-type faces in one path, fill/stroke once
 function _drawCubeGrid(vr, R, gz){
   const tw = TW * camera.zoom;
   const th = TH * camera.zoom;
   const ch = CUBE_H * camera.zoom;
 
-  // Clamp to visible range
   const x0 = Math.max(-R, vr.minGx);
   const x1 = Math.min(R, vr.maxGx);
   const y0 = Math.max(-R, vr.minGy);
   const y1 = Math.min(R, vr.maxGy);
 
+  // Batch 1: top faces
+  ctx.globalAlpha = 0.06;
+  ctx.fillStyle = '#8ab8dd';
+  ctx.beginPath();
   for(let gx = x0; gx <= x1; gx++){
     for(let gy = y0; gy <= y1; gy++){
       const p = toScreen(gx, gy, gz);
       const x = p.x, y = p.y;
-
-      // Top face (brightest)
-      ctx.globalAlpha = 0.06;
-      ctx.fillStyle = '#8ab8dd';
-      ctx.beginPath();
       ctx.moveTo(x, y - ch);
       ctx.lineTo(x - tw, y + th - ch);
       ctx.lineTo(x, y + th*2 - ch);
       ctx.lineTo(x + tw, y + th - ch);
-      ctx.closePath();
-      ctx.fill();
+    }
+  }
+  ctx.fill();
 
-      // Left face (darkest)
-      ctx.globalAlpha = 0.04;
-      ctx.fillStyle = '#4a6a8a';
-      ctx.beginPath();
+  // Batch 2: left faces
+  ctx.globalAlpha = 0.04;
+  ctx.fillStyle = '#4a6a8a';
+  ctx.beginPath();
+  for(let gx = x0; gx <= x1; gx++){
+    for(let gy = y0; gy <= y1; gy++){
+      const p = toScreen(gx, gy, gz);
+      const x = p.x, y = p.y;
       ctx.moveTo(x - tw, y + th - ch);
       ctx.lineTo(x - tw, y + th);
       ctx.lineTo(x, y + th*2);
       ctx.lineTo(x, y + th*2 - ch);
-      ctx.closePath();
-      ctx.fill();
+    }
+  }
+  ctx.fill();
 
-      // Right face (medium)
-      ctx.globalAlpha = 0.05;
-      ctx.fillStyle = '#6a8aaa';
-      ctx.beginPath();
+  // Batch 3: right faces
+  ctx.globalAlpha = 0.05;
+  ctx.fillStyle = '#6a8aaa';
+  ctx.beginPath();
+  for(let gx = x0; gx <= x1; gx++){
+    for(let gy = y0; gy <= y1; gy++){
+      const p = toScreen(gx, gy, gz);
+      const x = p.x, y = p.y;
       ctx.moveTo(x + tw, y + th - ch);
       ctx.lineTo(x + tw, y + th);
       ctx.lineTo(x, y + th*2);
       ctx.lineTo(x, y + th*2 - ch);
-      ctx.closePath();
-      ctx.fill();
+    }
+  }
+  ctx.fill();
 
-      // Wireframe edges
-      ctx.globalAlpha = 0.15;
-      ctx.strokeStyle = '#6a8aaa';
-      ctx.lineWidth = 0.4;
-
+  // Batch 4: all wireframe edges in one stroke
+  ctx.globalAlpha = 0.15;
+  ctx.strokeStyle = '#6a8aaa';
+  ctx.lineWidth = 0.4;
+  ctx.beginPath();
+  for(let gx = x0; gx <= x1; gx++){
+    for(let gy = y0; gy <= y1; gy++){
+      const p = toScreen(gx, gy, gz);
+      const x = p.x, y = p.y;
       // Top diamond
-      ctx.beginPath();
       ctx.moveTo(x, y - ch);
       ctx.lineTo(x - tw, y + th - ch);
       ctx.lineTo(x, y + th*2 - ch);
       ctx.lineTo(x + tw, y + th - ch);
-      ctx.closePath();
-      ctx.stroke();
-
-      // Three vertical edges
-      ctx.beginPath();
+      ctx.lineTo(x, y - ch);
+      // Vertical edges
       ctx.moveTo(x - tw, y + th - ch); ctx.lineTo(x - tw, y + th);
       ctx.moveTo(x + tw, y + th - ch); ctx.lineTo(x + tw, y + th);
       ctx.moveTo(x, y + th*2 - ch);    ctx.lineTo(x, y + th*2);
-      ctx.stroke();
-
-      // Bottom two edges
-      ctx.beginPath();
+      // Bottom edges
       ctx.moveTo(x - tw, y + th);
       ctx.lineTo(x, y + th*2);
       ctx.lineTo(x + tw, y + th);
-      ctx.stroke();
     }
   }
+  ctx.stroke();
   ctx.globalAlpha = 1;
 }
 

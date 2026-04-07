@@ -32,16 +32,38 @@ if(saved){
   } catch(e){}
 }
 if(world.blocks.length === 0){
-  const init = [
-    {gx:-2,gy:-3,color:'j019'},{gx:-2,gy:-2,color:'j016'},{gx:-2,gy:-1,color:'j018'},{gx:-2,gy:0,color:'j017'},{gx:-2,gy:1,color:'j018'},
-    {gx:-1,gy:-3,color:'j019'},{gx:-1,gy:-2,color:'j018'},{gx:-1,gy:-1,color:'j016'},{gx:-1,gy:0,color:'j018'},{gx:-1,gy:1,color:'j017'},
-    {gx: 0,gy:-3,color:'j016'},{gx: 0,gy:-2,color:'j018'},{gx: 0,gy:-1,color:'j017'},{gx: 0,gy:0,color:'j016'},{gx: 0,gy:1,color:'j017'},
-    {gx: 1,gy:-3,color:'j019'},{gx: 1,gy:-2,color:'j016'},{gx: 1,gy:-1,color:'j018'},{gx: 1,gy:0,color:'j017'},{gx: 1,gy:1,color:'j018'},
-    {gx: 2,gy:-3,color:'j019'},{gx: 2,gy:-2,color:'j018'},{gx: 2,gy:-1,color:'j016'},{gx: 2,gy:0,color:'j018'},{gx: 2,gy:1,color:'j017'},
-  ];
-  init.forEach(d => {
-    addBlock({gx:d.gx, gy:d.gy, gz:0, layer:0, color:d.color, srcH:32});
-  });
+  // ── Auto-tiled village path layout ──
+  // Path tile lookup: binary key [NW,NE,SE,SW] → tile
+  const PATH = {
+    '0000':'s008','0001':'s013','0010':'s010','0011':'s003',
+    '0100':'s012','0101':'s014','0110':'s002','0111':'s005',
+    '1000':'s009','1001':'s015','1010':'s000','1011':'s004',
+    '1100':'s001','1101':'s007','1110':'s006','1111':'s011'
+  };
+  // Village road positions
+  const roads = new Set();
+  // Main NW-SE road (gy=0)
+  for(let gx=-4;gx<=4;gx++) roads.add(gx+',0');
+  // Cross NE-SW road (gx=0)
+  for(let gy=-4;gy<=4;gy++) roads.add('0,'+gy);
+  // Branch to NE house area
+  roads.add('2,-1'); roads.add('2,-2');
+  // Branch to SW house area
+  roads.add('-2,1'); roads.add('-2,2');
+  // Branch to SE house area
+  roads.add('1,2'); roads.add('2,2');
+  // Branch to NW house area
+  roads.add('-1,-2'); roads.add('-2,-2');
+
+  for(const k of roads){
+    const [gx,gy] = k.split(',').map(Number);
+    const nw = roads.has((gx-1)+','+gy) ? '1':'0';
+    const ne = roads.has(gx+','+(gy-1)) ? '1':'0';
+    const se = roads.has((gx+1)+','+gy) ? '1':'0';
+    const sw = roads.has(gx+','+(gy+1)) ? '1':'0';
+    const tile = PATH[nw+ne+se+sw];
+    addBlock({gx, gy, gz:0, layer:0, color:tile, srcH:100});
+  }
 }
 
 // ── Initial resize + start game loop ──

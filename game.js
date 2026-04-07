@@ -981,13 +981,31 @@ function isVisible(b, vr){
   return b.gx >= vr.minGx && b.gx <= vr.maxGx && b.gy >= vr.minGy && b.gy <= vr.maxGy;
 }
 
+// ── Pixel-perfect step sizes (rounded once, shared by all tiles) ──
+let _stepTW = 0, _stepTH = 0, _stepCH = 0, _baseX = 0, _baseY = 0;
+function updateRenderSteps(){
+  _stepTW = Math.round(TW * camera.zoom);
+  _stepTH = Math.round(TH * camera.zoom);
+  _stepCH = Math.round(CUBE_H * camera.zoom);
+  _baseX = Math.round(camera.W / 2 + camera.x);
+  _baseY = Math.round(camera.H / 2 + camera.y);
+}
+
+// Pixel-perfect screen position (integer coords, no sub-pixel gaps)
+function _pixelPos(gx, gy, gz){
+  return {
+    x: _baseX + (gx - gy) * _stepTW,
+    y: _baseY + (gx + gy) * _stepTH - gz * _stepCH
+  };
+}
+
 // ── Draw block ──
 function drawCube(gx, gy, gz, color, hl, block){
-  const p = toScreen(gx, gy, gz);
+  const p = _pixelPos(gx, gy, gz);
   const sh = getShakeOff(block);
-  const yOff = (block && block.yOffset || 0) * (CUBE_H * camera.zoom / 5);
-  const x = p.x + sh.sx, y = p.y + sh.sy - yOff;
-  const tw = TW * camera.zoom, th = TH * camera.zoom, ch = CUBE_H * camera.zoom;
+  const yOff = Math.round((block && block.yOffset || 0) * (_stepCH / 5));
+  const x = p.x + Math.round(sh.sx), y = p.y + Math.round(sh.sy) - yOff;
+  const tw = _stepTW, th = _stepTH, ch = _stepCH;
 
   const tileImg = tileImages[color];
   if(tileImg){
@@ -996,12 +1014,10 @@ function drawCube(gx, gy, gz, color, hl, block){
     const srcW = td.srcW || 32;
     const srcH = td.srcH || 32;
     const frames = td.frames || 1;
-    const imgW = 2 * tw;
-    const scale = imgW / srcW;
-    const dw = Math.round(srcW * scale);
-    const dh = Math.round(srcH * scale);
-    const dx = Math.round(x - tw);
-    const dy = Math.round(y + 2 * th - dh);
+    const dw = 2 * tw;
+    const dh = Math.round(srcH * dw / srcW);
+    const dx = x - tw;
+    const dy = y + 2 * th - dh;
     if(frames > 1){
       const frame = S.animTick % frames;
       ctx.drawImage(tileImg, frame * srcW, 0, srcW, srcH, dx, dy, dw, dh);
@@ -1069,9 +1085,9 @@ function drawCube(gx, gy, gz, color, hl, block){
 
 // ── Draw ghost preview ──
 function drawGhost(gx, gy, gz, color, valid){
-  const p = toScreen(gx, gy, gz);
+  const p = _pixelPos(gx, gy, gz);
   const x = p.x, y = p.y;
-  const tw = TW*camera.zoom, th = TH*camera.zoom, ch = CUBE_H*camera.zoom;
+  const tw = _stepTW, th = _stepTH, ch = _stepCH;
   const t = TILES[color] || {stroke:'#555', ghost:'#888'};
   ctx.globalAlpha = valid ? 0.25 : 0.12;
   ctx.setLineDash(valid ? [4,4] : [2,6]);
@@ -1093,6 +1109,7 @@ function drawGhost(gx, gy, gz, color, valid){
 
 // ── Main draw ──
 function _drawActual(){
+  updateRenderSteps();
   ctx.clearRect(0,0,camera.W,camera.H);
   const vr = getVisibleRange();
 
@@ -1145,8 +1162,8 @@ function _drawActual(){
     ctx.globalAlpha = 1;
   }
   if(S.eraserMode && S.brushCursorGx !== -999){
-    const ep = toScreen(S.brushCursorGx, S.brushCursorGy, S.currentHeight);
-    const tw2 = TW*camera.zoom, th2 = TH*camera.zoom, ch2 = CUBE_H*camera.zoom;
+    const ep = _pixelPos(S.brushCursorGx, S.brushCursorGy, S.currentHeight);
+    const tw2 = _stepTW, th2 = _stepTH, ch2 = _stepCH;
     ctx.globalAlpha = 0.3;
     ctx.fillStyle = '#ff4444';
     ctx.beginPath();
@@ -1176,14 +1193,14 @@ function _drawActual(){
       drawCube(cx, cy, S.currentHeight, S.brushTile.color, false, null);
     }
     ctx.globalAlpha = 1;
-    const sp = toScreen(S.rectStart.gx, S.rectStart.gy, S.currentHeight);
+    const sp = _pixelPos(S.rectStart.gx, S.rectStart.gy, S.currentHeight);
     ctx.strokeStyle = '#00FF88';
     ctx.lineWidth = 2;
     ctx.setLineDash([3,3]);
-    const ep = toScreen(S.brushCursorGx, S.brushCursorGy, S.currentHeight);
+    const ep = _pixelPos(S.brushCursorGx, S.brushCursorGy, S.currentHeight);
     ctx.beginPath();
-    ctx.moveTo(sp.x, sp.y + TH*camera.zoom);
-    ctx.lineTo(ep.x, ep.y + TH*camera.zoom);
+    ctx.moveTo(sp.x, sp.y + _stepTH);
+    ctx.lineTo(ep.x, ep.y + _stepTH);
     ctx.stroke();
     ctx.setLineDash([]);
   }
@@ -1788,7 +1805,7 @@ function onDown(e){
     S.reachableSet = null;
     S.dragBlock = hit;
     S.dragBlock._copyMode = true;
-    if(!('ontouchstart' in window)) _createDragOverlay(hit.color);
+    // PC: no drag overlay (mobile shows it near staging only)
     document.getElementById('stagingArea').style.pointerEvents = 'none';
     S.groupOffsets = null;
     const sp = toScreen(hit.gx, hit.gy, hit.gz);
@@ -1818,7 +1835,7 @@ function onDown(e){
     if(hit && S.selectedBlocks.has(hit)){
       saveSnapshot();
       S.dragBlock = hit;
-      if(!('ontouchstart' in window)) _createDragOverlay(hit.color);
+      // PC: no drag overlay (mobile shows it near staging only)
       document.getElementById('stagingArea').style.pointerEvents = 'none';
       S.groupOffsets = [];
       for(const b of S.selectedBlocks){
@@ -1854,7 +1871,7 @@ function onDown(e){
     saveSnapshot();
     S.dragBlock = hit;
     S.groupOffsets = null;
-    if(!('ontouchstart' in window)) _createDragOverlay(hit.color);
+    // PC: no drag overlay (mobile shows it near staging only)
     document.getElementById('stagingArea').style.pointerEvents = 'none';
     const sp = toScreen(hit.gx, hit.gy, hit.gz);
     S.dragOffX = pos.x - sp.x;
@@ -2798,19 +2815,38 @@ if(saved){
   } catch(e){}
 }
 if(world.blocks.length === 0){
-  // Path tile test grid (4x4) — s000~s015 with labels via coordinates
-  // Row 0: s000(path_1)  s001(path_10) s002(path_11) s003(path_12)
-  // Row 1: s004(path_13) s005(path_14) s006(path_15) s007(path_16)
-  // Row 2: s008(path_2)  s009(path_3)  s010(path_4)  s011(path_5)
-  // Row 3: s012(path_6)  s013(path_7)  s014(path_8)  s015(path_9)
-  const pathTiles = [];
-  for(let idx = 0; idx < 16; idx++){
-    const col = idx % 4;
-    const row = Math.floor(idx / 4);
-    const key = 's' + String(idx).padStart(3,'0');
-    pathTiles.push({gx: col * 2, gy: row * 2, gz:0, layer:0, color:key, srcH:100});
+  // ── Auto-tiled village path layout ──
+  // Path tile lookup: binary key [NW,NE,SE,SW] → tile
+  const PATH = {
+    '0000':'s008','0001':'s013','0010':'s010','0011':'s003',
+    '0100':'s012','0101':'s014','0110':'s002','0111':'s005',
+    '1000':'s009','1001':'s015','1010':'s000','1011':'s004',
+    '1100':'s001','1101':'s007','1110':'s006','1111':'s011'
+  };
+  // Village road positions
+  const roads = new Set();
+  // Main NW-SE road (gy=0)
+  for(let gx=-4;gx<=4;gx++) roads.add(gx+',0');
+  // Cross NE-SW road (gx=0)
+  for(let gy=-4;gy<=4;gy++) roads.add('0,'+gy);
+  // Branch to NE house area
+  roads.add('2,-1'); roads.add('2,-2');
+  // Branch to SW house area
+  roads.add('-2,1'); roads.add('-2,2');
+  // Branch to SE house area
+  roads.add('1,2'); roads.add('2,2');
+  // Branch to NW house area
+  roads.add('-1,-2'); roads.add('-2,-2');
+
+  for(const k of roads){
+    const [gx,gy] = k.split(',').map(Number);
+    const nw = roads.has((gx-1)+','+gy) ? '1':'0';
+    const ne = roads.has(gx+','+(gy-1)) ? '1':'0';
+    const se = roads.has((gx+1)+','+gy) ? '1':'0';
+    const sw = roads.has(gx+','+(gy+1)) ? '1':'0';
+    const tile = PATH[nw+ne+se+sw];
+    addBlock({gx, gy, gz:0, layer:0, color:tile, srcH:100});
   }
-  pathTiles.forEach(d => addBlock(d));
 }
 
 // ── Initial resize + start game loop ──

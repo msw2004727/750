@@ -41,13 +41,31 @@ function isVisible(b, vr){
   return b.gx >= vr.minGx && b.gx <= vr.maxGx && b.gy >= vr.minGy && b.gy <= vr.maxGy;
 }
 
+// ── Pixel-perfect step sizes (rounded once, shared by all tiles) ──
+let _stepTW = 0, _stepTH = 0, _stepCH = 0, _baseX = 0, _baseY = 0;
+export function updateRenderSteps(){
+  _stepTW = Math.round(TW * camera.zoom);
+  _stepTH = Math.round(TH * camera.zoom);
+  _stepCH = Math.round(CUBE_H * camera.zoom);
+  _baseX = Math.round(camera.W / 2 + camera.x);
+  _baseY = Math.round(camera.H / 2 + camera.y);
+}
+
+// Pixel-perfect screen position (integer coords, no sub-pixel gaps)
+function _pixelPos(gx, gy, gz){
+  return {
+    x: _baseX + (gx - gy) * _stepTW,
+    y: _baseY + (gx + gy) * _stepTH - gz * _stepCH
+  };
+}
+
 // ── Draw block ──
 export function drawCube(gx, gy, gz, color, hl, block){
-  const p = toScreen(gx, gy, gz);
+  const p = _pixelPos(gx, gy, gz);
   const sh = getShakeOff(block);
-  const yOff = (block && block.yOffset || 0) * (CUBE_H * camera.zoom / 5);
-  const x = p.x + sh.sx, y = p.y + sh.sy - yOff;
-  const tw = TW * camera.zoom, th = TH * camera.zoom, ch = CUBE_H * camera.zoom;
+  const yOff = Math.round((block && block.yOffset || 0) * (_stepCH / 5));
+  const x = p.x + Math.round(sh.sx), y = p.y + Math.round(sh.sy) - yOff;
+  const tw = _stepTW, th = _stepTH, ch = _stepCH;
 
   const tileImg = tileImages[color];
   if(tileImg){
@@ -56,12 +74,10 @@ export function drawCube(gx, gy, gz, color, hl, block){
     const srcW = td.srcW || 32;
     const srcH = td.srcH || 32;
     const frames = td.frames || 1;
-    const imgW = 2 * tw;
-    const scale = imgW / srcW;
-    const dw = Math.round(srcW * scale);
-    const dh = Math.round(srcH * scale);
-    const dx = Math.round(x - tw);
-    const dy = Math.round(y + 2 * th - dh);
+    const dw = 2 * tw;
+    const dh = Math.round(srcH * dw / srcW);
+    const dx = x - tw;
+    const dy = y + 2 * th - dh;
     if(frames > 1){
       const frame = S.animTick % frames;
       ctx.drawImage(tileImg, frame * srcW, 0, srcW, srcH, dx, dy, dw, dh);
@@ -129,9 +145,9 @@ export function drawCube(gx, gy, gz, color, hl, block){
 
 // ── Draw ghost preview ──
 function drawGhost(gx, gy, gz, color, valid){
-  const p = toScreen(gx, gy, gz);
+  const p = _pixelPos(gx, gy, gz);
   const x = p.x, y = p.y;
-  const tw = TW*camera.zoom, th = TH*camera.zoom, ch = CUBE_H*camera.zoom;
+  const tw = _stepTW, th = _stepTH, ch = _stepCH;
   const t = TILES[color] || {stroke:'#555', ghost:'#888'};
   ctx.globalAlpha = valid ? 0.25 : 0.12;
   ctx.setLineDash(valid ? [4,4] : [2,6]);
@@ -153,6 +169,7 @@ function drawGhost(gx, gy, gz, color, valid){
 
 // ── Main draw ──
 function _drawActual(){
+  updateRenderSteps();
   ctx.clearRect(0,0,camera.W,camera.H);
   const vr = getVisibleRange();
 
@@ -205,8 +222,8 @@ function _drawActual(){
     ctx.globalAlpha = 1;
   }
   if(S.eraserMode && S.brushCursorGx !== -999){
-    const ep = toScreen(S.brushCursorGx, S.brushCursorGy, S.currentHeight);
-    const tw2 = TW*camera.zoom, th2 = TH*camera.zoom, ch2 = CUBE_H*camera.zoom;
+    const ep = _pixelPos(S.brushCursorGx, S.brushCursorGy, S.currentHeight);
+    const tw2 = _stepTW, th2 = _stepTH, ch2 = _stepCH;
     ctx.globalAlpha = 0.3;
     ctx.fillStyle = '#ff4444';
     ctx.beginPath();
@@ -236,14 +253,14 @@ function _drawActual(){
       drawCube(cx, cy, S.currentHeight, S.brushTile.color, false, null);
     }
     ctx.globalAlpha = 1;
-    const sp = toScreen(S.rectStart.gx, S.rectStart.gy, S.currentHeight);
+    const sp = _pixelPos(S.rectStart.gx, S.rectStart.gy, S.currentHeight);
     ctx.strokeStyle = '#00FF88';
     ctx.lineWidth = 2;
     ctx.setLineDash([3,3]);
-    const ep = toScreen(S.brushCursorGx, S.brushCursorGy, S.currentHeight);
+    const ep = _pixelPos(S.brushCursorGx, S.brushCursorGy, S.currentHeight);
     ctx.beginPath();
-    ctx.moveTo(sp.x, sp.y + TH*camera.zoom);
-    ctx.lineTo(ep.x, ep.y + TH*camera.zoom);
+    ctx.moveTo(sp.x, sp.y + _stepTH);
+    ctx.lineTo(ep.x, ep.y + _stepTH);
     ctx.stroke();
     ctx.setLineDash([]);
   }

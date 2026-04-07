@@ -494,7 +494,8 @@ function drawGhost(gx, gy, gz, color, valid){
 // 水平格線（每層都畫，當前層加亮）
 function drawGrid(){
   if(!showGrid) return;
-  const R = 12;
+  const vr = getVisibleRange();
+  const R = Math.min(50, Math.max(Math.abs(vr.minGx), Math.abs(vr.maxGx), Math.abs(vr.minGy), Math.abs(vr.maxGy)) + 2);
   const gz = currentHeight;
   const th2 = TH * 2 * zoom;
 
@@ -551,7 +552,8 @@ function drawGrid(){
 // 立體格線（每個格子的垂直邊都畫出來，形成立體方格）
 function drawVGrid(){
   if(!showVGrid) return;
-  const R = 12;
+  const vr = getVisibleRange();
+  const R = Math.min(50, Math.max(Math.abs(vr.minGx), Math.abs(vr.maxGx), Math.abs(vr.minGy), Math.abs(vr.maxGy)) + 2);
   const gz = currentHeight;
   const th2 = TH * 2 * zoom;
 
@@ -597,11 +599,35 @@ function drawVGrid(){
   ctx.globalAlpha = 1;
 }
 
+// ── 視窗裁切：只繪製可見範圍內的方塊 ──
+function getVisibleRange(){
+  // 螢幕四角轉換為網格座標，取得可見範圍
+  const margin = 3; // 額外邊界避免邊緣閃爍
+  const corners = [
+    toGrid(0, 0), toGrid(W, 0), toGrid(0, H), toGrid(W, H)
+  ];
+  const allGx = corners.map(c => c.gx);
+  const allGy = corners.map(c => c.gy);
+  return {
+    minGx: Math.floor(Math.min(...allGx)) - margin,
+    maxGx: Math.ceil(Math.max(...allGx)) + margin,
+    minGy: Math.floor(Math.min(...allGy)) - margin,
+    maxGy: Math.ceil(Math.max(...allGy)) + margin,
+  };
+}
+
+function isVisible(b, vr){
+  return b.gx >= vr.minGx && b.gx <= vr.maxGx && b.gy >= vr.minGy && b.gy <= vr.maxGy;
+}
+
 // ── 主繪製 ──
 function draw(){
   ctx.clearRect(0,0,W,H);
+  const vr = getVisibleRange();
 
-  const sorted = [...blocks].sort((a,b) => {
+  // 只排序可見方塊
+  const visible = blocks.filter(b => isVisible(b, vr));
+  const sorted = visible.sort((a,b) => {
     return (a.gx+a.gy)*100+a.gz - ((b.gx+b.gy)*100+b.gz);
   });
 
@@ -648,6 +674,14 @@ function draw(){
     ctx.fillRect(bx, by, bw, bh);
     ctx.setLineDash([]);
   }
+
+  // 右下角資訊
+  ctx.globalAlpha = 0.5;
+  ctx.font = '10px monospace';
+  ctx.fillStyle = '#aaa';
+  ctx.textAlign = 'right';
+  ctx.fillText(`${visible.length}/${blocks.length} blocks`, W - 8, H - 8);
+  ctx.globalAlpha = 1;
 }
 
 // ── 輸入處理 ──

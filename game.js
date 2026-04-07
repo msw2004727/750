@@ -1204,7 +1204,7 @@ function onDown(e){
     dragBlock = hit;
     dragBlock._copyMode = true;
     createCanvasDragOverlay(hit.color);
-    document.getElementById('stagingArea').style.pointerEvents = 'none';
+    if(!('ontouchstart' in window)) document.getElementById('stagingArea').style.pointerEvents = 'none';
     groupOffsets = null;
     const sp = toScreen(hit.gx, hit.gy, hit.gz);
     dragOffX = pos.x - sp.x;
@@ -1239,7 +1239,7 @@ function onDown(e){
       saveSnapshot();
       dragBlock = hit;
       createCanvasDragOverlay(hit.color);
-      document.getElementById('stagingArea').style.pointerEvents = 'none';
+      if(!('ontouchstart' in window)) document.getElementById('stagingArea').style.pointerEvents = 'none';
       // 記錄每個選取方塊相對於拖曳方塊的偏移
       groupOffsets = [];
       for(const b of selectedBlocks){
@@ -1277,7 +1277,7 @@ function onDown(e){
     dragBlock = hit;
     groupOffsets = null;
     createCanvasDragOverlay(hit.color);
-    document.getElementById('stagingArea').style.pointerEvents = 'none';
+    if(!('ontouchstart' in window)) document.getElementById('stagingArea').style.pointerEvents = 'none';
     const sp = toScreen(hit.gx, hit.gy, hit.gz);
     dragOffX = pos.x - sp.x;
     dragOffY = pos.y - sp.y;

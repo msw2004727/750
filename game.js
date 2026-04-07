@@ -156,7 +156,6 @@ for(const src of SOURCES){
     TILES[key] = {file, cropY, srcH, srcW, frames, stroke, ghost};
     // 預載圖片
     const img = new Image();
-    img.crossOrigin = 'anonymous';
     img.onload = () => { tileImages[key] = img; if(++tilesLoaded >= totalImages) draw(); };
     img.src = src.base + file;
   }
@@ -1674,10 +1673,14 @@ document.getElementById('exportImg').addEventListener('click', () => {
   camY = H/2 - cp.y;
   draw();
   // 下載
-  const link = document.createElement('a');
-  link.download = 'map_' + new Date().toISOString().slice(0,10) + '.png';
-  link.href = canvas.toDataURL('image/png');
-  link.click();
+  try {
+    const link = document.createElement('a');
+    link.download = 'map_' + new Date().toISOString().slice(0,10) + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } catch(e) {
+    alert('本地開啟無法匯出圖片，請用 GitHub Pages 或本地伺服器開啟');
+  }
   // 還原
   camX = oldCamX; camY = oldCamY; zoom = oldZoom;
   hiddenHeights = oldHH; hiddenLayers = oldHL;

@@ -1548,15 +1548,27 @@ document.addEventListener('keydown', (e) => {
       saveSnapshot();
       const center = toGrid(camera.W/2, camera.H/2);
       const gx = snap(center.gx), gy = snap(center.gy);
+      const pasted = [];
       for(const t of S.clipboard){
         const nx = gx+t.dx, ny = gy+t.dy;
         if(!hasBlockAt(nx, ny, S.currentHeight, null, S.currentLayer)){
-          addBlock({gx:nx, gy:ny, gz:S.currentHeight, layer:S.currentLayer, color:t.color, srcH:t.srcH, yOffset:t.yOffset});
+          const b = {gx:nx, gy:ny, gz:S.currentHeight, layer:S.currentLayer, color:t.color, srcH:t.srcH, yOffset:t.yOffset};
+          addBlock(b);
+          pasted.push(b);
         }
       }
-      S.selectedBlocks = new Set();
+      // Keep pasted blocks selected for immediate group move
+      S.selectedBlocks = new Set(pasted);
       draw();
     }
+  }
+  // Delete key: delete selected blocks
+  if(e.key === 'Delete' && S.selectedBlocks.size > 0){
+    e.preventDefault();
+    saveSnapshot();
+    for(const b of S.selectedBlocks) removeBlock(b);
+    S.selectedBlocks = new Set();
+    draw();
   }
 });
 

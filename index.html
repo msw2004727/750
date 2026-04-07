@@ -24,10 +24,11 @@
       <label class="ck"><input type="checkbox" id="chkCoord"> 座標</label>
     </div>
     <div id="comboBar">
-      <span class="label">組合：</span>
-      <button id="comboSave" class="toggle-btn">存選取</button>
-      <button id="comboPlace" class="toggle-btn">放置組合</button>
-      <div id="comboList"></div>
+      <span class="label">範本：</span>
+      <button id="comboSave" class="toggle-btn">儲存</button>
+      <button id="comboPlace" class="toggle-btn">放置</button>
+      <select id="comboSelect"><option value="">-- 選擇範本 --</option></select>
+      <button id="comboDel" class="toggle-btn danger-sm">刪除</button>
     </div>
   </div>
   <div id="hintRow">
@@ -47,17 +48,17 @@
       <div id="stagingGrid"></div>
     </div>
     <div id="hlPanel">
-      <div class="hl-group">
-        <span class="hl-label">高度</span>
-        <button class="hl-btn" id="heightDown">&#9660;</button>
-        <span id="heightNum" class="hl-num">0</span>
+      <div class="hl-card">
+        <div class="hl-title">高度</div>
         <button class="hl-btn" id="heightUp">&#9650;</button>
+        <span id="heightNum" class="hl-num">0</span>
+        <button class="hl-btn" id="heightDown">&#9660;</button>
       </div>
-      <div class="hl-group">
-        <span class="hl-label">圖層</span>
-        <button class="hl-btn" id="layerDown">&#9660;</button>
-        <span id="layerNum" class="hl-num">0</span>
+      <div class="hl-card">
+        <div class="hl-title">圖層</div>
         <button class="hl-btn" id="layerUp">&#9650;</button>
+        <span id="layerNum" class="hl-num">0</span>
+        <button class="hl-btn" id="layerDown">&#9660;</button>
       </div>
     </div>
     <canvas id="c"></canvas>

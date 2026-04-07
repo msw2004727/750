@@ -1227,37 +1227,26 @@ function saveCombos(){
   localStorage.setItem('blockBuilder_combos', JSON.stringify(combos));
 }
 
-function renderComboList(){
-  const container = document.getElementById('comboList');
-  container.innerHTML = '';
+function renderComboSelect(){
+  const sel = document.getElementById('comboSelect');
+  sel.innerHTML = '<option value="">-- 選擇範本 --</option>';
   combos.forEach((combo, idx) => {
-    const btn = document.createElement('span');
-    btn.className = 'combo-btn' + (activeCombo === idx ? ' active' : '');
-    btn.textContent = combo.name;
-    btn.addEventListener('click', () => {
-      activeCombo = (activeCombo === idx) ? -1 : idx;
-      renderComboList();
-    });
-    const del = document.createElement('span');
-    del.className = 'combo-del';
-    del.textContent = '✕';
-    del.addEventListener('click', (e) => {
-      e.stopPropagation();
-      combos.splice(idx, 1);
-      if(activeCombo >= combos.length) activeCombo = -1;
-      saveCombos();
-      renderComboList();
-    });
-    btn.appendChild(del);
-    container.appendChild(btn);
+    const opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = combo.name + ' (' + combo.tiles.length + ')';
+    sel.appendChild(opt);
   });
+  if(activeCombo >= 0 && activeCombo < combos.length) sel.value = activeCombo;
 }
 
+document.getElementById('comboSelect').addEventListener('change', (e) => {
+  activeCombo = e.target.value === '' ? -1 : parseInt(e.target.value);
+});
+
 document.getElementById('comboSave').addEventListener('click', () => {
-  // 僅存金色高亮選取的方塊，需 2 個以上
   const sel = [...selectedBlocks];
   if(sel.length < 2){ alert('請先 Shift+點擊 選取 2 個以上相鄰方塊，或是開啟選取開關'); return; }
-  const name = prompt('組合名稱：', '組合' + (combos.length + 1));
+  const name = prompt('範本名稱：', '範本' + (combos.length + 1));
   if(!name) return;
   const minGx = Math.min(...sel.map(b => b.gx));
   const minGy = Math.min(...sel.map(b => b.gy));
@@ -1265,12 +1254,12 @@ document.getElementById('comboSave').addEventListener('click', () => {
   combos.push({name, tiles});
   saveCombos();
   selectedBlocks = new Set();
-  renderComboList();
+  renderComboSelect();
   draw();
 });
 
 document.getElementById('comboPlace').addEventListener('click', () => {
-  if(activeCombo < 0 || activeCombo >= combos.length){ alert('請先選擇一個組合'); return; }
+  if(activeCombo < 0 || activeCombo >= combos.length){ alert('請先選擇一個範本'); return; }
   const combo = combos[activeCombo];
   saveSnapshot();
   const spot = findEmptySpot();
@@ -1284,7 +1273,15 @@ document.getElementById('comboPlace').addEventListener('click', () => {
   draw();
 });
 
-renderComboList();
+document.getElementById('comboDel').addEventListener('click', () => {
+  if(activeCombo < 0 || activeCombo >= combos.length){ alert('請先選擇一個範本'); return; }
+  combos.splice(activeCombo, 1);
+  activeCombo = -1;
+  saveCombos();
+  renderComboSelect();
+});
+
+renderComboSelect();
 
 // ── 預設方塊 ──
 const init = [

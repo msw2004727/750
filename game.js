@@ -218,6 +218,14 @@ function renderStagingCell(idx){
   }
 }
 
+// 暫存區接收 PC 拖放
+document.getElementById('stagingGrid').addEventListener('dragover', (e) => { e.preventDefault(); });
+document.getElementById('stagingGrid').addEventListener('drop', (e) => {
+  e.preventDefault();
+  const key = e.dataTransfer.getData('text/plain');
+  if(key && TILES[key]) addToStaging(key, TILES[key].srcH);
+});
+
 function addToStaging(color, srcH){
   // 找空格放入，滿了就替換最後一格
   let slot = staging.indexOf(null);
@@ -1329,7 +1337,7 @@ canvas.addEventListener('wheel', onWheel, {passive:false});
 canvas.addEventListener('dblclick', onDbl);
 canvas.addEventListener('contextmenu', onCtx);
 
-// 從素材面板拖放到畫布
+// 從素材面板拖放到畫布（PC）
 canvas.addEventListener('dragover', (e) => { e.preventDefault(); });
 canvas.addEventListener('drop', (e) => {
   e.preventDefault();
@@ -1341,11 +1349,81 @@ canvas.addEventListener('drop', (e) => {
   const gx = snap(g.gx), gy = snap(g.gy);
   if(!hasBlockAt(gx, gy, currentHeight, null, currentLayer)){
     saveSnapshot();
-    const td = TILES[key];
-    addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:key, srcH:td.srcH, yOffset:0});
+    addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:TILES[key].color || key, srcH:TILES[key].srcH, yOffset:0});
     draw();
   }
 });
+
+// 從素材面板拖放到畫布（手機觸控）
+let mobileDragKey = null;
+let mobileDragEl = null;
+
+function setupMobileTileDrag(btn, key){
+  let timer = null;
+  btn.addEventListener('touchstart', (e) => {
+    timer = setTimeout(() => { // 150ms 長按啟動拖曳
+      e.preventDefault();
+      mobileDragKey = key;
+      // 建立浮動預覽
+      mobileDragEl = document.createElement('div');
+      mobileDragEl.style.cssText = 'position:fixed;pointer-events:none;z-index:999;opacity:0.7;width:42px;height:42px;';
+      const img = document.createElement('img');
+      const td = TILES[key];
+      const src2 = SOURCES.find(s => s.prefix === key.charAt(0));
+      if(src2 && td) img.src = src2.base + td.file;
+      img.style.cssText = 'width:100%;height:100%;image-rendering:pixelated;';
+      mobileDragEl.appendChild(img);
+      document.body.appendChild(mobileDragEl);
+      const t = e.touches[0];
+      mobileDragEl.style.left = (t.clientX - 21) + 'px';
+      mobileDragEl.style.top = (t.clientY - 21) + 'px';
+    }, 150);
+  }, {passive:false});
+
+  btn.addEventListener('touchmove', (e) => {
+    if(mobileDragKey){
+      e.preventDefault();
+      const t = e.touches[0];
+      if(mobileDragEl){
+        mobileDragEl.style.left = (t.clientX - 21) + 'px';
+        mobileDragEl.style.top = (t.clientY - 21) + 'px';
+      }
+    } else {
+      clearTimeout(timer);
+    }
+  }, {passive:false});
+
+  btn.addEventListener('touchend', (e) => {
+    clearTimeout(timer);
+    if(mobileDragKey && mobileDragEl){
+      const t = e.changedTouches[0];
+      const r = canvas.getBoundingClientRect();
+      // 放到畫布
+      if(t.clientX >= r.left && t.clientX <= r.right && t.clientY >= r.top && t.clientY <= r.bottom){
+        const mx = t.clientX - r.left, my = t.clientY - r.top;
+        const g = toGrid(mx, my);
+        const gx = snap(g.gx), gy = snap(g.gy);
+        if(!hasBlockAt(gx, gy, currentHeight, null, currentLayer)){
+          saveSnapshot();
+          addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:mobileDragKey, srcH:TILES[mobileDragKey].srcH, yOffset:0});
+          draw();
+        }
+      } else {
+        // 放到暫存區
+        const stagingEl = document.getElementById('stagingArea');
+        if(stagingEl){
+          const sr = stagingEl.getBoundingClientRect();
+          if(t.clientX >= sr.left && t.clientX <= sr.right && t.clientY >= sr.top && t.clientY <= sr.bottom){
+            addToStaging(mobileDragKey, TILES[mobileDragKey].srcH);
+          }
+        }
+      }
+      mobileDragEl.remove();
+      mobileDragEl = null;
+      mobileDragKey = null;
+    }
+  });
+}
 
 // 手機觸控：單指操作 + 雙指縮放
 let pinch = null; // {dist, zoom0, cx, cy}
@@ -1384,9 +1462,19 @@ canvas.addEventListener('touchmove', (e) => {
   onMove(e);
 }, {passive:false});
 
+let lastTapTime = 0;
 canvas.addEventListener('touchend', (e) => {
   if(pinch){ pinch = null; return; }
   onUp(e);
+  // 手機雙擊刪除
+  const now = Date.now();
+  if(now - lastTapTime < 300 && e.changedTouches.length === 1){
+    const t = e.changedTouches[0];
+    const r = canvas.getBoundingClientRect();
+    const fakeE = {clientX:t.clientX, clientY:t.clientY, preventDefault(){}};
+    onDbl(fakeE);
+  }
+  lastTapTime = now;
 });
 
 
@@ -1459,11 +1547,10 @@ function populatePalette(){
       if(brushMode){ brushTile = {color:key, srcH}; updateBrushIndicator(); return; }
       addToStaging(key, srcH);
     });
-    // 拖曳到畫布
+    // 拖曳到畫布（PC + 手機）
     btn.draggable = true;
-    btn.addEventListener('dragstart', (e) => {
-      e.dataTransfer.setData('text/plain', key);
-    });
+    btn.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', key); });
+    setupMobileTileDrag(btn, key);
     container.appendChild(btn);
   }
 }
@@ -1552,6 +1639,7 @@ document.getElementById('tileSearch').addEventListener('input', (e) => {
         });
         btn.draggable = true;
         btn.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', key); });
+        setupMobileTileDrag(btn, key);
         container.appendChild(btn);
       }
     }

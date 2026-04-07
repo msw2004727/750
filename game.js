@@ -1695,14 +1695,17 @@ function populatePalette(){
     num.className = 'tb-num';
     num.textContent = src.prefix + i;
     btn.appendChild(num);
+    let wasDragged = false;
     btn.addEventListener('click', () => {
+      if(wasDragged){ wasDragged = false; return; }
       const srcH = (TILES[key] && TILES[key].srcH) || 32;
       if(brushMode){ brushTile = {color:key, srcH}; updateBrushIndicator(); return; }
       addToStaging(key, srcH);
     });
-    // 拖曳到畫布（PC + 手機）
+    // 拖曳到畫布/暫存區（PC + 手機）
     btn.draggable = true;
-    btn.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', key); });
+    btn.addEventListener('dragstart', (e) => { wasDragged = true; e.dataTransfer.setData('text/plain', key); });
+    btn.addEventListener('dragend', () => { setTimeout(() => { wasDragged = false; }, 50); });
     setupMobileTileDrag(btn, key);
     container.appendChild(btn);
   }
@@ -1786,13 +1789,16 @@ document.getElementById('tileSearch').addEventListener('input', (e) => {
         num.className = 'tb-num';
         num.textContent = src.prefix + i;
         btn.appendChild(num);
+        let wasDragged2 = false;
         btn.addEventListener('click', () => {
+          if(wasDragged2){ wasDragged2 = false; return; }
           const srcH = (TILES[key] && TILES[key].srcH) || 32;
           if(brushMode){ brushTile = {color:key, srcH}; updateBrushIndicator(); return; }
           addToStaging(key, srcH);
         });
         btn.draggable = true;
-        btn.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', key); });
+        btn.addEventListener('dragstart', (e) => { wasDragged2 = true; e.dataTransfer.setData('text/plain', key); });
+        btn.addEventListener('dragend', () => { setTimeout(() => { wasDragged2 = false; }, 50); });
         setupMobileTileDrag(btn, key);
         container.appendChild(btn);
       }

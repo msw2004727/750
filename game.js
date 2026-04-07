@@ -519,7 +519,7 @@ function drawCube(gx, gy, gz, color, hl, block){
   }
 
   // 滑鼠懸停反白
-  if(showHover && block === hoverBlock){
+  if((showHover || brushMode || eraserMode) && block === hoverBlock){
     ctx.fillStyle = 'rgba(255,255,255,0.25)';
     ctx.lineJoin = 'round';
     ctx.beginPath();
@@ -1045,19 +1045,23 @@ function onMove(e){
     draw();
   } else if(showHover || brushMode || eraserMode){
     const pos = mousePos(e);
-    if(showHover){
+    let needDraw = false;
+    // 懸停反白：任何工具模式下都跟游標走
+    if(showHover || brushMode || eraserMode){
       const prev = hoverBlock;
       hoverBlock = hitTest(pos.x, pos.y);
-      if(hoverBlock !== prev) draw();
+      if(hoverBlock !== prev) needDraw = true;
     }
+    // 筆刷/橡皮擦游標預覽
     if(brushMode || eraserMode){
       const g = toGrid(pos.x, pos.y);
       const newGx = snap(g.gx), newGy = snap(g.gy);
       if(newGx !== brushCursorGx || newGy !== brushCursorGy){
         brushCursorGx = newGx; brushCursorGy = newGy;
-        draw();
+        needDraw = true;
       }
     }
+    if(needDraw) draw();
   }
 }
 

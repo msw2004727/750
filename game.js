@@ -1328,6 +1328,25 @@ canvas.addEventListener('mouseleave', onUp);
 canvas.addEventListener('wheel', onWheel, {passive:false});
 canvas.addEventListener('dblclick', onDbl);
 canvas.addEventListener('contextmenu', onCtx);
+
+// 從素材面板拖放到畫布
+canvas.addEventListener('dragover', (e) => { e.preventDefault(); });
+canvas.addEventListener('drop', (e) => {
+  e.preventDefault();
+  const key = e.dataTransfer.getData('text/plain');
+  if(!key || !TILES[key]) return;
+  const r = canvas.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  const g = toGrid(mx, my);
+  const gx = snap(g.gx), gy = snap(g.gy);
+  if(!hasBlockAt(gx, gy, currentHeight, null, currentLayer)){
+    saveSnapshot();
+    const td = TILES[key];
+    addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:key, srcH:td.srcH, yOffset:0});
+    draw();
+  }
+});
+
 // 手機觸控：單指操作 + 雙指縮放
 let pinch = null; // {dist, zoom0, cx, cy}
 
@@ -1440,6 +1459,11 @@ function populatePalette(){
       if(brushMode){ brushTile = {color:key, srcH}; updateBrushIndicator(); return; }
       addToStaging(key, srcH);
     });
+    // 拖曳到畫布
+    btn.draggable = true;
+    btn.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', key);
+    });
     container.appendChild(btn);
   }
 }
@@ -1526,6 +1550,8 @@ document.getElementById('tileSearch').addEventListener('input', (e) => {
           if(brushMode){ brushTile = {color:key, srcH}; updateBrushIndicator(); return; }
           addToStaging(key, srcH);
         });
+        btn.draggable = true;
+        btn.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', key); });
         container.appendChild(btn);
       }
     }

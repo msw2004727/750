@@ -211,10 +211,13 @@ export function onDown(e){
 // ── onMove ──
 export function onMove(e){
   if(S.dragBlock){
-    _updateDragOverlay();
     if('ontouchstart' in window){
-      stagingHighlight(findStagingSlotAt(S.lastMouseClientX, S.lastMouseClientY) >= 0);
+      const nearStaging = findStagingSlotAt(S.lastMouseClientX, S.lastMouseClientY) >= 0;
+      stagingHighlight(nearStaging);
+      if(nearStaging && !S.canvasDragOverlay) _createDragOverlay(S.dragBlock.color);
+      if(!nearStaging && S.canvasDragOverlay) _removeDragOverlay();
     }
+    _updateDragOverlay();
   }
   if(S.brushPainting){
     e.preventDefault();

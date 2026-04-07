@@ -56,8 +56,9 @@ export function jumpToTile(tileKey){
         document.getElementById('srcSelect').value = si;
         S.selectedSrc = si;
         buildCatOptions();
-        document.getElementById('catSelect').value = ci;
-        S.selectedCat = ci;
+        // catSelect value offset: +1 because '全部' is at index 0
+        document.getElementById('catSelect').value = ci + 1;
+        S.selectedCat = ci + 1;
         populatePalette();
         const btns = document.querySelectorAll('#tilePalette .tb');
         for(const btn of btns){

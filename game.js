@@ -2443,6 +2443,29 @@ canvas.addEventListener('touchend', (e) => {
   S.lastTapTime = now;
 });
 
+// ── Document-level touch pan (swipe outside canvas to pan view) ──
+let _docPan = null; // {startX, startY, camX0, camY0}
+document.addEventListener('touchstart', (e) => {
+  if(e.touches.length !== 1) return;
+  const t = e.target;
+  // Skip if touch is on canvas (handled above) or interactive elements
+  if(t === canvas || t.closest('canvas')) return;
+  if(t.closest('button,input,select,.staging-cell,.tb,.ctx-menu,.help-modal,.hl-btn')) return;
+  const touch = e.touches[0];
+  _docPan = { startX: touch.clientX, startY: touch.clientY, camX0: camera.x, camY0: camera.y };
+}, {passive:true});
+
+document.addEventListener('touchmove', (e) => {
+  if(!_docPan) return;
+  if(e.touches.length !== 1){ _docPan = null; return; }
+  const touch = e.touches[0];
+  camera.x = _docPan.camX0 + (touch.clientX - _docPan.startX);
+  camera.y = _docPan.camY0 + (touch.clientY - _docPan.startY);
+  draw();
+}, {passive:true});
+
+document.addEventListener('touchend', () => { _docPan = null; });
+
 
 // ── palette.js ──
 

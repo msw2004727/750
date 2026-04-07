@@ -1558,6 +1558,19 @@ function onCtx(e){
   if(hit.gz !== currentHeight || hit.layer !== currentLayer) return;
 
   const items = [];
+  // 複製（原地複製一份到相鄰空位）
+  items.push({label:'複製', action:() => {
+    for(const [dx,dy] of [[1,0],[0,1],[-1,0],[0,-1]]){
+      const nx = hit.gx+dx, ny = hit.gy+dy;
+      if(!hasBlockAt(nx, ny, currentHeight, null, currentLayer)){
+        saveSnapshot();
+        addBlock({gx:nx, gy:ny, gz:hit.gz, layer:hit.layer, color:hit.color, srcH:hit.srcH, yOffset:hit.yOffset||0});
+        draw();
+        return;
+      }
+    }
+  }});
+
   // 放入暫存（單一）
   items.push({label:'放入暫存', action:() => {
     addToStaging(hit.color, hit.srcH);

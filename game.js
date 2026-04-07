@@ -2508,20 +2508,38 @@ document.querySelectorAll('.fold-toggle').forEach(btn => {
 
 // ── Help panel ──
 const helpHTML = `
-<h3>工具箱（互斥，收折面板）</h3>
-<kbd>筆刷</kbd> — 點素材選為筆刷，畫布上點擊/拖曳連續放置<br>
-<kbd>橡皮擦</kbd> — 點擊/拖曳連續刪除<br>
-<kbd>填充</kbd> — 游標移動顯示半透明預覽，點擊確認填充（上限 500 格）<br>
-<kbd>矩形</kbd> — 按住拖曳顯示預覽範圍，放開填充<br>
-<kbd>線段</kbd> — 按住拖曳顯示預覽路線，放開填充
-
 <h3>基本操作</h3>
 <kbd>左鍵</kbd> 拖曳方塊 — 移動（被四面包圍無法移動）<br>
 <kbd>Ctrl</kbd>+<kbd>拖曳</kbd> — 複製並拖曳副本<br>
 拖曳中 <kbd>滾輪</kbd> — 微調素材高度（1/5 格）<br>
-<kbd>雙擊</kbd> / <kbd>右鍵</kbd> — 刪除方塊<br>
+<kbd>雙擊</kbd> — 刪除方塊<br>
 空白處拖曳 — 平移視角<br>
-<kbd>滾輪</kbd> / 雙指捏合 — 縮放
+<kbd>滾輪</kbd> — 縮放
+
+<h3>右鍵選單</h3>
+右鍵點擊方塊可選擇：<br>
+<kbd>複製</kbd> 複製到相鄰空位 | <kbd>放入暫存</kbd> 存到暫存區<br>
+<kbd>組合放入暫存</kbd>（需先選取多個）| <kbd>刪除</kbd>
+
+<h3>工具箱（互斥）</h3>
+<kbd>筆刷</kbd> — 點素材選為筆刷，畫布上點擊/拖曳連續放置<br>
+<kbd>橡皮擦</kbd> — 點擊/拖曳連續刪除<br>
+<kbd>填充</kbd> — 游標移動顯示預覽，點擊確認填充（上限 500 格）<br>
+<kbd>矩形</kbd> — 按住拖曳畫矩形範圍，放開填充<br>
+<kbd>線段</kbd> — 按住拖曳畫線段路線，放開填充
+
+<h3>選取與整組操作</h3>
+<kbd>Shift</kbd>+<kbd>點擊</kbd> — 高亮相鄰方塊群組<br>
+<kbd>Shift</kbd>+<kbd>拖曳</kbd> — 框選區域<br>
+拖曳高亮方塊 — 整組移動<br>
+<kbd>Ctrl+C</kbd> / <kbd>Ctrl+V</kbd> — 複製/貼上選取<br>
+點擊空白 — 取消高亮
+
+<h3>暫存區（左側 9 格）</h3>
+從素材面板或畫布拖曳到暫存區存放<br>
+點擊暫存格 — 放到畫面中央<br>
+拖曳暫存格 — 放到指定位置<br>
+<kbd>✕</kbd> 清除該格
 
 <h3>高度與圖層</h3>
 <kbd>高度 ▲▼</kbd> — 垂直高度（-5 ~ +5）<br>
@@ -2529,29 +2547,33 @@ const helpHTML = `
 <kbd>隱藏高度</kbd> — 隱藏/顯示指定高度層<br>
 只能操作當前高度 + 圖層的方塊
 
-<h3>選取與整組操作</h3>
-<kbd>Shift</kbd>+<kbd>點擊</kbd> — 高亮相鄰方塊群組<br>
-<kbd>Shift</kbd>+<kbd>拖曳</kbd> — 框選區域<br>
-拖曳高亮方塊 — 整組移動<br>
-點擊空白 — 取消高亮
+<h3>顯示類</h3>
+<kbd>懸停</kbd> 反白 | <kbd>座標</kbd> 顯示座標 | <kbd>小地圖</kbd> 右下縮覽<br>
+<kbd>格線</kbd> 水平格線 | <kbd>立體</kbd> 垂直格線<br>
+同時勾選格線 + 立體 → 3D 立體方格效果
+
+<h3>素材面板</h3>
+四組來源：Scrabling / Jumpstart / 3232iso / Strategy<br>
+<kbd>搜尋</kbd> — 輸入關鍵字篩選全部素材（檔名或編號）<br>
+點擊素材 — 放入暫存區 | 拖曳素材 — 直接放到畫布或暫存區
 
 <h3>範本</h3>
 高亮 2+ 方塊 → <kbd>儲存</kbd> → 命名<br>
 選範本 → <kbd>放置</kbd> → 一鍵放入
 
-<h3>顯示工具</h3>
-<h3>顯示類（收折面板）</h3>
-<kbd>懸停</kbd> 反白 | <kbd>格線</kbd> 水平 | <kbd>立體</kbd> 垂直 | <kbd>座標</kbd> 座標 | <kbd>小地圖</kbd> 右下縮覽
-
 <h3>檔案操作</h3>
-<kbd>Ctrl+Z</kbd> 返回 | <kbd>Ctrl+Y</kbd> 復原 | <kbd>Ctrl+C</kbd> 複製選取 | <kbd>Ctrl+V</kbd> 貼上<br>
+<kbd>Ctrl+Z</kbd> 返回 | <kbd>Ctrl+Y</kbd> 復原<br>
 <kbd>儲存</kbd> JSON | <kbd>載入</kbd> JSON | <kbd>匯出圖</kbd> PNG<br>
-<kbd>原點</kbd> 回到 (0,0) | <kbd>清除全部</kbd><br>
-<kbd>搜尋</kbd> — 輸入關鍵字篩選全部素材（檔名或編號）
+<kbd>原點</kbd> 回到 (0,0) | <kbd>清除全部</kbd>
 
-<h3>快捷類（收折面板）</h3>
-<kbd>選取</kbd> 取代 Shift（選取/框選）| <kbd>定位</kbd> 點方塊跳到素材面板 | <kbd>複製</kbd> 取代 Ctrl（複製拖曳）<br>
-雙指捏合縮放 | 暫存區快速放置
+<h3>快捷類（取代鍵盤修飾鍵）</h3>
+<kbd>選取</kbd> 取代 Shift | <kbd>複製</kbd> 取代 Ctrl | <kbd>定位</kbd> 點方塊跳到素材面板
+
+<h3>手機操作</h3>
+單指拖曳方塊 — 移動 | 單指空白處 — 平移<br>
+雙指捏合 — 縮放 | 雙擊 — 刪除方塊<br>
+長按素材 — 拖曳到畫布或暫存區<br>
+拖曳方塊到暫存區範圍 — 存入暫存
 `;
 document.getElementById('helpBody').innerHTML = helpHTML;
 

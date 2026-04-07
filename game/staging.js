@@ -172,6 +172,7 @@ export function initStagingGrid(){
       draw();
     }
 
+    // ── PC: mousedown drag ──
     let sDragStarted = false;
     cell.addEventListener('mousedown', (e) => {
       if(!S.staging[i] || e.button !== 0) return;
@@ -202,6 +203,60 @@ export function initStagingGrid(){
       document.addEventListener('mousemove', onM);
       document.addEventListener('mouseup', onU);
     });
+
+    // ── Mobile: touch drag from staging to canvas ──
+    let sTouchDrag = false;
+    let sTouchEl = null;
+    cell.addEventListener('touchstart', (e) => {
+      if(!S.staging[i] || S.staging[i].combo) return;
+      sTouchDrag = false;
+      const t = e.touches[0];
+      const sx = t.clientX, sy = t.clientY;
+      const _onTM = (e2) => {
+        const t2 = e2.touches[0];
+        if(!sTouchDrag && (Math.abs(t2.clientX-sx)>6 || Math.abs(t2.clientY-sy)>6)){
+          sTouchDrag = true;
+          e2.preventDefault();
+          sTouchEl = document.createElement('div');
+          sTouchEl.style.cssText = 'position:fixed;pointer-events:none;z-index:999;opacity:0.7;width:42px;height:42px;';
+          const img = document.createElement('img');
+          const td = TILES[S.staging[i].color];
+          const src2 = SOURCES.find(s => s.prefix === S.staging[i].color.charAt(0));
+          if(src2 && td) img.src = src2.base + td.file;
+          img.style.cssText = 'width:100%;height:100%;image-rendering:pixelated;';
+          sTouchEl.appendChild(img);
+          document.body.appendChild(sTouchEl);
+        }
+        if(sTouchDrag && sTouchEl){
+          e2.preventDefault();
+          sTouchEl.style.left = (t2.clientX - 21) + 'px';
+          sTouchEl.style.top = (t2.clientY - 21) + 'px';
+        }
+      };
+      const _onTE = (e2) => {
+        document.removeEventListener('touchmove', _onTM);
+        document.removeEventListener('touchend', _onTE);
+        if(sTouchDrag && sTouchEl){
+          const t2 = e2.changedTouches[0];
+          sTouchEl.remove(); sTouchEl = null;
+          const r = canvas.getBoundingClientRect();
+          if(t2.clientX >= r.left && t2.clientX <= r.right && t2.clientY >= r.top && t2.clientY <= r.bottom){
+            const mx = t2.clientX - r.left, my = t2.clientY - r.top;
+            const g = toGrid(mx, my);
+            const gx = snap(g.gx), gy = snap(g.gy);
+            placeStagingItem(i, gx, gy);
+          }
+        } else if(!sTouchDrag){
+          // Tap: place at center
+          const center = toGrid(camera.W/2, camera.H/2);
+          placeStagingItem(i, snap(center.gx), snap(center.gy));
+        }
+        sTouchDrag = false;
+      };
+      document.addEventListener('touchmove', _onTM, {passive:false});
+      document.addEventListener('touchend', _onTE);
+    }, {passive:true});
+
     grid.appendChild(cell);
   }
 }

@@ -129,7 +129,7 @@ const MW_CATS = [
   {label:'草地',  tiles:[44,45,46,47,48],                                    stroke:'#2A6A1E', ghost:'#5BA840'},
   {label:'水面',  tiles:[19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35],stroke:'#1A4060', ghost:'#4A80AA'},
   {label:'植物',  tiles:[10,11,12,13,14,48,49,50,51,52],                     stroke:'#2A5A10', ghost:'#5B9B30'},
-  {label:'裝飾',  tiles:[0,15,16,17],                                        stroke:'#6A6A6A', ghost:'#AAAAAA'},
+  {label:'裝飾',  tiles:[15,16,17],                                           stroke:'#6A6A6A', ghost:'#AAAAAA'},
   {label:'農場',  tiles:[56,57,58,59,60],                                    stroke:'#8A7A2A', ghost:'#CCBB44'},
   {label:'建築',  tiles:[4,5,6,7,8,9,53,54,55,61,81,82,83,84,85,86,87,88],  stroke:'#8A6A3A', ghost:'#BB9966'},
   {label:'城牆',  tiles:[62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80], stroke:'#7A6A5A', ghost:'#AA9A8A'},

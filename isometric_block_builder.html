@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>等距方塊建造器</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <div id="toolbar">
+    <div id="srcTabs">
+      <select id="crossCat" class="cross-select"><option value="">依來源分類</option></select>
+    </div>
+    <div id="catTabs"></div>
+    <div id="tilePalette"></div>
+    <div id="controls">
+      <span class="label">高度：</span>
+      <button class="layer-btn" id="heightDown">&#9660;</button>
+      <span id="heightNum" class="layer-num">0</span>
+      <button class="layer-btn" id="heightUp">&#9650;</button>
+      <span class="label">圖層：</span>
+      <button class="layer-btn" id="layerDown">&#9660;</button>
+      <span id="layerNum" class="layer-num">0</span>
+      <button class="layer-btn" id="layerUp">&#9650;</button>
+      <button id="undoBtn" class="toggle-btn">撤銷</button>
+      <button id="hoverToggle" class="toggle-btn">懸停:OFF</button>
+      <button id="gridToggle" class="toggle-btn">格線:OFF</button>
+      <button id="vgridToggle" class="toggle-btn">立體:OFF</button>
+      <button id="coordToggle" class="toggle-btn">座標:OFF</button>
+      <button id="saveBtn" class="toggle-btn">儲存</button>
+      <button id="loadBtn" class="toggle-btn">載入</button>
+      <button id="clearBtn">清除全部</button>
+    </div>
+    <div id="comboBar">
+      <span class="label">組合：</span>
+      <button id="comboSave" class="toggle-btn">存選取</button>
+      <button id="comboPlace" class="toggle-btn">放置組合</button>
+      <div id="comboList"></div>
+    </div>
+  </div>
+  <div class="hint" id="hintToggle" style="cursor:pointer;">操作說明 ▼</div>
+  <div id="helpPanel" style="display:none;"></div>
+  <canvas id="c"></canvas>
+</div>
+<script src="game.js"></script>
+</body>
+</html>

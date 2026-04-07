@@ -5,48 +5,29 @@ body {
   color: #e0e0e0;
   display: flex;
   justify-content: center;
-  padding: 16px;
+  padding: 8px;
 }
 #app {
   width: 100%;
   max-width: 1200px;
-  min-height: 520px;
   position: relative;
-  overflow: hidden;
   touch-action: none;
   user-select: none;
 }
 #toolbar {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 0;
-}
-#srcRow {
-  display: flex;
-  align-items: center;
   gap: 4px;
-  margin-bottom: 2px;
+  padding: 4px 0;
+}
+/* 來源+類型下拉 */
+#selectorRow {
+  display: flex;
+  gap: 6px;
+  align-items: center;
   flex-wrap: wrap;
 }
-#srcTabs {
-  display: flex;
-  gap: 4px;
-}
-.src-btn {
-  font-size: 12px;
-  font-weight: bold;
-  padding: 4px 12px;
-  cursor: pointer;
-  border-radius: 4px;
-  border: 1px solid #555;
-  background: transparent;
-  color: #888;
-  transition: all 0.15s;
-}
-.src-btn:hover { border-color: #aaa; color: #ddd; }
-.src-btn.active { background: #4a4a6e; border-color: #8a8acc; color: #fff; }
-.cross-select {
+#selectorRow select {
   font-size: 12px;
   padding: 4px 8px;
   border-radius: 4px;
@@ -54,49 +35,15 @@ body {
   background: #2a2a3e;
   color: #ccc;
   cursor: pointer;
-  flex-shrink: 0;
 }
-.cross-select:hover { border-color: #aaa; }
-#catTabs {
+#selectorRow select:hover { border-color: #aaa; }
+/* 素材面板 */
+#tilePalette {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
-}
-.cat-btn {
-  font-size: 11px;
-  padding: 3px 8px;
-  cursor: pointer;
-  border-radius: 4px;
-  border: 1px solid #444;
-  background: transparent;
-  color: #888;
-  transition: all 0.15s;
-}
-.cat-btn:hover { border-color: #888; color: #ccc; }
-.cat-btn.active { background: #3a3a5e; border-color: #7a7aaa; color: #e0e0e0; }
-#tilePalette {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
   min-height: 42px;
   align-items: center;
-}
-#controls {
-  display: flex;
-  gap: 6px 8px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-#comboBar {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-#toolbar span.label {
-  font-size: 13px;
-  color: #aaa;
-  margin-right: 4px;
 }
 .tb {
   width: 42px;
@@ -131,50 +78,44 @@ body {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
-.layer-btn {
-  font-size: 12px;
-  width: 28px;
-  height: 28px;
-  cursor: pointer;
-  border-radius: 6px;
-  border: 1px solid #555;
-  background: transparent;
+/* 勾選開關列 */
+#toggleRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.ck {
+  font-size: 11px;
   color: #aaa;
-  transition: background 0.15s;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 2px;
 }
-.layer-btn:hover { background: rgba(255,255,255,0.1); }
-.layer-num {
-  font-size: 14px;
-  font-weight: bold;
-  min-width: 24px;
-  text-align: center;
-  color: #e0e0e0;
+.ck input { cursor: pointer; }
+/* 組合列 */
+#comboBar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+#toolbar span.label {
+  font-size: 12px;
+  color: #aaa;
 }
 .toggle-btn {
   font-size: 11px;
-  padding: 4px 10px;
+  padding: 3px 8px;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 4px;
   border: 1px solid #555;
   background: transparent;
   color: #aaa;
   transition: background 0.15s;
 }
 .toggle-btn:hover { background: rgba(255,255,255,0.1); }
-#clearBtn {
-  font-size: 12px;
-  padding: 4px 12px;
-  cursor: pointer;
-  border-radius: 6px;
-  border: 1px solid #555;
-  background: transparent;
-  color: #aaa;
-  transition: background 0.15s;
-}
-#clearBtn:hover { background: rgba(255,255,255,0.1); }
 #comboList {
   display: flex;
   gap: 4px;
@@ -189,7 +130,6 @@ body {
   background: #2a2a3e;
   color: #ccc;
   transition: all 0.15s;
-  position: relative;
 }
 .combo-btn:hover { border-color: #aaa; }
 .combo-btn.active { border-color: #8a8acc; background: #3a3a5e; }
@@ -200,13 +140,40 @@ body {
   font-size: 10px;
 }
 .combo-del:hover { color: #f66; }
-.hint {
+/* 說明+操作按鈕列 */
+#hintRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+  flex-wrap: wrap;
+}
+#hintToggle {
   font-size: 12px;
   color: #888;
-  padding: 4px 0;
-  user-select: none;
+  cursor: pointer;
 }
-.hint:hover { color: #bbb; }
+#hintToggle:hover { color: #bbb; }
+#actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.act-btn {
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  border: 1px solid #555;
+  background: transparent;
+  color: #aaa;
+  transition: background 0.15s;
+}
+.act-btn:hover { background: rgba(255,255,255,0.1); }
+.act-btn.danger { color: #c66; border-color: #633; }
+.act-btn.danger:hover { background: rgba(200,50,50,0.15); }
+/* 說明面板 */
 #helpPanel {
   font-size: 12px;
   color: #bbb;
@@ -214,17 +181,10 @@ body {
   border: 1px solid #333;
   border-radius: 8px;
   padding: 12px 16px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   line-height: 1.8;
   columns: 2;
   column-gap: 24px;
-}
-@media (max-width: 600px){
-  #helpPanel { columns: 1; }
-  .tb { width: 36px; height: 36px; }
-  .src-btn { font-size: 11px; padding: 3px 8px; }
-  .cat-btn { font-size: 10px; padding: 2px 6px; }
-  .toggle-btn, #clearBtn { font-size: 10px; padding: 3px 8px; }
 }
 #helpPanel h3 {
   font-size: 13px;
@@ -242,6 +202,7 @@ body {
   color: #eee;
   font-family: monospace;
 }
+/* 畫布區 */
 #canvasWrap { position: relative; }
 #stagingArea {
   position: absolute;
@@ -295,11 +256,64 @@ body {
   display: none;
 }
 .staging-cell:hover .staging-del { display: block; color: #f66; }
+/* 高度圖層面板（畫布右上角） */
+#hlPanel {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  background: rgba(30,30,50,0.85);
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 6px 8px;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hl-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.hl-label {
+  font-size: 10px;
+  color: #888;
+  min-width: 24px;
+}
+.hl-btn {
+  font-size: 10px;
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  border-radius: 4px;
+  border: 1px solid #555;
+  background: transparent;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.hl-btn:hover { background: rgba(255,255,255,0.15); }
+.hl-num {
+  font-size: 13px;
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
+  color: #e0e0e0;
+}
 #c {
   width: 100%;
   border-radius: 10px;
   border: 1px solid #333;
   cursor: grab;
   background: #16213e;
-  position: relative;
+}
+/* 手機適配 */
+@media (max-width: 600px){
+  #helpPanel { columns: 1; }
+  .tb { width: 36px; height: 36px; }
+  #stagingGrid { grid-template-columns: repeat(3, 36px); grid-template-rows: repeat(3, 36px); }
+  .staging-cell { width: 36px; height: 36px; }
 }

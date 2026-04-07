@@ -726,7 +726,7 @@ function onDown(e){
   // 定位模式：跳到素材位置
   if(locateMode && hit){
     jumpToTile(hit.color);
-    locateMode = false; document.getElementById('locateMode').textContent = '定位:OFF';
+    locateMode = false; document.getElementById('chkLocate').checked = false;
     return;
   }
 
@@ -996,7 +996,6 @@ canvas.addEventListener('touchend', onUp);
 
 // ── 素材定位 ──
 function jumpToTile(tileKey){
-  // 找出該素材屬於哪個來源和分類
   const prefix = tileKey.charAt(0);
   const idx = parseInt(tileKey.slice(1));
   for(let si = 0; si < SOURCES.length; si++){
@@ -1004,18 +1003,12 @@ function jumpToTile(tileKey){
     if(src.prefix !== prefix) continue;
     for(let ci = 0; ci < src.cats.length; ci++){
       if(src.cats[ci].tiles.includes(idx)){
-        // 切換到該來源和分類
+        document.getElementById('srcSelect').value = si;
         selectedSrc = si;
+        buildCatOptions();
+        document.getElementById('catSelect').value = ci;
         selectedCat = ci;
-        crossMode = '';
-        document.getElementById('crossCat').value = '';
-        // 更新 UI
-        document.querySelectorAll('.src-btn').forEach((b,i) => {
-          b.classList.toggle('active', i === si);
-        });
-        populateCatTabs();
         populatePalette();
-        // 高亮對應按鈕
         const btns = document.querySelectorAll('#tilePalette .tb');
         for(const btn of btns){
           if(btn.title && btn.title.startsWith(tileKey)){
@@ -1031,27 +1024,39 @@ function jumpToTile(tileKey){
   }
 }
 
-// ── 素材面板（三來源 + 分類） ──
-let selectedSrc = 0;
+// ── 素材面板（下拉選單） ──
+let selectedSrc = -1; // -1 = 全部來源
 let selectedCat = 0;
 
 function populatePalette(){
   const container = document.getElementById('tilePalette');
   container.innerHTML = '';
-  const src = SOURCES[selectedSrc];
-  const cat = src.cats[selectedCat];
-  if(!cat) return;
-  for(const i of cat.tiles){
-    const key = src.prefix + String(i).padStart(3,'0');
+  const catSel = document.getElementById('catSelect');
+  const catLabel = catSel.options[catSel.selectedIndex]?.text || '';
+
+  // 收集要顯示的素材
+  const items = [];
+  const srcList = selectedSrc === -1 ? SOURCES : [SOURCES[selectedSrc]];
+  for(const src of srcList){
+    for(const cat of src.cats){
+      if(cat.label !== catLabel) continue;
+      for(const i of cat.tiles){
+        const key = src.prefix + String(i).padStart(3,'0');
+        items.push({key, src, i});
+      }
+    }
+  }
+
+  for(const {key, src, i} of items){
     const btn = document.createElement('button');
     btn.className = 'tb';
-    btn.title = key + ' (' + src.fileOf(i) + ')';
+    btn.title = key + ' [' + src.label + ']';
     const img = document.createElement('img');
     img.src = src.base + src.fileOf(i);
     btn.appendChild(img);
     const num = document.createElement('span');
     num.className = 'tb-num';
-    num.textContent = i;
+    num.textContent = src.prefix + i;
     btn.appendChild(num);
     btn.addEventListener('click', () => {
       const srcH = (TILES[key] && TILES[key].srcH) || 32;
@@ -1061,115 +1066,61 @@ function populatePalette(){
   }
 }
 
-function populateCatTabs(){
-  const container = document.getElementById('catTabs');
-  container.innerHTML = '';
-  const src = SOURCES[selectedSrc];
-  src.cats.forEach((cat, idx) => {
-    const btn = document.createElement('button');
-    btn.className = 'cat-btn' + (idx === selectedCat ? ' active' : '');
-    btn.textContent = cat.label;
-    btn.addEventListener('click', () => {
-      selectedCat = idx;
-      container.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      populatePalette();
-    });
-    container.appendChild(btn);
-  });
-}
-
-function populateSrcTabs(){
-  const container = document.getElementById('srcTabs');
-  SOURCES.forEach((src, idx) => {
-    const btn = document.createElement('button');
-    btn.className = 'src-btn' + (idx === selectedSrc ? ' active' : '');
-    btn.textContent = src.label;
-    btn.addEventListener('click', () => {
-      selectedSrc = idx;
-      selectedCat = 0;
-      crossMode = '';
-      document.getElementById('crossCat').value = '';
-      container.querySelectorAll('.src-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      populateCatTabs();
-      populatePalette();
-    });
-    container.appendChild(btn);
-  });
-}
-
-// 跨來源種類下拉選單
-let crossMode = ''; // '' = 依來源, 'xxx' = 跨來源種類名
-
-function buildCrossSelect(){
-  const sel = document.getElementById('crossCat');
-  // 收集所有種類標籤，記錄來源數
-  const labelMap = {};
-  for(const src of SOURCES){
+function buildCatOptions(){
+  const catSel = document.getElementById('catSelect');
+  const prevVal = catSel.value;
+  catSel.innerHTML = '';
+  // 收集類型（依來源篩選或全部）
+  const labelSet = new Map();
+  const srcList = selectedSrc === -1 ? SOURCES : [SOURCES[selectedSrc]];
+  for(const src of srcList){
     for(const cat of src.cats){
-      if(!labelMap[cat.label]) labelMap[cat.label] = [];
-      labelMap[cat.label].push(src.label);
+      if(!labelSet.has(cat.label)) labelSet.set(cat.label, 0);
+      labelSet.set(cat.label, labelSet.get(cat.label) + 1);
     }
   }
-  // 按來源數排序（多來源共有的排前面）
-  const labels = Object.entries(labelMap).sort((a,b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
-  for(const [label, srcs] of labels){
+  let idx = 0;
+  let defaultIdx = 0;
+  for(const [label, count] of labelSet){
     const opt = document.createElement('option');
-    opt.value = label;
-    opt.textContent = label + (srcs.length > 1 ? ' (' + srcs.length + ')' : '');
-    sel.appendChild(opt);
+    opt.value = idx;
+    opt.textContent = label + (selectedSrc === -1 && count > 1 ? ' ('+count+')' : '');
+    opt.dataset.label = label;
+    if(label === '草皮') defaultIdx = idx;
+    catSel.appendChild(opt);
+    idx++;
   }
-  sel.addEventListener('change', () => {
-    crossMode = sel.value;
-    if(crossMode){
-      // 跨來源模式：隱藏來源分頁和分類標籤
-      document.querySelectorAll('.src-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById('catTabs').innerHTML = '';
-      populateCrossPalette();
-    } else {
-      // 恢復正常模式
-      document.querySelectorAll('.src-btn').forEach((b,i) => {
-        if(i === selectedSrc) b.classList.add('active');
-      });
-      populateCatTabs();
-      populatePalette();
-    }
+  catSel.value = defaultIdx;
+}
+
+function initSelectors(){
+  const srcSel = document.getElementById('srcSelect');
+  // 來源下拉
+  const allOpt = document.createElement('option');
+  allOpt.value = -1; allOpt.textContent = '全部來源';
+  srcSel.appendChild(allOpt);
+  SOURCES.forEach((src, i) => {
+    const opt = document.createElement('option');
+    opt.value = i; opt.textContent = src.label;
+    srcSel.appendChild(opt);
   });
-}
+  srcSel.value = -1;
 
-function populateCrossPalette(){
-  const container = document.getElementById('tilePalette');
-  container.innerHTML = '';
-  for(const src of SOURCES){
-    for(const cat of src.cats){
-      if(cat.label !== crossMode) continue;
-      for(const i of cat.tiles){
-        const key = src.prefix + String(i).padStart(3,'0');
-        const btn = document.createElement('button');
-        btn.className = 'tb';
-        btn.title = key + ' [' + src.label + ']';
-        const img = document.createElement('img');
-        img.src = src.base + src.fileOf(i);
-        btn.appendChild(img);
-        const num = document.createElement('span');
-        num.className = 'tb-num';
-        num.textContent = src.prefix + i;
-        btn.appendChild(num);
-        btn.addEventListener('click', () => {
-          const srcH = (TILES[key] && TILES[key].srcH) || 32;
-          addToStaging(key, srcH);
-        });
-        container.appendChild(btn);
-      }
-    }
-  }
-}
+  srcSel.addEventListener('change', () => {
+    selectedSrc = parseInt(srcSel.value);
+    buildCatOptions();
+    populatePalette();
+  });
 
-populateSrcTabs();
-buildCrossSelect();
-populateCatTabs();
-populatePalette();
+  const catSel = document.getElementById('catSelect');
+  catSel.addEventListener('change', () => {
+    populatePalette();
+  });
+
+  buildCatOptions();
+  populatePalette();
+}
+initSelectors();
 
 // ── 高度 + 圖層切換 ──
 function updateHeightUI(){
@@ -1193,11 +1144,11 @@ document.getElementById('layerDown').addEventListener('click', () => {
   if(currentLayer > 0){ currentLayer--; updateLayerUI(); draw(); }
 });
 
-// ── 撤銷 ──
+// ── 返回 / 復原 ──
 function saveSnapshot(){
   history.push(JSON.stringify(blocks));
   if(history.length > 50) history.shift();
-  redoStack = []; // 新動作清除復原歷史
+  redoStack = [];
 }
 function doUndo(){
   if(history.length === 0) return;
@@ -1215,8 +1166,6 @@ function doRedo(){
 }
 document.getElementById('undoBtn').addEventListener('click', doUndo);
 document.getElementById('redoBtn').addEventListener('click', doRedo);
-
-// Ctrl+Z / Ctrl+Y 快捷鍵
 document.addEventListener('keydown', (e) => {
   if(e.ctrlKey && e.key === 'z'){ e.preventDefault(); doUndo(); }
   if(e.ctrlKey && e.key === 'y'){ e.preventDefault(); doRedo(); }
@@ -1227,45 +1176,14 @@ document.getElementById('clearBtn').addEventListener('click', () => {
   blocks = []; draw();
 });
 
-document.getElementById('selectMode').addEventListener('click', () => {
-  selectMode = !selectMode;
-  document.getElementById('selectMode').textContent = selectMode ? '選取:ON' : '選取:OFF';
-});
-
-document.getElementById('copyMode').addEventListener('click', () => {
-  copyMode = !copyMode;
-  document.getElementById('copyMode').textContent = copyMode ? '複製:ON' : '複製:OFF';
-});
-
-document.getElementById('locateMode').addEventListener('click', () => {
-  locateMode = !locateMode;
-  document.getElementById('locateMode').textContent = locateMode ? '定位:ON' : '定位:OFF';
-});
-
-document.getElementById('hoverToggle').addEventListener('click', () => {
-  showHover = !showHover;
-  hoverBlock = null;
-  document.getElementById('hoverToggle').textContent = showHover ? '懸停:ON' : '懸停:OFF';
-  draw();
-});
-
-document.getElementById('gridToggle').addEventListener('click', () => {
-  showGrid = !showGrid;
-  document.getElementById('gridToggle').textContent = showGrid ? '格線:ON' : '格線:OFF';
-  draw();
-});
-
-document.getElementById('vgridToggle').addEventListener('click', () => {
-  showVGrid = !showVGrid;
-  document.getElementById('vgridToggle').textContent = showVGrid ? '立體:ON' : '立體:OFF';
-  draw();
-});
-
-document.getElementById('coordToggle').addEventListener('click', () => {
-  showCoords = !showCoords;
-  document.getElementById('coordToggle').textContent = showCoords ? '座標:ON' : '座標:OFF';
-  draw();
-});
+// ── 勾選開關 ──
+document.getElementById('chkSelect').addEventListener('change', (e) => { selectMode = e.target.checked; });
+document.getElementById('chkLocate').addEventListener('change', (e) => { locateMode = e.target.checked; });
+document.getElementById('chkCopy').addEventListener('change', (e) => { copyMode = e.target.checked; });
+document.getElementById('chkHover').addEventListener('change', (e) => { showHover = e.target.checked; hoverBlock = null; draw(); });
+document.getElementById('chkGrid').addEventListener('change', (e) => { showGrid = e.target.checked; draw(); });
+document.getElementById('chkVGrid').addEventListener('change', (e) => { showVGrid = e.target.checked; draw(); });
+document.getElementById('chkCoord').addEventListener('change', (e) => { showCoords = e.target.checked; draw(); });
 
 // ── 儲存 / 載入 ──
 document.getElementById('saveBtn').addEventListener('click', () => {
@@ -1338,7 +1256,7 @@ function renderComboList(){
 document.getElementById('comboSave').addEventListener('click', () => {
   // 僅存金色高亮選取的方塊，需 2 個以上
   const sel = [...selectedBlocks];
-  if(sel.length < 2){ alert('請先 Shift+點擊 選取 2 個以上相鄰方塊'); return; }
+  if(sel.length < 2){ alert('請先 Shift+點擊 選取 2 個以上相鄰方塊，或是開啟選取開關'); return; }
   const name = prompt('組合名稱：', '組合' + (combos.length + 1));
   if(!name) return;
   const minGx = Math.min(...sel.map(b => b.gx));

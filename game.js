@@ -1513,6 +1513,7 @@ function initStagingGrid(){
     let sTouchEl = null;
     cell.addEventListener('touchstart', (e) => {
       if(!S.staging[i] || S.staging[i].combo) return;
+      e.preventDefault();
       sTouchDrag = false;
       const t = e.touches[0];
       const sx = t.clientX, sy = t.clientY;
@@ -1559,7 +1560,7 @@ function initStagingGrid(){
       };
       document.addEventListener('touchmove', _onTM, {passive:false});
       document.addEventListener('touchend', _onTE);
-    }, {passive:true});
+    }, {passive:false});
 
     grid.appendChild(cell);
   }

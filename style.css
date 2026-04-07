@@ -317,6 +317,10 @@ body {
   justify-content: center;
   cursor: pointer;
   position: relative;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
 }
 .staging-cell:hover { border-color: #888; }
 .staging-cell.drag-over { border-color: #FFD700; background: rgba(255,215,0,0.15); }

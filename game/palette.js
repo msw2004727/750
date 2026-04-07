@@ -84,9 +84,10 @@ export function populatePalette(){
 
   const items = [];
   const srcList = S.selectedSrc === -1 ? SOURCES : [SOURCES[S.selectedSrc]];
+  const showAll = catLabel === '__all__';
   for(const src of srcList){
     for(const cat of src.cats){
-      if(cat.label !== catLabel) continue;
+      if(!showAll && cat.label !== catLabel) continue;
       for(const i of cat.tiles){
         const key = src.prefix + String(i).padStart(3,'0');
         items.push({key, src, i});
@@ -147,7 +148,14 @@ export function buildCatOptions(){
       labelSet.set(cat.label, labelSet.get(cat.label) + 1);
     }
   }
-  let idx = 0;
+  // "全部" option at the top
+  const allOpt = document.createElement('option');
+  allOpt.value = 0;
+  allOpt.textContent = '全部';
+  allOpt.dataset.label = '__all__';
+  catSel.appendChild(allOpt);
+
+  let idx = 1;
   let defaultIdx = 0;
   for(const [label, count] of labelSet){
     const opt = document.createElement('option');

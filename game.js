@@ -1296,9 +1296,6 @@ function onDown(e){
 }
 
 function onMove(e){
-  // 追蹤滑鼠位置（用於 onUp 時判斷暫存區）
-  if(e.clientX !== undefined){ lastMouseClientX = e.clientX; lastMouseClientY = e.clientY; }
-  else if(e.touches && e.touches[0]){ lastMouseClientX = e.touches[0].clientX; lastMouseClientY = e.touches[0].clientY; }
   // 拖曳方塊時暫存區高亮
   if(dragBlock){ stagingHighlight(findStagingSlotAt(lastMouseClientX, lastMouseClientY) >= 0); }
   // 筆刷/橡皮擦/矩形/線段拖曳
@@ -1536,15 +1533,23 @@ function onCtx(e){
 // ── 事件綁定 ──
 canvas.addEventListener('mousedown', onDown);
 canvas.addEventListener('mousemove', onMove);
-canvas.addEventListener('mouseup', onUp);
-canvas.addEventListener('mouseleave', onUp);
+document.addEventListener('mouseup', onUp);  // document 級別，暫存區上放開也能觸發
 canvas.addEventListener('wheel', onWheel, {passive:false});
 canvas.addEventListener('dblclick', onDbl);
 canvas.addEventListener('contextmenu', onCtx);
 
+// 全域追蹤滑鼠/觸控位置（確保暫存區上方也能追蹤）
+document.addEventListener('mousemove', (e) => {
+  lastMouseClientX = e.clientX; lastMouseClientY = e.clientY;
+}, true);
+document.addEventListener('touchmove', (e) => {
+  if(e.touches[0]){ lastMouseClientX = e.touches[0].clientX; lastMouseClientY = e.touches[0].clientY; }
+}, true);
+
 // 視窗失焦時清除拖曳狀態
 window.addEventListener('blur', () => {
   if(tileDrag){ tileDrag.el.remove(); tileDrag = null; stagingHighlight(false); }
+  if(mobileDragEl){ mobileDragEl.remove(); mobileDragEl = null; mobileDragKey = null; stagingHighlight(false); }
 });
 
 // 從素材面板拖放到畫布（手機觸控）

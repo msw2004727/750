@@ -447,30 +447,21 @@ function drawGrid(){
     }
   }
 
-  // 當前高度無素材處半透明反白
-  ctx.globalAlpha = 0.06;
-  ctx.fillStyle = '#ffffff';
-  for(let i = -R; i < R; i++){
-    for(let j = -R; j < R; j++){
-      // 跳過有方塊的格子（任意圖層）
-      let occupied = false;
-      for(const b of blocks){
-        if(b.gx === i && b.gy === j && b.gz === gz){ occupied = true; break; }
-      }
-      if(occupied) continue;
-      const p0 = toScreen(i, j, gz);
-      const p1 = toScreen(i+1, j, gz);
-      const p2 = toScreen(i+1, j+1, gz);
-      const p3 = toScreen(i, j+1, gz);
-      ctx.beginPath();
-      ctx.moveTo(p0.x, p0.y+th2);
-      ctx.lineTo(p1.x, p1.y+th2);
-      ctx.lineTo(p2.x, p2.y+th2);
-      ctx.lineTo(p3.x, p3.y+th2);
-      ctx.closePath();
-      ctx.fill();
-    }
-  }
+  // 當前高度的地板面：整片半透明，有方塊處挖空
+  ctx.globalAlpha = 0.04;
+  ctx.fillStyle = '#aaccee';
+  // 先畫整片菱形地板
+  const cA = toScreen(-R, -R, gz);
+  const cB = toScreen(R, -R, gz);
+  const cC = toScreen(R, R, gz);
+  const cD = toScreen(-R, R, gz);
+  ctx.beginPath();
+  ctx.moveTo(cA.x, cA.y+th2);
+  ctx.lineTo(cB.x, cB.y+th2);
+  ctx.lineTo(cC.x, cC.y+th2);
+  ctx.lineTo(cD.x, cD.y+th2);
+  ctx.closePath();
+  ctx.fill();
 
   // 當前高度原點十字加粗
   ctx.globalAlpha = 0.5;
@@ -548,9 +539,13 @@ function draw(){
     return (a.gx+a.gy)*100+a.gz - ((b.gx+b.gy)*100+b.gz);
   });
 
-  // 1. 先畫低於當前高度的方塊
+  // 1. 先畫低於當前高度的方塊（變暗）
   for(const b of sorted){
-    if(b.gz < currentHeight) drawCube(b.gx, b.gy, b.gz, b.color, b===dragBlock, b);
+    if(b.gz < currentHeight){
+      ctx.globalAlpha = 0.4;
+      drawCube(b.gx, b.gy, b.gz, b.color, b===dragBlock, b);
+      ctx.globalAlpha = 1;
+    }
   }
 
   // 2. 格線蓋在低層方塊上面

@@ -472,6 +472,7 @@ let brushTile = null;    // 筆刷選中的素材 {color, srcH}
 let brushPainting = false; // 正在筆刷繪製中
 let brushCursorGx = -999, brushCursorGy = -999;
 let lastMouseClientX = 0, lastMouseClientY = 0;
+let canvasDragOverlay = null; // 畫布拖曳時的浮動預覽
 let hiddenHeights = new Set(); // 隱藏的高度層
 let hiddenLayers = new Set();  // 隱藏的圖層
 let fillMode = false;          // 填充工具
@@ -1209,6 +1210,7 @@ function onDown(e){
     reachableSet = null; // 複製拖曳不受圍牆限制
     dragBlock = hit;
     dragBlock._copyMode = true;
+    createCanvasDragOverlay(hit.color);
     groupOffsets = null;
     const sp = toScreen(hit.gx, hit.gy, hit.gz);
     dragOffX = pos.x - sp.x;
@@ -1242,6 +1244,7 @@ function onDown(e){
     if(hit && selectedBlocks.has(hit)){
       saveSnapshot();
       dragBlock = hit;
+      createCanvasDragOverlay(hit.color);
       // 記錄每個選取方塊相對於拖曳方塊的偏移
       groupOffsets = [];
       for(const b of selectedBlocks){
@@ -1278,6 +1281,7 @@ function onDown(e){
     saveSnapshot();
     dragBlock = hit;
     groupOffsets = null;
+    createCanvasDragOverlay(hit.color);
     const sp = toScreen(hit.gx, hit.gy, hit.gz);
     dragOffX = pos.x - sp.x;
     dragOffY = pos.y - sp.y;
@@ -1296,8 +1300,11 @@ function onDown(e){
 }
 
 function onMove(e){
-  // 拖曳方塊時暫存區高亮
-  if(dragBlock){ stagingHighlight(findStagingSlotAt(lastMouseClientX, lastMouseClientY) >= 0); }
+  // 拖曳方塊時暫存區高亮 + 浮動預覽
+  if(dragBlock){
+    stagingHighlight(findStagingSlotAt(lastMouseClientX, lastMouseClientY) >= 0);
+    updateCanvasDragOverlay();
+  }
   // 筆刷/橡皮擦/矩形/線段拖曳
   if(brushPainting){
     e.preventDefault();
@@ -1448,6 +1455,7 @@ function onUp(){
     return;
   }
   if(dragBlock){
+    removeCanvasDragOverlay();
     stagingHighlight(false);
     // 檢查是否放到暫存區
     const slot = findStagingSlotAt(lastMouseClientX, lastMouseClientY);
@@ -1538,6 +1546,31 @@ canvas.addEventListener('wheel', onWheel, {passive:false});
 canvas.addEventListener('dblclick', onDbl);
 canvas.addEventListener('contextmenu', onCtx);
 
+// 畫布拖曳浮動預覽
+function createCanvasDragOverlay(key){
+  if(canvasDragOverlay) canvasDragOverlay.remove();
+  const td = TILES[key];
+  if(!td) return;
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;pointer-events:none;z-index:999;opacity:0.6;width:48px;height:48px;';
+  const img = document.createElement('img');
+  const src2 = SOURCES.find(s => s.prefix === key.charAt(0));
+  img.src = (src2 ? src2.base : '') + td.file;
+  img.style.cssText = 'width:100%;height:100%;image-rendering:pixelated;';
+  el.appendChild(img);
+  document.body.appendChild(el);
+  canvasDragOverlay = el;
+}
+function updateCanvasDragOverlay(){
+  if(canvasDragOverlay){
+    canvasDragOverlay.style.left = (lastMouseClientX - 24) + 'px';
+    canvasDragOverlay.style.top = (lastMouseClientY - 24) + 'px';
+  }
+}
+function removeCanvasDragOverlay(){
+  if(canvasDragOverlay){ canvasDragOverlay.remove(); canvasDragOverlay = null; }
+}
+
 // 全域追蹤滑鼠/觸控位置（確保暫存區上方也能追蹤）
 document.addEventListener('mousemove', (e) => {
   lastMouseClientX = e.clientX; lastMouseClientY = e.clientY;
@@ -1550,6 +1583,7 @@ document.addEventListener('touchmove', (e) => {
 window.addEventListener('blur', () => {
   if(tileDrag){ tileDrag.el.remove(); tileDrag = null; stagingHighlight(false); }
   if(mobileDragEl){ mobileDragEl.remove(); mobileDragEl = null; mobileDragKey = null; stagingHighlight(false); }
+  removeCanvasDragOverlay();
 });
 
 // 從素材面板拖放到畫布（手機觸控）

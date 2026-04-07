@@ -191,9 +191,19 @@ function initStagingGrid(){
       const center = toGrid(W/2, H/2);
       const gx = snap(center.gx), gy = snap(center.gy);
       const s = staging[i];
-      if(hasBlockAt(gx, gy, currentHeight, null, currentLayer)) return;
       saveSnapshot();
-      addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:s.color, srcH:s.srcH, yOffset:0});
+      if(s.combo){
+        // 組合放置
+        for(const t of s.combo){
+          const nx = gx+t.dx, ny = gy+t.dy;
+          if(!hasBlockAt(nx, ny, currentHeight, null, currentLayer)){
+            addBlock({gx:nx, gy:ny, gz:currentHeight, layer:currentLayer, color:t.color, srcH:t.srcH, yOffset:t.yOffset||0});
+          }
+        }
+      } else {
+        if(hasBlockAt(gx, gy, currentHeight, null, currentLayer)) return;
+        addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:s.color, srcH:s.srcH, yOffset:0});
+      }
       draw();
     });
     grid.appendChild(cell);
@@ -204,16 +214,33 @@ function renderStagingCell(idx){
   const cells = document.querySelectorAll('.staging-cell');
   const cell = cells[idx];
   if(!cell) return;
-  // 移除舊圖片
   const oldImg = cell.querySelector('img');
   if(oldImg) oldImg.remove();
+  const oldLabel = cell.querySelector('.staging-label');
+  if(oldLabel) oldLabel.remove();
   if(staging[idx]){
-    const td = TILES[staging[idx].color];
-    if(td){
-      const img = document.createElement('img');
-      const src = SOURCES.find(s => s.prefix === staging[idx].color.charAt(0));
-      img.src = (src ? src.base : '') + td.file;
-      cell.insertBefore(img, cell.firstChild);
+    if(staging[idx].combo){
+      // 組合：顯示第一個素材圖 + 數量標記
+      const first = staging[idx].combo[0];
+      const td = TILES[first.color];
+      if(td){
+        const img = document.createElement('img');
+        const src2 = SOURCES.find(s => s.prefix === first.color.charAt(0));
+        img.src = (src2 ? src2.base : '') + td.file;
+        cell.insertBefore(img, cell.firstChild);
+      }
+      const lbl = document.createElement('span');
+      lbl.className = 'staging-label';
+      lbl.textContent = staging[idx].combo.length + '組';
+      cell.appendChild(lbl);
+    } else {
+      const td = TILES[staging[idx].color];
+      if(td){
+        const img = document.createElement('img');
+        const src2 = SOURCES.find(s => s.prefix === staging[idx].color.charAt(0));
+        img.src = (src2 ? src2.base : '') + td.file;
+        cell.insertBefore(img, cell.firstChild);
+      }
     }
   }
 }
@@ -264,11 +291,14 @@ document.getElementById('stagingArea').addEventListener('drop', (e) => {
   if(key && TILES[key]) addToStaging(key, TILES[key].srcH);
 });
 
-function addToStaging(color, srcH){
-  // 找空格放入，滿了就替換最後一格
+function addToStaging(color, srcH, combo){
   let slot = staging.indexOf(null);
   if(slot === -1) slot = 8;
-  staging[slot] = {color, srcH};
+  if(combo){
+    staging[slot] = {combo}; // 組合暫存
+  } else {
+    staging[slot] = {color, srcH};
+  }
   renderStagingCell(slot);
 }
 
@@ -1312,12 +1342,25 @@ function onUp(){
   }
   if(dragBlock){
     stagingHighlight(false);
-    // 檢查是否放到暫存區 → 移除畫布上的方塊
+    // 檢查是否放到暫存區
     const slot = findStagingSlotAt(lastMouseClientX, lastMouseClientY);
     if(slot >= 0){
-      addToStaging(dragBlock.color, dragBlock.srcH);
       saveSnapshot();
-      removeBlock(dragBlock);
+      if(groupOffsets && groupOffsets.length > 1){
+        // 整組存為組合暫存
+        const minGx = Math.min(...groupOffsets.map(g=>g.block.gx));
+        const minGy = Math.min(...groupOffsets.map(g=>g.block.gy));
+        const combo = groupOffsets.map(g => ({
+          dx:g.block.gx-minGx, dy:g.block.gy-minGy, color:g.block.color, srcH:g.block.srcH, yOffset:g.block.yOffset||0
+        }));
+        addToStaging(null, 0, combo);
+        for(const g of groupOffsets) removeBlock(g.block);
+        selectedBlocks = new Set();
+      } else {
+        // 單一素材
+        addToStaging(dragBlock.color, dragBlock.srcH);
+        removeBlock(dragBlock);
+      }
     }
     if(!groupOffsets){
       dragBlock.gx = lastValidGx;

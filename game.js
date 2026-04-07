@@ -187,6 +187,8 @@ let showVGrid = false;
 let showHover = false;
 let hoverBlock = null;
 let selectMode = false;
+let locateMode = false;
+let copyMode = false;
 
 // ── 座標轉換 ──
 function resize(){
@@ -591,6 +593,36 @@ function onDown(e){
   const pos = mousePos(e);
   const hit = hitTest(pos.x, pos.y);
 
+  // 定位模式：跳到素材位置
+  if(locateMode && hit){
+    jumpToTile(hit.color);
+    locateMode = false; document.getElementById('locateMode').textContent = '定位:OFF';
+    return;
+  }
+
+  // Ctrl+左鍵 或 複製模式：複製拖曳
+  if((e.ctrlKey || copyMode) && hit){
+    if(hit.gz !== currentHeight || hit.layer !== currentLayer) return;
+    saveSnapshot();
+    const clone = {gx:hit.gx, gy:hit.gy, gz:hit.gz, layer:hit.layer, color:hit.color, srcH:hit.srcH};
+    blocks.push(clone);
+    // 拖曳原方塊，副本留在原位
+    reachableSet = null; // 複製拖曳不受圍牆限制
+    dragBlock = hit;
+    dragBlock._copyMode = true;
+    groupOffsets = null;
+    const sp = toScreen(hit.gx, hit.gy, hit.gz);
+    dragOffX = pos.x - sp.x;
+    dragOffY = pos.y - sp.y;
+    lastValidGx = hit.gx;
+    lastValidGy = hit.gy;
+    hit._dragGx = hit.gx;
+    hit._dragGy = hit.gy;
+    canvas.style.cursor = 'copy';
+    draw();
+    return;
+  }
+
   // Shift+左鍵 或 選取模式
   if(e.shiftKey || selectMode){
     if(hit){
@@ -609,6 +641,7 @@ function onDown(e){
   if(selectedBlocks.size > 0 && !e.shiftKey){
     // 點到高亮方塊 → 整組拖曳
     if(hit && selectedBlocks.has(hit)){
+      saveSnapshot();
       dragBlock = hit;
       // 記錄每個選取方塊相對於拖曳方塊的偏移
       groupOffsets = [];
@@ -643,6 +676,7 @@ function onDown(e){
     if(hit.gz !== currentHeight || hit.layer !== currentLayer) return;
     reachableSet = computeReachable(hit.gx, hit.gy, hit.gz, hit);
     if(reachableSet.size <= 1){ triggerShake(hit); reachableSet = null; return; }
+    saveSnapshot();
     dragBlock = hit;
     groupOffsets = null;
     const sp = toScreen(hit.gx, hit.gy, hit.gz);
@@ -673,7 +707,15 @@ function onMove(e){
     dragBlock._dragGx = g.gx;
     dragBlock._dragGy = g.gy;
 
-    if(groupOffsets){
+    if(dragBlock._copyMode){
+      // 複製拖曳：自由移動，只檢查目標是否被佔
+      if(!hasBlockAt(tgx, tgy, dragBlock.gz, dragBlock, dragBlock.layer)){
+        dragBlock.gx = tgx;
+        dragBlock.gy = tgy;
+        lastValidGx = tgx;
+        lastValidGy = tgy;
+      }
+    } else if(groupOffsets){
       // 整組移動：檢查所有方塊新位置是否可用
       const ddx = tgx - lastValidGx, ddy = tgy - lastValidGy;
       if(ddx !== 0 || ddy !== 0){
@@ -754,6 +796,7 @@ function onUp(){
     }
     delete dragBlock._dragGx;
     delete dragBlock._dragGy;
+    delete dragBlock._copyMode;
     dragBlock = null;
     groupOffsets = null;
   }
@@ -808,6 +851,43 @@ canvas.addEventListener('touchstart', onDown, {passive:false});
 canvas.addEventListener('touchmove', onMove, {passive:false});
 canvas.addEventListener('touchend', onUp);
 
+
+// ── 素材定位 ──
+function jumpToTile(tileKey){
+  // 找出該素材屬於哪個來源和分類
+  const prefix = tileKey.charAt(0);
+  const idx = parseInt(tileKey.slice(1));
+  for(let si = 0; si < SOURCES.length; si++){
+    const src = SOURCES[si];
+    if(src.prefix !== prefix) continue;
+    for(let ci = 0; ci < src.cats.length; ci++){
+      if(src.cats[ci].tiles.includes(idx)){
+        // 切換到該來源和分類
+        selectedSrc = si;
+        selectedCat = ci;
+        crossMode = '';
+        document.getElementById('crossCat').value = '';
+        // 更新 UI
+        document.querySelectorAll('.src-btn').forEach((b,i) => {
+          b.classList.toggle('active', i === si);
+        });
+        populateCatTabs();
+        populatePalette();
+        // 高亮對應按鈕
+        const btns = document.querySelectorAll('#tilePalette .tb');
+        for(const btn of btns){
+          if(btn.title && btn.title.startsWith(tileKey)){
+            btn.style.outline = '2px solid #FFD700';
+            btn.scrollIntoView({behavior:'smooth', block:'nearest'});
+            setTimeout(() => { btn.style.outline = ''; }, 2000);
+            break;
+          }
+        }
+        return;
+      }
+    }
+  }
+}
 
 // ── 素材面板（三來源 + 分類） ──
 let selectedSrc = 0;
@@ -1001,6 +1081,16 @@ document.getElementById('selectMode').addEventListener('click', () => {
   document.getElementById('selectMode').textContent = selectMode ? '選取:ON' : '選取:OFF';
 });
 
+document.getElementById('copyMode').addEventListener('click', () => {
+  copyMode = !copyMode;
+  document.getElementById('copyMode').textContent = copyMode ? '複製:ON' : '複製:OFF';
+});
+
+document.getElementById('locateMode').addEventListener('click', () => {
+  locateMode = !locateMode;
+  document.getElementById('locateMode').textContent = locateMode ? '定位:ON' : '定位:OFF';
+});
+
 document.getElementById('hoverToggle').addEventListener('click', () => {
   showHover = !showHover;
   hoverBlock = null;
@@ -1113,7 +1203,7 @@ document.getElementById('comboSave').addEventListener('click', () => {
 document.getElementById('comboPlace').addEventListener('click', () => {
   if(activeCombo < 0 || activeCombo >= combos.length){ alert('請先選擇一個組合'); return; }
   const combo = combos[activeCombo];
-  // 放在空位，以(0,0)為起點
+  saveSnapshot();
   const spot = findEmptySpot();
   for(const t of combo.tiles){
     const gx = spot.gx + t.dx;
@@ -1143,6 +1233,7 @@ const helpHTML = `
 <h3>基本操作</h3>
 點擊素材面板 — 新增方塊到場景<br>
 <kbd>左鍵</kbd> 拖曳方塊 — 移動（被四面包圍無法移動）<br>
+<kbd>Ctrl</kbd>+<kbd>拖曳</kbd> 方塊 — 複製並拖曳副本到新位置<br>
 <kbd>雙擊</kbd> / <kbd>右鍵</kbd> — 刪除方塊<br>
 空白處 <kbd>左鍵</kbd> 拖曳 — 平移視角<br>
 <kbd>滾輪</kbd> — 縮放視角
@@ -1166,7 +1257,8 @@ const helpHTML = `
 
 <h3>顯示工具</h3>
 <kbd>懸停</kbd> — 滑鼠移過方塊時反白高亮，確認可操作的方塊<br>
-<kbd>格線</kbd> — 顯示立體格線，所有高度層可見，當前高度加亮<br>
+<kbd>格線</kbd> — 顯示每層水平格線，當前高度加亮<br>
+<kbd>立體</kbd> — 顯示每格垂直格線，呈現 3D 空間感<br>
 <kbd>座標</kbd> — 顯示/隱藏方塊座標
 
 <h3>儲存與載入</h3>
@@ -1175,8 +1267,14 @@ const helpHTML = `
 <kbd>撤銷</kbd> — 回到上一步（最多 50 步）<br>
 <kbd>清除全部</kbd> — 移除所有方塊
 
+<h3>手機模式按鈕</h3>
+<kbd>選取</kbd> — 取代 Shift，點擊或拖曳進行選取/框選<br>
+<kbd>定位</kbd> — 點擊方塊跳到該素材在面板中的位置<br>
+<kbd>複製</kbd> — 取代 Ctrl，拖曳方塊時複製副本
+
 <h3>素材來源</h3>
 四組素材分頁，每組有子分類<br>
+下拉選單可跨來源依種類篩選<br>
 Strategy 素材含動畫（火焰、旗幟、風車），放置後自動播放
 `;
 document.getElementById('helpPanel').innerHTML = helpHTML;

@@ -1,9 +1,48 @@
-import { S, draw } from './state.js';
+import { S, camera, draw } from './state.js';
 import { TILES, SOURCES } from './tileData.js';
-import { startTileDrag, addToStaging } from './staging.js';
+import { startTileDrag } from './staging.js';
 import { updateBrushIndicator } from './tools.js';
 import { setupMobileTileDrag } from './touch.js';
 import { setJumpToTile } from './input.js';
+import { toGrid, snap } from './coords.js';
+import { hasBlockAt } from './blocks.js';
+import { addBlock } from './spatialHash.js';
+import { saveSnapshot } from './history.js';
+
+// ── Place tile on canvas (spiral search for free cell) ──
+function placeOnCanvas(color, srcH){
+  const center = toGrid(camera.W / 2, camera.H / 2);
+  const cx = snap(center.gx), cy = snap(center.gy);
+  const gz = S.currentHeight, layer = S.currentLayer;
+  // Spiral outward: check center first, then ring 1, ring 2, ...
+  let gx = cx, gy = cy;
+  if(!hasBlockAt(gx, gy, gz, null, layer)){
+    saveSnapshot();
+    addBlock({gx, gy, gz, layer, color, srcH, yOffset:0});
+    draw();
+    return;
+  }
+  // dx,dy direction sequence: right, down, left, up
+  const dirs = [[1,0],[0,1],[-1,0],[0,-1]];
+  let steps = 1, di = 0, walked = 0;
+  gx = cx; gy = cy;
+  for(let i = 0; i < 10000; i++){
+    gx += dirs[di][0];
+    gy += dirs[di][1];
+    if(!hasBlockAt(gx, gy, gz, null, layer)){
+      saveSnapshot();
+      addBlock({gx, gy, gz, layer, color, srcH, yOffset:0});
+      draw();
+      return;
+    }
+    walked++;
+    if(walked === steps){
+      walked = 0;
+      di = (di + 1) % 4;
+      if(di % 2 === 0) steps++;
+    }
+  }
+}
 
 // ── Tile locate (jump palette to tile) ──
 export function jumpToTile(tileKey){
@@ -84,7 +123,7 @@ export function populatePalette(){
         document.removeEventListener('mouseup', onUp2);
         if(!dragStarted){
           if(S.brushMode){ S.brushTile = {color:key, srcH:srcH2}; updateBrushIndicator(); return; }
-          addToStaging(key, srcH2);
+          placeOnCanvas(key, srcH2);
         }
       };
       document.addEventListener('mousemove', onMove2);
@@ -190,7 +229,7 @@ document.getElementById('tileSearch').addEventListener('input', (e) => {
             document.removeEventListener('mouseup', onU3);
             if(!dragStarted3){
               if(S.brushMode){ S.brushTile = {color:key, srcH:srcH3}; updateBrushIndicator(); return; }
-              addToStaging(key, srcH3);
+              placeOnCanvas(key, srcH3);
             }
           };
           document.addEventListener('mousemove', onM3);

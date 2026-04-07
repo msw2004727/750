@@ -187,7 +187,7 @@ function initStagingGrid(){
       const s = staging[i];
       if(hasBlockAt(gx, gy, currentHeight, null, currentLayer)) return;
       saveSnapshot();
-      blocks.push({gx, gy, gz:currentHeight, layer:currentLayer, color:s.color, srcH:s.srcH, yOffset:0});
+      addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:s.color, srcH:s.srcH, yOffset:0});
       draw();
     });
     grid.appendChild(cell);
@@ -221,6 +221,62 @@ function addToStaging(color, srcH){
 }
 
 initStagingGrid();
+
+// ── 空間雜湊索引 ──
+const spatialHash = new Map(); // key "gx,gy,gz,layer" -> Set of blocks
+
+function shKey(gx, gy, gz, layer){ return gx+','+gy+','+gz+','+layer; }
+
+function shAdd(b){
+  const k = shKey(b.gx, b.gy, b.gz, b.layer);
+  if(!spatialHash.has(k)) spatialHash.set(k, new Set());
+  spatialHash.get(k).add(b);
+  // 高型素材也佔上方一格
+  if(b.srcH > 32){
+    const k2 = shKey(b.gx, b.gy, b.gz + 1, b.layer);
+    if(!spatialHash.has(k2)) spatialHash.set(k2, new Set());
+    spatialHash.get(k2).add(b);
+  }
+}
+
+function shRemove(b){
+  const k = shKey(b.gx, b.gy, b.gz, b.layer);
+  const s = spatialHash.get(k);
+  if(s){ s.delete(b); if(s.size === 0) spatialHash.delete(k); }
+  if(b.srcH > 32){
+    const k2 = shKey(b.gx, b.gy, b.gz + 1, b.layer);
+    const s2 = spatialHash.get(k2);
+    if(s2){ s2.delete(b); if(s2.size === 0) spatialHash.delete(k2); }
+  }
+}
+
+function shRebuild(){
+  spatialHash.clear();
+  for(const b of blocks) shAdd(b);
+}
+
+// 方塊陣列管理（自動維護索引）
+function addBlock(b){
+  blocks.push(b);
+  shAdd(b);
+}
+
+function removeBlock(b){
+  const idx = blocks.indexOf(b);
+  if(idx >= 0) blocks.splice(idx, 1);
+  shRemove(b);
+}
+
+function removeBlocksWhere(fn){
+  const removing = blocks.filter(fn);
+  for(const b of removing) shRemove(b);
+  blocks = blocks.filter(b => !fn(b));
+}
+
+function setBlocks(newBlocks){
+  blocks = newBlocks;
+  shRebuild();
+}
 
 // ── 狀態 ──
 let blocks = [];
@@ -286,15 +342,14 @@ function toGrid(sx, sy){
 function snap(v){ return Math.round(v); }
 
 // ── 方塊邏輯 ──
-// 碰撞檢查：同圖層同高度才碰撞
+// 碰撞檢查：O(1) 空間雜湊查找
 function hasBlockAt(gx, gy, gz, exclude, layer){
   const chkLayer = (layer !== undefined) ? layer : currentLayer;
-  for(const b of blocks){
-    if(b === exclude) continue;
-    if(b.gx !== gx || b.gy !== gy) continue;
-    if(b.layer !== chkLayer) continue;
-    if(b.gz === gz) return true;
-    if(b.srcH > 32 && b.gz === gz - 1) return true;
+  const k = shKey(gx, gy, gz, chkLayer);
+  const s = spatialHash.get(k);
+  if(!s) return false;
+  for(const b of s){
+    if(b !== exclude) return true;
   }
   return false;
 }
@@ -735,7 +790,7 @@ function onDown(e){
     if(hit.gz !== currentHeight || hit.layer !== currentLayer) return;
     saveSnapshot();
     const clone = {gx:hit.gx, gy:hit.gy, gz:hit.gz, layer:hit.layer, color:hit.color, srcH:hit.srcH};
-    blocks.push(clone);
+    addBlock(clone);
     // 拖曳原方塊，副本留在原位
     reachableSet = null; // 複製拖曳不受圍牆限制
     dragBlock = hit;
@@ -838,10 +893,11 @@ function onMove(e){
     dragBlock._dragGy = g.gy;
 
     if(dragBlock._copyMode){
-      // 複製拖曳：自由移動，只檢查目標是否被佔
       if(!hasBlockAt(tgx, tgy, dragBlock.gz, dragBlock, dragBlock.layer)){
+        shRemove(dragBlock);
         dragBlock.gx = tgx;
         dragBlock.gy = tgy;
+        shAdd(dragBlock);
         lastValidGx = tgx;
         lastValidGy = tgy;
       }
@@ -862,10 +918,12 @@ function onMove(e){
           }
         }
         if(canMove){
+          for(const go of groupOffsets) shRemove(go.block);
           for(const go of groupOffsets){
             go.block.gx += ddx;
             go.block.gy += ddy;
           }
+          for(const go of groupOffsets) shAdd(go.block);
           lastValidGx = tgx;
           lastValidGy = tgy;
         }
@@ -873,8 +931,10 @@ function onMove(e){
     } else {
       const k = tgx + ',' + tgy;
       if(reachableSet && reachableSet.has(k)){
+        shRemove(dragBlock);
         dragBlock.gx = tgx;
         dragBlock.gy = tgy;
+        shAdd(dragBlock);
         lastValidGx = tgx;
         lastValidGy = tgy;
       }
@@ -966,7 +1026,7 @@ function onDbl(e){
   if(hit){
     if(hit.gz !== currentHeight || hit.layer !== currentLayer) return;
     if(computeReachable(hit.gx, hit.gy, hit.gz, hit).size <= 1){ triggerShake(hit); return; }
-    saveSnapshot(); blocks = blocks.filter(b => b !== hit); draw();
+    saveSnapshot(); removeBlock(hit); draw();
   }
 }
 
@@ -977,7 +1037,7 @@ function onCtx(e){
   if(hit){
     if(hit.gz !== currentHeight || hit.layer !== currentLayer) return;
     if(computeReachable(hit.gx, hit.gy, hit.gz, hit).size <= 1){ triggerShake(hit); return; }
-    saveSnapshot(); blocks = blocks.filter(b => b !== hit); draw();
+    saveSnapshot(); removeBlock(hit); draw();
   }
 }
 
@@ -1191,14 +1251,14 @@ function saveSnapshot(){
 function doUndo(){
   if(history.length === 0) return;
   redoStack.push(JSON.stringify(blocks));
-  blocks = JSON.parse(history.pop());
+  setBlocks(JSON.parse(history.pop()));
   selectedBlocks = new Set();
   draw();
 }
 function doRedo(){
   if(redoStack.length === 0) return;
   history.push(JSON.stringify(blocks));
-  blocks = JSON.parse(redoStack.pop());
+  setBlocks(JSON.parse(redoStack.pop()));
   selectedBlocks = new Set();
   draw();
 }
@@ -1211,7 +1271,7 @@ document.addEventListener('keydown', (e) => {
 
 document.getElementById('clearBtn').addEventListener('click', () => {
   saveSnapshot();
-  blocks = []; draw();
+  setBlocks([]); draw();
 });
 
 // ── 勾選開關 ──
@@ -1242,7 +1302,7 @@ document.getElementById('loadBtn').addEventListener('click', () => {
     reader.onload = () => {
       try {
         const data = JSON.parse(reader.result);
-        if(data.blocks) blocks = data.blocks;
+        if(data.blocks) setBlocks(data.blocks);
         if(data.camX !== undefined) camX = data.camX;
         if(data.camY !== undefined) camY = data.camY;
         if(data.zoom !== undefined) zoom = data.zoom;
@@ -1305,7 +1365,7 @@ document.getElementById('comboPlace').addEventListener('click', () => {
     const gx = spot.gx + t.dx;
     const gy = spot.gy + t.dy;
     if(!hasBlockAt(gx, gy, currentHeight, null, currentLayer)){
-      blocks.push({gx, gy, gz:currentHeight, layer:currentLayer, color:t.color, srcH:t.srcH});
+      addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:t.color, srcH:t.srcH});
     }
   }
   draw();
@@ -1329,7 +1389,7 @@ const init = [
 ];
 init.forEach(d => {
   const srcH = (TILES[d.color] && TILES[d.color].srcH) || 32;
-  blocks.push({gx:d.gx, gy:d.gy, gz:0, layer:0, color:d.color, srcH:srcH});
+  addBlock({gx:d.gx, gy:d.gy, gz:0, layer:0, color:d.color, srcH:srcH});
 });
 
 // ── 操作說明面板 ──

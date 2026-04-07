@@ -9,7 +9,7 @@ import { stagingHighlight, findStagingSlotAt, addToStaging } from './staging.js'
 import { getRectLineCells, computeFillPreview } from './tools.js';
 import { mousePos, hitTest } from './hitTest.js';
 import { onCtx } from './contextMenu.js';
-import { minimapBounds } from './minimap.js';
+import { minimapBounds, minimapToGrid } from './minimap.js';
 
 // ── Canvas drag overlay (private) ──
 function _createDragOverlay(key){
@@ -40,23 +40,34 @@ function _removeDragOverlay(){
 let _jumpToTile = null;
 export function setJumpToTile(fn){ _jumpToTile = fn; }
 
+// Minimap drag state
+let _mmDrag = false;
+let _mmLastX = 0, _mmLastY = 0;
+
+function _inMinimap(px, py){
+  if(!S.showMinimap || !minimapBounds) return false;
+  const mm = minimapBounds;
+  return px >= mm.mmX && px <= mm.mmX+mm.mmW && py >= mm.mmY && py <= mm.mmY+mm.mmH;
+}
+
 // ── onDown ──
 export function onDown(e){
   e.preventDefault();
   const pos = mousePos(e);
 
-  // Minimap click-to-jump
-  if(S.showMinimap && minimapBounds){
-    const mm = minimapBounds;
-    if(pos.x >= mm.mmX && pos.x <= mm.mmX+mm.mmW && pos.y >= mm.mmY && pos.y <= mm.mmY+mm.mmH){
-      const tgx = mm.midX + (pos.x - mm.ox) / mm.sc;
-      const tgy = mm.midY + (pos.y - mm.oy) / mm.sc;
-      const cp = toScreen(tgx, tgy, S.currentHeight);
+  // Minimap drag start: click centers view, then drag pans
+  if(_inMinimap(pos.x, pos.y)){
+    const g = minimapToGrid(pos.x, pos.y);
+    if(g){
+      const cp = toScreen(g.gx, g.gy, S.currentHeight);
       camera.x += camera.W/2 - cp.x;
       camera.y += camera.H/2 - cp.y;
       draw();
-      return;
     }
+    _mmDrag = true;
+    _mmLastX = pos.x;
+    _mmLastY = pos.y;
+    return;
   }
 
   const hit = hitTest(pos.x, pos.y);
@@ -210,6 +221,23 @@ export function onDown(e){
 
 // ── onMove ──
 export function onMove(e){
+  // Minimap drag: pan camera by dragging within minimap
+  if(_mmDrag){
+    e.preventDefault();
+    const pos = mousePos(e);
+    const g1 = minimapToGrid(_mmLastX, _mmLastY);
+    const g2 = minimapToGrid(pos.x, pos.y);
+    if(g1 && g2){
+      const sp1 = toScreen(g1.gx, g1.gy, S.currentHeight);
+      const sp2 = toScreen(g2.gx, g2.gy, S.currentHeight);
+      camera.x += sp1.x - sp2.x;
+      camera.y += sp1.y - sp2.y;
+      draw();
+    }
+    _mmLastX = pos.x;
+    _mmLastY = pos.y;
+    return;
+  }
   if(S.dragBlock){
     if('ontouchstart' in window){
       const nearStaging = findStagingSlotAt(S.lastMouseClientX, S.lastMouseClientY) >= 0;
@@ -329,6 +357,7 @@ export function onMove(e){
 
 // ── onUp ──
 export function onUp(){
+  if(_mmDrag){ _mmDrag = false; return; }
   if(S.brushPainting){
     S.brushPainting = false;
     if((S.rectMode || S.lineMode) && S.rectStart && S.brushTile){

@@ -34,11 +34,13 @@ export function hitTest(mx, my){
   return null;
 }
 
-// Hit test across ALL heights and layers (for auto-select mode)
+// Hit test across ALL heights and layers (for auto-select, locate, etc.)
 export function hitTestAll(mx, my){
-  // Sort front-to-back: higher draw order = check first
+  // Sort front-to-back: higher layer drawn on top → check first
   const sorted = [...world.blocks].sort((a,b) => {
-    return (b.gx+b.gy)*100+b.gz - ((a.gx+a.gy)*100+a.gz);
+    const ka = (a.gx+a.gy)*1000 + a.gz*10 + a.layer;
+    const kb = (b.gx+b.gy)*1000 + b.gz*10 + b.layer;
+    return kb - ka;
   });
   for(const b of sorted){
     const p = toScreen(b.gx, b.gy, b.gz);

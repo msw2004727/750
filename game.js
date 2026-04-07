@@ -650,91 +650,116 @@ function _drawFlatGrid(R, gz, th2){
   ctx.fill();
 }
 
-// 3D cube grid — batched: all same-type faces in one path, fill/stroke once
+// 3D cube grid — limited range, precomputed positions, 4 draw calls
 function _drawCubeGrid(vr, R, gz){
   const tw = TW * camera.zoom;
   const th = TH * camera.zoom;
   const ch = CUBE_H * camera.zoom;
 
-  const x0 = Math.max(-R, vr.minGx);
-  const x1 = Math.min(R, vr.maxGx);
-  const y0 = Math.max(-R, vr.minGy);
-  const y1 = Math.min(R, vr.maxGy);
+  // Only draw 3D cubes within ±10 of visible center (max ~441 cells)
+  const CUBE_R = 10;
+  const cx = Math.round((vr.minGx + vr.maxGx) / 2);
+  const cy = Math.round((vr.minGy + vr.maxGy) / 2);
+  const x0 = Math.max(-R, cx - CUBE_R);
+  const x1 = Math.min(R, cx + CUBE_R);
+  const y0 = Math.max(-R, cy - CUBE_R);
+  const y1 = Math.min(R, cy + CUBE_R);
+
+  // Precompute screen positions once
+  const cols = x1 - x0 + 1, rows = y1 - y0 + 1;
+  const px = new Float32Array(cols * rows);
+  const py = new Float32Array(cols * rows);
+  for(let gx = x0; gx <= x1; gx++){
+    for(let gy = y0; gy <= y1; gy++){
+      const idx = (gx - x0) * rows + (gy - y0);
+      const p = toScreen(gx, gy, gz);
+      px[idx] = p.x;
+      py[idx] = p.y;
+    }
+  }
+
+  // Helper
+  function _forEachCell(fn){
+    for(let i = 0; i < cols; i++){
+      for(let j = 0; j < rows; j++){
+        const idx = i * rows + j;
+        fn(px[idx], py[idx]);
+      }
+    }
+  }
 
   // Batch 1: top faces
   ctx.globalAlpha = 0.06;
   ctx.fillStyle = '#8ab8dd';
   ctx.beginPath();
-  for(let gx = x0; gx <= x1; gx++){
-    for(let gy = y0; gy <= y1; gy++){
-      const p = toScreen(gx, gy, gz);
-      const x = p.x, y = p.y;
-      ctx.moveTo(x, y - ch);
-      ctx.lineTo(x - tw, y + th - ch);
-      ctx.lineTo(x, y + th*2 - ch);
-      ctx.lineTo(x + tw, y + th - ch);
-    }
-  }
+  _forEachCell((x, y) => {
+    ctx.moveTo(x, y - ch);
+    ctx.lineTo(x - tw, y + th - ch);
+    ctx.lineTo(x, y + th*2 - ch);
+    ctx.lineTo(x + tw, y + th - ch);
+  });
   ctx.fill();
 
   // Batch 2: left faces
   ctx.globalAlpha = 0.04;
   ctx.fillStyle = '#4a6a8a';
   ctx.beginPath();
-  for(let gx = x0; gx <= x1; gx++){
-    for(let gy = y0; gy <= y1; gy++){
-      const p = toScreen(gx, gy, gz);
-      const x = p.x, y = p.y;
-      ctx.moveTo(x - tw, y + th - ch);
-      ctx.lineTo(x - tw, y + th);
-      ctx.lineTo(x, y + th*2);
-      ctx.lineTo(x, y + th*2 - ch);
-    }
-  }
+  _forEachCell((x, y) => {
+    ctx.moveTo(x - tw, y + th - ch);
+    ctx.lineTo(x - tw, y + th);
+    ctx.lineTo(x, y + th*2);
+    ctx.lineTo(x, y + th*2 - ch);
+  });
   ctx.fill();
 
   // Batch 3: right faces
   ctx.globalAlpha = 0.05;
   ctx.fillStyle = '#6a8aaa';
   ctx.beginPath();
-  for(let gx = x0; gx <= x1; gx++){
-    for(let gy = y0; gy <= y1; gy++){
-      const p = toScreen(gx, gy, gz);
-      const x = p.x, y = p.y;
-      ctx.moveTo(x + tw, y + th - ch);
-      ctx.lineTo(x + tw, y + th);
-      ctx.lineTo(x, y + th*2);
-      ctx.lineTo(x, y + th*2 - ch);
-    }
-  }
+  _forEachCell((x, y) => {
+    ctx.moveTo(x + tw, y + th - ch);
+    ctx.lineTo(x + tw, y + th);
+    ctx.lineTo(x, y + th*2);
+    ctx.lineTo(x, y + th*2 - ch);
+  });
   ctx.fill();
 
-  // Batch 4: all wireframe edges in one stroke
+  // Batch 4: wireframe
   ctx.globalAlpha = 0.15;
   ctx.strokeStyle = '#6a8aaa';
   ctx.lineWidth = 0.4;
   ctx.beginPath();
-  for(let gx = x0; gx <= x1; gx++){
-    for(let gy = y0; gy <= y1; gy++){
-      const p = toScreen(gx, gy, gz);
-      const x = p.x, y = p.y;
-      // Top diamond
-      ctx.moveTo(x, y - ch);
-      ctx.lineTo(x - tw, y + th - ch);
-      ctx.lineTo(x, y + th*2 - ch);
-      ctx.lineTo(x + tw, y + th - ch);
-      ctx.lineTo(x, y - ch);
-      // Vertical edges
-      ctx.moveTo(x - tw, y + th - ch); ctx.lineTo(x - tw, y + th);
-      ctx.moveTo(x + tw, y + th - ch); ctx.lineTo(x + tw, y + th);
-      ctx.moveTo(x, y + th*2 - ch);    ctx.lineTo(x, y + th*2);
-      // Bottom edges
-      ctx.moveTo(x - tw, y + th);
-      ctx.lineTo(x, y + th*2);
-      ctx.lineTo(x + tw, y + th);
-    }
-  }
+  _forEachCell((x, y) => {
+    ctx.moveTo(x, y - ch);
+    ctx.lineTo(x - tw, y + th - ch);
+    ctx.lineTo(x, y + th*2 - ch);
+    ctx.lineTo(x + tw, y + th - ch);
+    ctx.lineTo(x, y - ch);
+    ctx.moveTo(x - tw, y + th - ch); ctx.lineTo(x - tw, y + th);
+    ctx.moveTo(x + tw, y + th - ch); ctx.lineTo(x + tw, y + th);
+    ctx.moveTo(x, y + th*2 - ch);    ctx.lineTo(x, y + th*2);
+    ctx.moveTo(x - tw, y + th); ctx.lineTo(x, y + th*2); ctx.lineTo(x + tw, y + th);
+  });
   ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // Outside cube range: fall back to flat grid lines
+  const th2 = TH * 2 * camera.zoom;
+  ctx.globalAlpha = 0.2;
+  ctx.strokeStyle = '#6a8aaa';
+  ctx.lineWidth = 0.4;
+  const vx0 = Math.max(-R, vr.minGx), vx1 = Math.min(R, vr.maxGx);
+  const vy0 = Math.max(-R, vr.minGy), vy1 = Math.min(R, vr.maxGy);
+  for(let i = vx0; i <= vx1; i++){
+    if(i >= x0 && i <= x1) continue;
+    let a = toScreen(i, vy0, gz), b = toScreen(i, vy1, gz);
+    ctx.beginPath();ctx.moveTo(a.x, a.y+th2);ctx.lineTo(b.x, b.y+th2);ctx.stroke();
+  }
+  for(let j = vy0; j <= vy1; j++){
+    if(j >= y0 && j <= y1) continue;
+    let a = toScreen(vx0, j, gz), b = toScreen(vx1, j, gz);
+    ctx.beginPath();ctx.moveTo(a.x, a.y+th2);ctx.lineTo(b.x, b.y+th2);ctx.stroke();
+  }
   ctx.globalAlpha = 1;
 }
 

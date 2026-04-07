@@ -1296,9 +1296,12 @@ function onDown(e){
 }
 
 function onMove(e){
-  // 拖曳方塊時浮動預覽
+  // 拖曳方塊時浮動預覽 + 手機版暫存區高亮
   if(dragBlock){
     updateCanvasDragOverlay();
+    if('ontouchstart' in window){
+      stagingHighlight(findStagingSlotAt(lastMouseClientX, lastMouseClientY) >= 0);
+    }
   }
   // 筆刷/橡皮擦/矩形/線段拖曳
   if(brushPainting){
@@ -1452,6 +1455,36 @@ function onUp(){
   if(dragBlock){
     removeCanvasDragOverlay();
     document.getElementById('stagingArea').style.pointerEvents = 'auto';
+    stagingHighlight(false);
+    // 手機版：拖曳到暫存區
+    if('ontouchstart' in window){
+      const slot = findStagingSlotAt(lastMouseClientX, lastMouseClientY);
+      if(slot >= 0){
+        saveSnapshot();
+        if(groupOffsets && groupOffsets.length > 1){
+          const minGx = Math.min(...groupOffsets.map(g=>g.block.gx));
+          const minGy = Math.min(...groupOffsets.map(g=>g.block.gy));
+          const combo = groupOffsets.map(g => ({
+            dx:g.block.gx-minGx, dy:g.block.gy-minGy, color:g.block.color, srcH:g.block.srcH, yOffset:g.block.yOffset||0
+          }));
+          addToStaging(null, 0, combo);
+          for(const g of groupOffsets) removeBlock(g.block);
+          selectedBlocks = new Set();
+        } else {
+          addToStaging(dragBlock.color, dragBlock.srcH);
+          removeBlock(dragBlock);
+        }
+        delete dragBlock._dragGx;
+        delete dragBlock._dragGy;
+        delete dragBlock._copyMode;
+        dragBlock = null;
+        groupOffsets = null;
+        reachableSet = null;
+        panDrag = false;
+        draw();
+        return;
+      }
+    }
     if(!groupOffsets){
       dragBlock.gx = lastValidGx;
       dragBlock.gy = lastValidGy;

@@ -186,6 +186,7 @@ let showGrid = false;
 let showVGrid = false;
 let showHover = false;
 let hoverBlock = null;
+let selectMode = false;
 
 // ── 座標轉換 ──
 function resize(){
@@ -590,8 +591,8 @@ function onDown(e){
   const pos = mousePos(e);
   const hit = hitTest(pos.x, pos.y);
 
-  // Shift+左鍵
-  if(e.shiftKey){
+  // Shift+左鍵 或 選取模式
+  if(e.shiftKey || selectMode){
     if(hit){
       // 點到方塊：flood fill 選取
       if(hit.gz !== currentHeight || hit.layer !== currentLayer) return;
@@ -807,6 +808,7 @@ canvas.addEventListener('touchstart', onDown, {passive:false});
 canvas.addEventListener('touchmove', onMove, {passive:false});
 canvas.addEventListener('touchend', onUp);
 
+
 // ── 素材面板（三來源 + 分類） ──
 let selectedSrc = 0;
 let selectedCat = 0;
@@ -992,6 +994,11 @@ document.getElementById('undoBtn').addEventListener('click', () => {
 document.getElementById('clearBtn').addEventListener('click', () => {
   saveSnapshot();
   blocks = []; draw();
+});
+
+document.getElementById('selectMode').addEventListener('click', () => {
+  selectMode = !selectMode;
+  document.getElementById('selectMode').textContent = selectMode ? '選取:ON' : '選取:OFF';
 });
 
 document.getElementById('hoverToggle').addEventListener('click', () => {

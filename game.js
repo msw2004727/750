@@ -1480,7 +1480,7 @@ function onDown(e){
     S.reachableSet = null;
     S.dragBlock = hit;
     S.dragBlock._copyMode = true;
-    _createDragOverlay(hit.color);
+    if(!('ontouchstart' in window)) _createDragOverlay(hit.color);
     if(!('ontouchstart' in window)) document.getElementById('stagingArea').style.pointerEvents = 'none';
     S.groupOffsets = null;
     const sp = toScreen(hit.gx, hit.gy, hit.gz);
@@ -1510,7 +1510,7 @@ function onDown(e){
     if(hit && S.selectedBlocks.has(hit)){
       saveSnapshot();
       S.dragBlock = hit;
-      _createDragOverlay(hit.color);
+      if(!('ontouchstart' in window)) _createDragOverlay(hit.color);
       if(!('ontouchstart' in window)) document.getElementById('stagingArea').style.pointerEvents = 'none';
       S.groupOffsets = [];
       for(const b of S.selectedBlocks){
@@ -1546,7 +1546,7 @@ function onDown(e){
     saveSnapshot();
     S.dragBlock = hit;
     S.groupOffsets = null;
-    _createDragOverlay(hit.color);
+    if(!('ontouchstart' in window)) _createDragOverlay(hit.color);
     if(!('ontouchstart' in window)) document.getElementById('stagingArea').style.pointerEvents = 'none';
     const sp = toScreen(hit.gx, hit.gy, hit.gz);
     S.dragOffX = pos.x - sp.x;

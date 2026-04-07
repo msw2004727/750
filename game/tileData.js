@@ -135,14 +135,15 @@ const MW_CATS = [
   {label:'城牆',  tiles:[62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80], stroke:'#7A6A5A', ghost:'#AA9A8A'},
 ];
 export const MEDIEVAL_FIRST_IDX = SOURCES.length; // index of first Medieval source
+const MW_COUNTS = {mw1:90, mw2:90, mw3:90, mw1w:90, mw2w:89, mw3w:89};
 for(const v of MEDIEVAL_VARIANTS){
   SOURCES.push({
     key:'E_'+v.key, label:'Medieval-'+v.label,
     base:'%E7%B4%A0%E6%9D%90/medieval/'+v.key+'/',
-    count: v.key.endsWith('w') && v.key !== 'mw1w' ? 89 : 89,
+    count: MW_COUNTS[v.key],
     prefix: v.prefix,
     group: 'Medieval',
-    fileOf:i => 'tile_' + String(i+1).padStart(3,'0') + '.png',
+    fileOf:i => 'tile_' + String(i).padStart(3,'0') + '.png',
     cropOf:() => 0, srcHOf:() => 96, srcWOf:() => 96,
     cats: MW_CATS,
   });

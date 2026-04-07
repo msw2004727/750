@@ -1387,13 +1387,27 @@ function findStagingSlotAt(clientX, clientY){
 }
 
 function addToStaging(color, srcH, combo){
+  if(combo){
+    // Combos always take a new slot
+    let slot = S.staging.indexOf(null);
+    if(slot === -1) slot = 8;
+    S.staging[slot] = {combo};
+    renderStagingCell(slot);
+    return;
+  }
+  // Find existing slot with same tile — stack count
+  for(let i = 0; i < 9; i++){
+    const s = S.staging[i];
+    if(s && !s.combo && s.color === color){
+      s.count = (s.count || 1) + 1;
+      renderStagingCell(i);
+      return;
+    }
+  }
+  // No match — use empty slot
   let slot = S.staging.indexOf(null);
   if(slot === -1) slot = 8;
-  if(combo){
-    S.staging[slot] = {combo};
-  } else {
-    S.staging[slot] = {color, srcH};
-  }
+  S.staging[slot] = {color, srcH, count: 1};
   renderStagingCell(slot);
 }
 
@@ -1442,6 +1456,13 @@ function renderStagingCell(idx){
         const src2 = SOURCES.find(s => s.prefix === S.staging[idx].color.charAt(0));
         img.src = (src2 ? src2.base : '') + td.file;
         cell.insertBefore(img, cell.firstChild);
+      }
+      const cnt = S.staging[idx].count || 1;
+      if(cnt > 1){
+        const lbl = document.createElement('span');
+        lbl.className = 'staging-label';
+        lbl.textContent = 'x' + cnt;
+        cell.appendChild(lbl);
       }
     }
   }
@@ -1529,6 +1550,15 @@ function initStagingGrid(){
         if(hasBlockAt(gx, gy, S.currentHeight, null, S.currentLayer)) return;
         addBlock({gx, gy, gz:S.currentHeight, layer:S.currentLayer, color:S.staging[si].color, srcH:S.staging[si].srcH, yOffset:0});
       }
+      // Decrement count (stacked tiles)
+      const st = S.staging[si];
+      if(st && !st.combo && st.count > 1){
+        st.count--;
+        renderStagingCell(si);
+      } else {
+        S.staging[si] = null;
+        renderStagingCell(si);
+      }
       draw();
     }
 
@@ -1564,30 +1594,33 @@ function initStagingGrid(){
       document.addEventListener('mouseup', onU);
     });
 
-    // ── Mobile: touch drag from staging to canvas ──
+    // ── Mobile: touch drag + double-tap delete ──
     let sTouchDrag = false;
     let sTouchEl = null;
+    let sLastTap = 0;
     cell.addEventListener('touchstart', (e) => {
-      if(!S.staging[i] || S.staging[i].combo) return;
+      if(!S.staging[i]) return;
       e.preventDefault();
-      sTouchDrag = true;
+      if(S.staging[i].combo) return;
+      sTouchDrag = false;
       const t = e.touches[0];
-      // Immediately create floating preview
-      sTouchEl = document.createElement('div');
-      sTouchEl.style.cssText = 'position:fixed;pointer-events:none;z-index:999;opacity:0.7;width:42px;height:42px;';
-      const img = document.createElement('img');
-      const td = TILES[S.staging[i].color];
-      const src2 = SOURCES.find(s => s.prefix === S.staging[i].color.charAt(0));
-      if(src2 && td) img.src = src2.base + td.file;
-      img.style.cssText = 'width:100%;height:100%;image-rendering:pixelated;';
-      sTouchEl.appendChild(img);
-      document.body.appendChild(sTouchEl);
-      sTouchEl.style.left = (t.clientX - 21) + 'px';
-      sTouchEl.style.top = (t.clientY - 21) + 'px';
+      const sx = t.clientX, sy = t.clientY;
       const _onTM = (e2) => {
-        e2.preventDefault();
         const t2 = e2.touches[0];
-        if(sTouchEl){
+        if(!sTouchDrag && (Math.abs(t2.clientX-sx)>6 || Math.abs(t2.clientY-sy)>6)){
+          sTouchDrag = true;
+          sTouchEl = document.createElement('div');
+          sTouchEl.style.cssText = 'position:fixed;pointer-events:none;z-index:999;opacity:0.7;width:42px;height:42px;';
+          const img = document.createElement('img');
+          const td = TILES[S.staging[i].color];
+          const src2 = SOURCES.find(s => s.prefix === S.staging[i].color.charAt(0));
+          if(src2 && td) img.src = src2.base + td.file;
+          img.style.cssText = 'width:100%;height:100%;image-rendering:pixelated;';
+          sTouchEl.appendChild(img);
+          document.body.appendChild(sTouchEl);
+        }
+        if(sTouchDrag && sTouchEl){
+          e2.preventDefault();
           sTouchEl.style.left = (t2.clientX - 21) + 'px';
           sTouchEl.style.top = (t2.clientY - 21) + 'px';
         }
@@ -1605,10 +1638,16 @@ function initStagingGrid(){
             const gx = snap(g.gx), gy = snap(g.gy);
             placeStagingItem(i, gx, gy);
           }
-        } else if(!sTouchDrag){
-          // Tap: place at center
-          const center = toGrid(camera.W/2, camera.H/2);
-          placeStagingItem(i, snap(center.gx), snap(center.gy));
+        } else {
+          // Tap — check double-tap to delete
+          const now = Date.now();
+          if(now - sLastTap < 300){
+            S.staging[i] = null;
+            renderStagingCell(i);
+            sLastTap = 0;
+          } else {
+            sLastTap = now;
+          }
         }
         sTouchDrag = false;
       };

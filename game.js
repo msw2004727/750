@@ -332,6 +332,12 @@ let brushPainting = false; // 正在筆刷繪製中
 let brushCursorGx = -999, brushCursorGy = -999;
 let hiddenHeights = new Set(); // 隱藏的高度層
 let hiddenLayers = new Set();  // 隱藏的圖層
+let fillMode = false;          // 填充工具
+let rectMode = false;          // 矩形繪製
+let lineMode = false;          // 線段繪製
+let rectStart = null;          // {gx, gy} 矩形/線段起點
+let clipboard = null;          // 複製的方塊 [{dx,dy,color,srcH,yOffset}]
+let showMinimap = false;
 
 // ── 座標轉換 ──
 function resize(){
@@ -755,6 +761,36 @@ function draw(){
     ctx.setLineDash([]);
   }
 
+  // 矩形/線段起點標記
+  if(rectStart && (rectMode || lineMode)){
+    const sp = toScreen(rectStart.gx, rectStart.gy, currentHeight);
+    const tw2 = TW*zoom, th2t = TH*zoom, ch2 = CUBE_H*zoom;
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = '#00FF88';
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(sp.x, sp.y-ch2);
+    ctx.lineTo(sp.x-tw2, sp.y+th2t-ch2);
+    ctx.lineTo(sp.x, sp.y+th2t*2-ch2);
+    ctx.lineTo(sp.x+tw2, sp.y+th2t-ch2);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    // 預覽線到游標
+    if(brushCursorGx !== -999){
+      const ep = toScreen(brushCursorGx, brushCursorGy, currentHeight);
+      ctx.globalAlpha = 0.3;
+      ctx.setLineDash([4,4]);
+      ctx.beginPath();
+      ctx.moveTo(sp.x, sp.y+th2t-ch2);
+      ctx.lineTo(ep.x, ep.y+TH*zoom-ch2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+    }
+  }
+
   // 筆刷游標預覽
   if(brushMode && brushTile && brushCursorGx !== -999){
     ctx.globalAlpha = 0.5;
@@ -784,6 +820,40 @@ function draw(){
   ctx.textAlign = 'right';
   ctx.fillText(`${visible.length}/${blocks.length} blocks`, W - 8, H - 8);
   ctx.globalAlpha = 1;
+
+  // 小地圖
+  if(showMinimap && blocks.length > 0){
+    const mmW = 120, mmH = 90, mmX = W - mmW - 8, mmY = H - mmH - 22;
+    ctx.fillStyle = 'rgba(20,20,40,0.8)';
+    ctx.fillRect(mmX, mmY, mmW, mmH);
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(mmX, mmY, mmW, mmH);
+    // 計算方塊邊界
+    let bx1=Infinity,bx2=-Infinity,by1=Infinity,by2=-Infinity;
+    for(const b of blocks){ bx1=Math.min(bx1,b.gx);bx2=Math.max(bx2,b.gx);by1=Math.min(by1,b.gy);by2=Math.max(by2,b.gy); }
+    const range = Math.max(bx2-bx1+2, by2-by1+2, 4);
+    const scale2 = Math.min(mmW, mmH) / range * 0.8;
+    const ox = mmX + mmW/2, oy = mmY + mmH/2;
+    const cx2 = (bx1+bx2)/2, cy2 = (by1+by2)/2;
+    // 畫方塊點
+    for(const b of blocks){
+      const rx = (b.gx-cx2)*scale2, ry = (b.gy-cy2)*scale2;
+      const px = ox + (rx-ry)*0.7, py = oy + (rx+ry)*0.35 - b.gz*2;
+      ctx.fillStyle = b.gz === currentHeight ? '#8af' : '#456';
+      ctx.fillRect(px-1, py-1, 2, 2);
+    }
+    // 視窗框
+    const vr2 = getVisibleRange();
+    const v1x = (vr2.minGx-cx2)*scale2, v1y = (vr2.minGy-cy2)*scale2;
+    const v2x = (vr2.maxGx-cx2)*scale2, v2y = (vr2.maxGy-cy2)*scale2;
+    ctx.strokeStyle = '#FFD700';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(
+      ox+(v1x-v1y)*0.7, oy+(v1x+v1y)*0.35,
+      (v2x-v1x-v2y+v1y)*0.7, (v2x-v1x+v2y-v1y)*0.35
+    );
+  }
 }
 
 // ── 輸入處理 ──
@@ -857,6 +927,83 @@ function onDown(e){
       draw();
     }
     brushPainting = true; // 複用此 flag 做連續擦除
+    return;
+  }
+
+  // 填充工具：flood fill 空白區域
+  if(fillMode && brushTile && !e.shiftKey){
+    const g = toGrid(pos.x, pos.y);
+    const gx = snap(g.gx), gy = snap(g.gy);
+    if(!hasBlockAt(gx, gy, currentHeight, null, currentLayer)){
+      saveSnapshot();
+      const filled = new Set();
+      const queue = [[gx, gy]];
+      const key = (x,y) => x+','+y;
+      filled.add(key(gx, gy));
+      const MAX = 500;
+      while(queue.length > 0 && filled.size < MAX){
+        const [cx, cy] = queue.shift();
+        addBlock({gx:cx, gy:cy, gz:currentHeight, layer:currentLayer, color:brushTile.color, srcH:brushTile.srcH, yOffset:0});
+        for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+          const nx = cx+dx, ny = cy+dy;
+          const k = key(nx, ny);
+          if(!filled.has(k) && !hasBlockAt(nx, ny, currentHeight, null, currentLayer)){
+            filled.add(k);
+            queue.push([nx, ny]);
+          }
+        }
+      }
+      draw();
+    }
+    return;
+  }
+  if(fillMode && !brushTile){
+    alert('請先選擇筆刷素材再使用填充');
+    return;
+  }
+
+  // 矩形/線段繪製：第一次點擊設起點，第二次點擊填充
+  if((rectMode || lineMode) && brushTile && !e.shiftKey){
+    const g = toGrid(pos.x, pos.y);
+    const gx = snap(g.gx), gy = snap(g.gy);
+    if(!rectStart){
+      rectStart = {gx, gy};
+      draw();
+    } else {
+      saveSnapshot();
+      if(rectMode){
+        const x1 = Math.min(rectStart.gx, gx), x2 = Math.max(rectStart.gx, gx);
+        const y1 = Math.min(rectStart.gy, gy), y2 = Math.max(rectStart.gy, gy);
+        for(let x = x1; x <= x2; x++){
+          for(let y = y1; y <= y2; y++){
+            if(!hasBlockAt(x, y, currentHeight, null, currentLayer)){
+              addBlock({gx:x, gy:y, gz:currentHeight, layer:currentLayer, color:brushTile.color, srcH:brushTile.srcH, yOffset:0});
+            }
+          }
+        }
+      } else {
+        // Bresenham 線段
+        let x0 = rectStart.gx, y0 = rectStart.gy, x1 = gx, y1 = gy;
+        const dx = Math.abs(x1-x0), dy = Math.abs(y1-y0);
+        const sx = x0<x1?1:-1, sy = y0<y1?1:-1;
+        let err = dx-dy;
+        while(true){
+          if(!hasBlockAt(x0, y0, currentHeight, null, currentLayer)){
+            addBlock({gx:x0, gy:y0, gz:currentHeight, layer:currentLayer, color:brushTile.color, srcH:brushTile.srcH, yOffset:0});
+          }
+          if(x0===x1 && y0===y1) break;
+          const e2 = 2*err;
+          if(e2 > -dy){ err -= dy; x0 += sx; }
+          if(e2 < dx){ err += dx; y0 += sy; }
+        }
+      }
+      rectStart = null;
+      draw();
+    }
+    return;
+  }
+  if((rectMode || lineMode) && !brushTile){
+    alert('請先選擇筆刷素材');
     return;
   }
 
@@ -1336,6 +1483,38 @@ function initSelectors(){
 }
 initSelectors();
 
+// ── 素材搜尋 ──
+document.getElementById('tileSearch').addEventListener('input', (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  if(!q){ populatePalette(); return; }
+  const container = document.getElementById('tilePalette');
+  container.innerHTML = '';
+  for(const src of SOURCES){
+    for(let i = 0; i < src.count; i++){
+      const file = src.fileOf(i).toLowerCase();
+      const key = src.prefix + String(i).padStart(3,'0');
+      if(file.includes(q) || key.includes(q)){
+        const btn = document.createElement('button');
+        btn.className = 'tb';
+        btn.title = key + ' [' + src.label + '] ' + src.fileOf(i);
+        const img = document.createElement('img');
+        img.src = src.base + src.fileOf(i);
+        btn.appendChild(img);
+        const num = document.createElement('span');
+        num.className = 'tb-num';
+        num.textContent = src.prefix + i;
+        btn.appendChild(num);
+        btn.addEventListener('click', () => {
+          const srcH = (TILES[key] && TILES[key].srcH) || 32;
+          if(brushMode){ brushTile = {color:key, srcH}; updateBrushIndicator(); return; }
+          addToStaging(key, srcH);
+        });
+        container.appendChild(btn);
+      }
+    }
+  }
+});
+
 // ── 高度 + 圖層切換 ──
 function updateHeightUI(){
   const el = document.getElementById('heightNum');
@@ -1383,6 +1562,32 @@ document.getElementById('redoBtn').addEventListener('click', doRedo);
 document.addEventListener('keydown', (e) => {
   if(e.ctrlKey && e.key === 'z'){ e.preventDefault(); doUndo(); }
   if(e.ctrlKey && e.key === 'y'){ e.preventDefault(); doRedo(); }
+  if(e.ctrlKey && e.key === 'c'){
+    // Ctrl+C 複製選取
+    if(selectedBlocks.size > 0){
+      e.preventDefault();
+      const sel = [...selectedBlocks];
+      const minGx = Math.min(...sel.map(b=>b.gx)), minGy = Math.min(...sel.map(b=>b.gy));
+      clipboard = sel.map(b => ({dx:b.gx-minGx, dy:b.gy-minGy, color:b.color, srcH:b.srcH, yOffset:b.yOffset||0}));
+    }
+  }
+  if(e.ctrlKey && e.key === 'v'){
+    // Ctrl+V 貼上到畫面中央
+    if(clipboard && clipboard.length > 0){
+      e.preventDefault();
+      saveSnapshot();
+      const center = toGrid(W/2, H/2);
+      const gx = snap(center.gx), gy = snap(center.gy);
+      for(const t of clipboard){
+        const nx = gx+t.dx, ny = gy+t.dy;
+        if(!hasBlockAt(nx, ny, currentHeight, null, currentLayer)){
+          addBlock({gx:nx, gy:ny, gz:currentHeight, layer:currentLayer, color:t.color, srcH:t.srcH, yOffset:t.yOffset});
+        }
+      }
+      selectedBlocks = new Set();
+      draw();
+    }
+  }
 });
 
 document.getElementById('clearBtn').addEventListener('click', () => {
@@ -1391,16 +1596,29 @@ document.getElementById('clearBtn').addEventListener('click', () => {
 });
 
 // ── 勾選開關 ──
-document.getElementById('chkBrush').addEventListener('change', (e) => {
-  brushMode = e.target.checked;
-  if(brushMode){ eraserMode = false; document.getElementById('chkEraser').checked = false; }
-  canvas.style.cursor = brushMode ? 'crosshair' : 'grab';
-});
-document.getElementById('chkEraser').addEventListener('change', (e) => {
-  eraserMode = e.target.checked;
-  if(eraserMode){ brushMode = false; document.getElementById('chkBrush').checked = false; }
-  canvas.style.cursor = eraserMode ? 'crosshair' : 'grab';
-});
+// 繪製工具互斥
+function clearDrawTools(except){
+  const tools = {chkBrush:'brushMode',chkEraser:'eraserMode',chkFill:'fillMode',chkRect:'rectMode',chkLine:'lineMode'};
+  for(const [id, v] of Object.entries(tools)){
+    if(id !== except){ window[v.replace('Mode','Mode')] = false; document.getElementById(id).checked = false; }
+  }
+  // 靠直接賦值
+  if(except!=='chkBrush') brushMode = false;
+  if(except!=='chkEraser') eraserMode = false;
+  if(except!=='chkFill') fillMode = false;
+  if(except!=='chkRect') rectMode = false;
+  if(except!=='chkLine') lineMode = false;
+  rectStart = null;
+  canvas.style.cursor = (except && document.getElementById(except).checked) ? 'crosshair' : 'grab';
+}
+document.getElementById('chkBrush').removeEventListener('change',()=>{});
+document.getElementById('chkBrush').addEventListener('change', (e) => { clearDrawTools('chkBrush'); brushMode = e.target.checked; canvas.style.cursor = brushMode?'crosshair':'grab'; });
+document.getElementById('chkEraser').removeEventListener('change',()=>{});
+document.getElementById('chkEraser').addEventListener('change', (e) => { clearDrawTools('chkEraser'); eraserMode = e.target.checked; canvas.style.cursor = eraserMode?'crosshair':'grab'; });
+document.getElementById('chkFill').addEventListener('change', (e) => { clearDrawTools('chkFill'); fillMode = e.target.checked; canvas.style.cursor = fillMode?'crosshair':'grab'; });
+document.getElementById('chkRect').addEventListener('change', (e) => { clearDrawTools('chkRect'); rectMode = e.target.checked; canvas.style.cursor = rectMode?'crosshair':'grab'; });
+document.getElementById('chkLine').addEventListener('change', (e) => { clearDrawTools('chkLine'); lineMode = e.target.checked; canvas.style.cursor = lineMode?'crosshair':'grab'; });
+document.getElementById('chkMinimap').addEventListener('change', (e) => { showMinimap = e.target.checked; draw(); });
 document.getElementById('chkSelect').addEventListener('change', (e) => { selectMode = e.target.checked; });
 document.getElementById('chkLocate').addEventListener('change', (e) => { locateMode = e.target.checked; });
 document.getElementById('chkCopy').addEventListener('change', (e) => { copyMode = e.target.checked; });
@@ -1585,10 +1803,12 @@ init.forEach(d => {
 
 // ── 操作說明面板 ──
 const helpHTML = `
-<h3>繪製工具</h3>
-<kbd>筆刷</kbd> — 開啟後先點素材面板或暫存區選擇素材，再到畫布點擊/拖曳連續放置（未選素材會提示）<br>
-<kbd>橡皮擦</kbd> — 開啟後點擊/拖曳連續刪除方塊<br>
-筆刷與橡皮擦互斥，游標顯示半透明預覽或紅色標記
+<h3>繪製工具（互斥）</h3>
+<kbd>筆刷</kbd> — 點素材選為筆刷，畫布上點擊/拖曳連續放置<br>
+<kbd>橡皮擦</kbd> — 點擊/拖曳連續刪除<br>
+<kbd>填充</kbd> — 點空白處 flood fill 填滿連通區域（上限 500 格）<br>
+<kbd>矩形</kbd> — 第一次點擊設起點，第二次點擊填滿矩形區域<br>
+<kbd>線段</kbd> — 第一次點擊設起點，第二次點擊畫直線
 
 <h3>基本操作</h3>
 <kbd>左鍵</kbd> 拖曳方塊 — 移動（被四面包圍無法移動）<br>
@@ -1615,13 +1835,13 @@ const helpHTML = `
 選範本 → <kbd>放置</kbd> → 一鍵放入
 
 <h3>顯示工具</h3>
-<kbd>懸停</kbd> — 滑鼠經過方塊時反白（獨立開關，不受筆刷/橡皮擦影響）<br>
-<kbd>格線</kbd> 各高度水平格線 | <kbd>立體</kbd> 每格垂直柱線 | <kbd>座標</kbd> 方塊座標
+<kbd>懸停</kbd> 反白 | <kbd>格線</kbd> 水平 | <kbd>立體</kbd> 垂直 | <kbd>座標</kbd> 座標 | <kbd>小地圖</kbd> 右下縮覽
 
 <h3>檔案操作</h3>
-<kbd>返回</kbd> <kbd>Ctrl+Z</kbd> | <kbd>復原</kbd> <kbd>Ctrl+Y</kbd><br>
+<kbd>Ctrl+Z</kbd> 返回 | <kbd>Ctrl+Y</kbd> 復原 | <kbd>Ctrl+C</kbd> 複製選取 | <kbd>Ctrl+V</kbd> 貼上<br>
 <kbd>儲存</kbd> JSON | <kbd>載入</kbd> JSON | <kbd>匯出圖</kbd> PNG<br>
-<kbd>原點</kbd> 回到 (0,0) | <kbd>清除全部</kbd>
+<kbd>原點</kbd> 回到 (0,0) | <kbd>清除全部</kbd><br>
+<kbd>搜尋</kbd> — 輸入關鍵字篩選全部素材（檔名或編號）
 
 <h3>手機操作</h3>
 <kbd>選取</kbd> 取代 Shift | <kbd>定位</kbd> 跳到素材 | <kbd>複製</kbd> 取代 Ctrl<br>

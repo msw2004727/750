@@ -329,27 +329,20 @@ document.addEventListener('mousemove', (e) => {
   if(!tileDrag) return;
   tileDrag.el.style.left = (e.clientX - 21) + 'px';
   tileDrag.el.style.top = (e.clientY - 21) + 'px';
-  stagingHighlight(findStagingSlotAt(e.clientX, e.clientY) >= 0);
 });
 
 document.addEventListener('mouseup', (e) => {
   if(!tileDrag) return;
-  stagingHighlight(false);
-  const slot = findStagingSlotAt(e.clientX, e.clientY);
-  if(slot >= 0){
-    addToStaging(tileDrag.key, tileDrag.srcH);
-  } else {
-    // 放到畫布
-    const r = canvas.getBoundingClientRect();
-    if(e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom){
-      const mx = e.clientX - r.left, my = e.clientY - r.top;
-      const g = toGrid(mx, my);
-      const gx = snap(g.gx), gy = snap(g.gy);
-      if(!hasBlockAt(gx, gy, currentHeight, null, currentLayer)){
-        saveSnapshot();
-        addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:tileDrag.key, srcH:tileDrag.srcH, yOffset:0});
-        draw();
-      }
+  // PC 版只放到畫布
+  const r = canvas.getBoundingClientRect();
+  if(e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom){
+    const mx = e.clientX - r.left, my = e.clientY - r.top;
+    const g = toGrid(mx, my);
+    const gx = snap(g.gx), gy = snap(g.gy);
+    if(!hasBlockAt(gx, gy, currentHeight, null, currentLayer)){
+      saveSnapshot();
+      addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:tileDrag.key, srcH:tileDrag.srcH, yOffset:0});
+      draw();
     }
   }
   tileDrag.el.remove();
@@ -1300,9 +1293,8 @@ function onDown(e){
 }
 
 function onMove(e){
-  // 拖曳方塊時暫存區高亮 + 浮動預覽
+  // 拖曳方塊時浮動預覽
   if(dragBlock){
-    stagingHighlight(findStagingSlotAt(lastMouseClientX, lastMouseClientY) >= 0);
     updateCanvasDragOverlay();
   }
   // 筆刷/橡皮擦/矩形/線段拖曳
@@ -1456,27 +1448,6 @@ function onUp(){
   }
   if(dragBlock){
     removeCanvasDragOverlay();
-    stagingHighlight(false);
-    // 檢查是否放到暫存區
-    const slot = findStagingSlotAt(lastMouseClientX, lastMouseClientY);
-    if(slot >= 0){
-      saveSnapshot();
-      if(groupOffsets && groupOffsets.length > 1){
-        // 整組存為組合暫存
-        const minGx = Math.min(...groupOffsets.map(g=>g.block.gx));
-        const minGy = Math.min(...groupOffsets.map(g=>g.block.gy));
-        const combo = groupOffsets.map(g => ({
-          dx:g.block.gx-minGx, dy:g.block.gy-minGy, color:g.block.color, srcH:g.block.srcH, yOffset:g.block.yOffset||0
-        }));
-        addToStaging(null, 0, combo);
-        for(const g of groupOffsets) removeBlock(g.block);
-        selectedBlocks = new Set();
-      } else {
-        // 單一素材
-        addToStaging(dragBlock.color, dragBlock.srcH);
-        removeBlock(dragBlock);
-      }
-    }
     if(!groupOffsets){
       dragBlock.gx = lastValidGx;
       dragBlock.gy = lastValidGy;
@@ -1854,7 +1825,6 @@ function populatePalette(){
         document.removeEventListener('mousemove', onMove2);
         document.removeEventListener('mouseup', onUp2);
         if(!dragStarted){
-          // 沒拖曳 = 點擊
           if(brushMode){ brushTile = {color:key, srcH:srcH2}; updateBrushIndicator(); return; }
           addToStaging(key, srcH2);
         }
@@ -1862,6 +1832,7 @@ function populatePalette(){
       document.addEventListener('mousemove', onMove2);
       document.addEventListener('mouseup', onUp2);
     });
+    btn.addEventListener('click', (e) => { e.preventDefault(); }); // 防止拖曳後觸發
     setupMobileTileDrag(btn, key);
     container.appendChild(btn);
   }

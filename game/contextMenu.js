@@ -6,6 +6,7 @@ import { triggerShake } from './renderer.js';
 import { addToStaging } from './staging.js';
 import { mousePos, hitTest } from './hitTest.js';
 
+let _ctxDismiss = null;
 function _showCtxMenu(x, y, items){
   _hideCtxMenu();
   const menu = document.createElement('div');
@@ -16,17 +17,29 @@ function _showCtxMenu(x, y, items){
     const btn = document.createElement('div');
     btn.className = 'ctx-item';
     btn.textContent = item.label;
-    btn.addEventListener('click', () => { _hideCtxMenu(item.keepPanel ? false : true); item.action(); });
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const keepPanel = item.keepPanel;
+      _removeCtxMenu();
+      item.action();
+      if(!keepPanel) _hidePropertyPanel();
+    });
     menu.appendChild(btn);
   }
   document.body.appendChild(menu);
   S.ctxMenu = menu;
-  setTimeout(() => document.addEventListener('click', _hideCtxMenu, {once:true}), 10);
+  _ctxDismiss = () => { _removeCtxMenu(); _hidePropertyPanel(); };
+  setTimeout(() => document.addEventListener('click', _ctxDismiss, {once:true}), 10);
 }
 
-function _hideCtxMenu(alsoCloseProperty){
+function _removeCtxMenu(){
+  if(_ctxDismiss){ document.removeEventListener('click', _ctxDismiss); _ctxDismiss = null; }
   if(S.ctxMenu){ S.ctxMenu.remove(); S.ctxMenu = null; }
-  if(alsoCloseProperty !== false) _hidePropertyPanel();
+}
+
+function _hideCtxMenu(){
+  _removeCtxMenu();
+  _hidePropertyPanel();
 }
 
 // ── Property panel for selected block ──

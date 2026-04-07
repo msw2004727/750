@@ -226,7 +226,8 @@ initStagingGrid();
 let blocks = [];
 let selectedBlocks = new Set(); // 金色高亮選取
 let groupOffsets = null; // 整組拖曳偏移
-let history = []; // 撤銷歷史
+let history = []; // 返回歷史
+let redoStack = []; // 復原歷史
 let boxSelect = null; // {sx, sy, ex, ey} 框選座標
 let dragBlock = null;
 let dragOffX = 0, dragOffY = 0;
@@ -255,7 +256,10 @@ let copyMode = false;
 function resize(){
   const r = canvas.parentElement.getBoundingClientRect();
   W = r.width;
-  H = Math.max(500, window.innerHeight * 0.75);
+  // 手機：扣掉工具列高度，填滿剩餘空間
+  const toolbar = document.getElementById('toolbar');
+  const tbH = toolbar ? toolbar.getBoundingClientRect().height : 0;
+  H = Math.max(300, window.innerHeight - tbH - 60);
   canvas.width = W * devicePixelRatio;
   canvas.height = H * devicePixelRatio;
   canvas.style.height = H + 'px';
@@ -1159,12 +1163,29 @@ document.getElementById('layerDown').addEventListener('click', () => {
 function saveSnapshot(){
   history.push(JSON.stringify(blocks));
   if(history.length > 50) history.shift();
+  redoStack = []; // 新動作清除復原歷史
 }
-document.getElementById('undoBtn').addEventListener('click', () => {
+function doUndo(){
   if(history.length === 0) return;
+  redoStack.push(JSON.stringify(blocks));
   blocks = JSON.parse(history.pop());
   selectedBlocks = new Set();
   draw();
+}
+function doRedo(){
+  if(redoStack.length === 0) return;
+  history.push(JSON.stringify(blocks));
+  blocks = JSON.parse(redoStack.pop());
+  selectedBlocks = new Set();
+  draw();
+}
+document.getElementById('undoBtn').addEventListener('click', doUndo);
+document.getElementById('redoBtn').addEventListener('click', doRedo);
+
+// Ctrl+Z / Ctrl+Y 快捷鍵
+document.addEventListener('keydown', (e) => {
+  if(e.ctrlKey && e.key === 'z'){ e.preventDefault(); doUndo(); }
+  if(e.ctrlKey && e.key === 'y'){ e.preventDefault(); doRedo(); }
 });
 
 document.getElementById('clearBtn').addEventListener('click', () => {
@@ -1360,7 +1381,8 @@ const helpHTML = `
 <h3>儲存與載入</h3>
 <kbd>儲存</kbd> — 匯出場景為 JSON 檔案<br>
 <kbd>載入</kbd> — 從 JSON 檔案還原場景<br>
-<kbd>撤銷</kbd> — 回到上一步（最多 50 步）<br>
+<kbd>返回</kbd> / <kbd>Ctrl+Z</kbd> — 回到上一步（最多 50 步）<br>
+<kbd>復原</kbd> / <kbd>Ctrl+Y</kbd> — 重做被返回的操作<br>
 <kbd>清除全部</kbd> — 移除所有方塊
 
 <h3>手機模式按鈕</h3>

@@ -447,6 +447,31 @@ function drawGrid(){
     }
   }
 
+  // 當前高度無素材處半透明反白
+  ctx.globalAlpha = 0.06;
+  ctx.fillStyle = '#ffffff';
+  for(let i = -R; i < R; i++){
+    for(let j = -R; j < R; j++){
+      // 跳過有方塊的格子（任意圖層）
+      let occupied = false;
+      for(const b of blocks){
+        if(b.gx === i && b.gy === j && b.gz === gz){ occupied = true; break; }
+      }
+      if(occupied) continue;
+      const p0 = toScreen(i, j, gz);
+      const p1 = toScreen(i+1, j, gz);
+      const p2 = toScreen(i+1, j+1, gz);
+      const p3 = toScreen(i, j+1, gz);
+      ctx.beginPath();
+      ctx.moveTo(p0.x, p0.y+th2);
+      ctx.lineTo(p1.x, p1.y+th2);
+      ctx.lineTo(p2.x, p2.y+th2);
+      ctx.lineTo(p3.x, p3.y+th2);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
   // 當前高度原點十字加粗
   ctx.globalAlpha = 0.5;
   ctx.strokeStyle = '#8ab8dd';
@@ -518,8 +543,20 @@ function drawVGrid(){
 // ── 主繪製 ──
 function draw(){
   ctx.clearRect(0,0,W,H);
+
+  const sorted = [...blocks].sort((a,b) => {
+    return (a.gx+a.gy)*100+a.gz - ((b.gx+b.gy)*100+b.gz);
+  });
+
+  // 1. 先畫低於當前高度的方塊
+  for(const b of sorted){
+    if(b.gz < currentHeight) drawCube(b.gx, b.gy, b.gz, b.color, b===dragBlock, b);
+  }
+
+  // 2. 格線蓋在低層方塊上面
   drawGrid();
 
+  // 3. 拖曳幽靈
   if(dragBlock){
     const tgx = snap(dragBlock._dragGx);
     const tgy = snap(dragBlock._dragGy);
@@ -528,14 +565,12 @@ function draw(){
     drawGhost(tgx, tgy, dragBlock.gz, dragBlock.color, valid);
   }
 
-  const sorted = [...blocks].sort((a,b) => {
-    return (a.gx+a.gy)*100+a.gz - ((b.gx+b.gy)*100+b.gz);
-  });
+  // 4. 當前高度及以上的方塊畫在格線上面
   for(const b of sorted){
-    drawCube(b.gx, b.gy, b.gz, b.color, b===dragBlock, b);
+    if(b.gz >= currentHeight) drawCube(b.gx, b.gy, b.gz, b.color, b===dragBlock, b);
   }
 
-  // 垂直格線畫在方塊上面（才能看到立體柱線）
+  // 5. 垂直格線最上層
   drawVGrid();
 
   // 框選矩形

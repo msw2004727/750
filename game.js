@@ -519,7 +519,7 @@ function drawCube(gx, gy, gz, color, hl, block){
   }
 
   // 滑鼠懸停反白
-  if((showHover || brushMode || eraserMode) && block === hoverBlock){
+  if(showHover && block === hoverBlock){
     ctx.fillStyle = 'rgba(255,255,255,0.25)';
     ctx.lineJoin = 'round';
     ctx.beginPath();

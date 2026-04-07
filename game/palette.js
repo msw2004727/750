@@ -1,5 +1,5 @@
 import { S, camera, draw } from './state.js';
-import { TILES, SOURCES, MEDIEVAL_VARIANTS, switchMedievalVariant } from './tileData.js';
+import { TILES, SOURCES, MEDIEVAL_VARIANTS, MEDIEVAL_FIRST_IDX } from './tileData.js';
 import { startTileDrag } from './staging.js';
 import { updateBrushIndicator } from './tools.js';
 import { setupMobileTileDrag } from './touch.js';
@@ -176,36 +176,52 @@ function initSelectors(){
   const allOpt = document.createElement('option');
   allOpt.value = -1; allOpt.textContent = '全部來源';
   srcSel.appendChild(allOpt);
+  // Show non-grouped sources + one entry per group
+  const shown = new Set();
   SOURCES.forEach((src, i) => {
-    const opt = document.createElement('option');
-    opt.value = i; opt.textContent = src.label;
-    srcSel.appendChild(opt);
+    if(src.group){
+      if(shown.has(src.group)) return;
+      shown.add(src.group);
+      const opt = document.createElement('option');
+      opt.value = i; opt.textContent = src.group;
+      srcSel.appendChild(opt);
+    } else {
+      const opt = document.createElement('option');
+      opt.value = i; opt.textContent = src.label;
+      srcSel.appendChild(opt);
+    }
   });
   srcSel.value = -1;
 
-  // Medieval variant selector (inserted after srcSelect)
+  // Medieval variant selector
   const varSel = document.createElement('select');
   varSel.id = 'variantSelect';
   varSel.style.cssText = 'display:none;font-size:11px;background:#2a2a3e;color:#ccc;border:1px solid #444;border-radius:4px;padding:2px 4px;';
-  for(const v of MEDIEVAL_VARIANTS){
+  MEDIEVAL_VARIANTS.forEach((v, vi) => {
     const opt = document.createElement('option');
-    opt.value = v.key; opt.textContent = v.label;
+    opt.value = MEDIEVAL_FIRST_IDX + vi;
+    opt.textContent = v.label;
     varSel.appendChild(opt);
-  }
+  });
   srcSel.parentElement.insertBefore(varSel, srcSel.nextSibling);
 
+  function _isMedieval(){
+    return S.selectedSrc >= MEDIEVAL_FIRST_IDX && S.selectedSrc < MEDIEVAL_FIRST_IDX + MEDIEVAL_VARIANTS.length;
+  }
+
   function _updateVariantVisibility(){
-    const medIdx = SOURCES.findIndex(s => s.prefix === 'm');
-    varSel.style.display = (S.selectedSrc === medIdx) ? '' : 'none';
+    varSel.style.display = _isMedieval() ? '' : 'none';
   }
 
   varSel.addEventListener('change', () => {
-    switchMedievalVariant(varSel.value);
+    S.selectedSrc = parseInt(varSel.value);
+    buildCatOptions();
     populatePalette();
   });
 
   srcSel.addEventListener('change', () => {
     S.selectedSrc = parseInt(srcSel.value);
+    if(_isMedieval()) varSel.value = S.selectedSrc;
     _updateVariantVisibility();
     buildCatOptions();
     populatePalette();

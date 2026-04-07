@@ -216,6 +216,8 @@ function renderStagingCell(idx){
   if(!cell) return;
   const oldImg = cell.querySelector('img');
   if(oldImg) oldImg.remove();
+  const oldCanvas = cell.querySelector('canvas');
+  if(oldCanvas) oldCanvas.remove();
   const oldLabel = cell.querySelector('.staging-label');
   if(oldLabel) oldLabel.remove();
   if(staging[idx]){
@@ -242,9 +244,8 @@ function renderStagingCell(idx){
         const py = oy + (rx + ry) * 0.5;
         tctx.drawImage(ti, px - tileSize/2, py - tileSize/2, tileSize, tileSize);
       }
-      const img = document.createElement('img');
-      img.src = thumbCanvas.toDataURL();
-      cell.insertBefore(img, cell.firstChild);
+      thumbCanvas.style.cssText = 'width:100%;height:100%;image-rendering:pixelated;';
+      cell.insertBefore(thumbCanvas, cell.firstChild);
       const lbl = document.createElement('span');
       lbl.className = 'staging-label';
       lbl.textContent = combo.length + '組';

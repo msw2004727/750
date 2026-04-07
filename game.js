@@ -970,7 +970,9 @@ function onMove(e){
         removeBlock(hit);
       }
     }
-    hoverBlock = hitTest(pos.x, pos.y);
+    const hk = shKey(gx, gy, currentHeight, currentLayer);
+    const hs = spatialHash.get(hk);
+    hoverBlock = hs ? [...hs][0] : null;
     draw();
     return;
   }
@@ -1047,20 +1049,22 @@ function onMove(e){
   } else if(showHover || brushMode || eraserMode){
     const pos = mousePos(e);
     let needDraw = false;
-    // 懸停反白：任何工具模式下都跟游標走
-    if(showHover || brushMode || eraserMode){
-      const prev = hoverBlock;
-      hoverBlock = hitTest(pos.x, pos.y);
-      if(hoverBlock !== prev) needDraw = true;
-    }
-    // 筆刷/橡皮擦游標預覽
     if(brushMode || eraserMode){
+      // 筆刷/橡皮擦：用 toGrid 座標統一游標和懸停
       const g = toGrid(pos.x, pos.y);
       const newGx = snap(g.gx), newGy = snap(g.gy);
       if(newGx !== brushCursorGx || newGy !== brushCursorGy){
         brushCursorGx = newGx; brushCursorGy = newGy;
+        // 用座標查找方塊作為懸停目標（與游標一致）
+        const k = shKey(newGx, newGy, currentHeight, currentLayer);
+        const s = spatialHash.get(k);
+        hoverBlock = s ? [...s][0] : null;
         needDraw = true;
       }
+    } else if(showHover){
+      const prev = hoverBlock;
+      hoverBlock = hitTest(pos.x, pos.y);
+      if(hoverBlock !== prev) needDraw = true;
     }
     if(needDraw) draw();
   }

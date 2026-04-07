@@ -16,17 +16,24 @@
     </div>
     <div id="tilePalette"></div>
     <div id="toggleRow">
+      <span class="fold-toggle" data-target="foldTools">工具箱 ▼</span>
+      <span class="fold-toggle" data-target="foldShortcuts">快捷類 ▼</span>
+      <span class="fold-toggle" data-target="foldDisplay">顯示類 ▼</span>
+      <span id="brushInfo" style="display:none;font-size:10px;color:#FFD700;"></span>
+    </div>
+    <div id="foldTools" class="fold-panel" style="display:none;">
       <label class="ck"><input type="checkbox" id="chkBrush"> 筆刷</label>
       <label class="ck"><input type="checkbox" id="chkEraser"> 橡皮擦</label>
       <label class="ck"><input type="checkbox" id="chkFill"> 填充</label>
       <label class="ck"><input type="checkbox" id="chkRect"> 矩形</label>
       <label class="ck"><input type="checkbox" id="chkLine"> 線段</label>
-      <span id="brushInfo" style="display:none;font-size:10px;color:#FFD700;"></span>
-      <span class="sep">|</span>
+    </div>
+    <div id="foldShortcuts" class="fold-panel" style="display:none;">
       <label class="ck"><input type="checkbox" id="chkSelect"> 選取</label>
       <label class="ck"><input type="checkbox" id="chkLocate"> 定位</label>
       <label class="ck"><input type="checkbox" id="chkCopy"> 複製</label>
-      <span class="sep">|</span>
+    </div>
+    <div id="foldDisplay" class="fold-panel" style="display:none;">
       <label class="ck"><input type="checkbox" id="chkHover"> 懸停</label>
       <label class="ck"><input type="checkbox" id="chkGrid"> 格線</label>
       <label class="ck"><input type="checkbox" id="chkVGrid"> 立體</label>

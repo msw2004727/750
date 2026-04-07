@@ -156,6 +156,7 @@ for(const src of SOURCES){
     TILES[key] = {file, cropY, srcH, srcW, frames, stroke, ghost};
     // 預載圖片
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.onload = () => { tileImages[key] = img; if(++tilesLoaded >= totalImages) draw(); };
     img.src = src.base + file;
   }
@@ -1819,13 +1820,24 @@ init.forEach(d => {
 });
 
 // ── 操作說明面板 ──
+// ── 收折面板 ──
+document.querySelectorAll('.fold-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const panel = document.getElementById(btn.dataset.target);
+    const isOpen = panel.style.display !== 'none';
+    panel.style.display = isOpen ? 'none' : 'flex';
+    btn.classList.toggle('open', !isOpen);
+    btn.textContent = btn.textContent.replace(isOpen ? '▲' : '▼', isOpen ? '▼' : '▲');
+  });
+});
+
 const helpHTML = `
-<h3>繪製工具（互斥）</h3>
+<h3>工具箱（互斥，收折面板）</h3>
 <kbd>筆刷</kbd> — 點素材選為筆刷，畫布上點擊/拖曳連續放置<br>
 <kbd>橡皮擦</kbd> — 點擊/拖曳連續刪除<br>
-<kbd>填充</kbd> — 點空白處 flood fill 填滿連通區域（上限 500 格）<br>
-<kbd>矩形</kbd> — 第一次點擊設起點，第二次點擊填滿矩形區域<br>
-<kbd>線段</kbd> — 第一次點擊設起點，第二次點擊畫直線
+<kbd>填充</kbd> — 游標移動顯示半透明預覽，點擊確認填充（上限 500 格）<br>
+<kbd>矩形</kbd> — 按住拖曳顯示預覽範圍，放開填充<br>
+<kbd>線段</kbd> — 按住拖曳顯示預覽路線，放開填充
 
 <h3>基本操作</h3>
 <kbd>左鍵</kbd> 拖曳方塊 — 移動（被四面包圍無法移動）<br>
@@ -1852,6 +1864,7 @@ const helpHTML = `
 選範本 → <kbd>放置</kbd> → 一鍵放入
 
 <h3>顯示工具</h3>
+<h3>顯示類（收折面板）</h3>
 <kbd>懸停</kbd> 反白 | <kbd>格線</kbd> 水平 | <kbd>立體</kbd> 垂直 | <kbd>座標</kbd> 座標 | <kbd>小地圖</kbd> 右下縮覽
 
 <h3>檔案操作</h3>
@@ -1860,8 +1873,8 @@ const helpHTML = `
 <kbd>原點</kbd> 回到 (0,0) | <kbd>清除全部</kbd><br>
 <kbd>搜尋</kbd> — 輸入關鍵字篩選全部素材（檔名或編號）
 
-<h3>手機操作</h3>
-<kbd>選取</kbd> 取代 Shift | <kbd>定位</kbd> 跳到素材 | <kbd>複製</kbd> 取代 Ctrl<br>
+<h3>快捷類（收折面板）</h3>
+<kbd>選取</kbd> 取代 Shift（選取/框選）| <kbd>定位</kbd> 點方塊跳到素材面板 | <kbd>複製</kbd> 取代 Ctrl（複製拖曳）<br>
 雙指捏合縮放 | 暫存區快速放置
 `;
 document.getElementById('helpPanel').innerHTML = helpHTML;

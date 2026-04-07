@@ -1689,6 +1689,7 @@ function populatePalette(){
     btn.title = key + ' [' + src.label + ']';
     const img = document.createElement('img');
     img.src = src.base + src.fileOf(i);
+    img.draggable = false;
     btn.appendChild(img);
     const num = document.createElement('span');
     num.className = 'tb-num';
@@ -1779,6 +1780,7 @@ document.getElementById('tileSearch').addEventListener('input', (e) => {
         btn.title = key + ' [' + src.label + '] ' + src.fileOf(i);
         const img = document.createElement('img');
         img.src = src.base + src.fileOf(i);
+        img.draggable = false;
         btn.appendChild(img);
         const num = document.createElement('span');
         num.className = 'tb-num';

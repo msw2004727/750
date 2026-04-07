@@ -1013,16 +1013,36 @@ function drawCube(gx, gy, gz, color, hl, block){
     const td = TILES[color] || {};
     const srcW = td.srcW || 32;
     const srcH = td.srcH || 32;
+    const cropY = td.cropY || 0;
     const frames = td.frames || 1;
     const dw = 2 * tw;
-    const dh = Math.round(srcH * dw / srcW);
-    const dx = x - tw;
-    const dy = y + 2 * th - dh;
-    if(frames > 1){
-      const frame = S.animTick % frames;
-      ctx.drawImage(tileImg, frame * srcW, 0, srcW, srcH, dx, dy, dw, dh);
+    const scale = dw / srcW;
+
+    if(srcW > 32 && cropY > 0){
+      // Non-standard tiles (Strategy 64x100): crop side wall to match engine CUBE_H
+      const sideWallSrc = Math.ceil(ch / scale);
+      const useSrcH = Math.min(srcH, cropY + sideWallSrc);
+      const useDh = Math.round(useSrcH * scale);
+      const diamondY = Math.round(cropY * scale);
+      const dx = x - tw;
+      const dy = y + 2 * th - diamondY;
+      if(frames > 1){
+        const frame = S.animTick % frames;
+        ctx.drawImage(tileImg, frame * srcW, 0, srcW, useSrcH, dx, dy, dw, useDh);
+      } else {
+        ctx.drawImage(tileImg, 0, 0, srcW, useSrcH, dx, dy, dw, useDh);
+      }
     } else {
-      ctx.drawImage(tileImg, dx, dy, dw, dh);
+      // Standard tiles (32x32/32x48): full image, bottom-aligned
+      const dh = Math.round(srcH * scale);
+      const dx = x - tw;
+      const dy = y + 2 * th - dh;
+      if(frames > 1){
+        const frame = S.animTick % frames;
+        ctx.drawImage(tileImg, frame * srcW, 0, srcW, srcH, dx, dy, dw, dh);
+      } else {
+        ctx.drawImage(tileImg, dx, dy, dw, dh);
+      }
     }
   }
 

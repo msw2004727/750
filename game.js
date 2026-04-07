@@ -1407,33 +1407,36 @@ document.getElementById('homeBtn').addEventListener('click', () => {
 
 // ── 匯出地圖為圖片 ──
 document.getElementById('exportImg').addEventListener('click', () => {
-  // 計算所有方塊的邊界
   if(blocks.length === 0){ alert('沒有方塊可匯出'); return; }
-  const margin = 2;
-  let minGx = Infinity, maxGx = -Infinity, minGy = Infinity, maxGy = -Infinity, minGz = Infinity, maxGz = -Infinity;
-  for(const b of blocks){
-    minGx = Math.min(minGx, b.gx); maxGx = Math.max(maxGx, b.gx);
-    minGy = Math.min(minGy, b.gy); maxGy = Math.max(maxGy, b.gy);
-    minGz = Math.min(minGz, b.gz); maxGz = Math.max(maxGz, b.gz);
-  }
-  // 暫存鏡頭，用適合匯出的視角
+  // 暫存狀態
   const oldCamX = camX, oldCamY = camY, oldZoom = zoom;
-  const oldHH = hiddenHeights, oldHL = hiddenLayers;
+  const oldHH = new Set(hiddenHeights), oldHL = new Set(hiddenLayers);
+  const oldGrid = showGrid, oldVGrid = showVGrid, oldCoord = showCoords;
+  // 關閉格線等裝飾
   hiddenHeights = new Set(); hiddenLayers = new Set();
-  const cx = (minGx + maxGx) / 2, cy = (minGy + maxGy) / 2;
-  zoom = 1;
-  const center = toScreen(cx, cy, (minGz + maxGz) / 2);
-  camX = W/2 - center.x + camX;
-  camY = H/2 - center.y + camY;
+  showGrid = false; showVGrid = false; showCoords = false;
+  // 計算邊界並置中
+  let minGx=Infinity, maxGx=-Infinity, minGy=Infinity, maxGy=-Infinity, minGz=Infinity, maxGz=-Infinity;
+  for(const b of blocks){
+    minGx=Math.min(minGx,b.gx); maxGx=Math.max(maxGx,b.gx);
+    minGy=Math.min(minGy,b.gy); maxGy=Math.max(maxGy,b.gy);
+    minGz=Math.min(minGz,b.gz); maxGz=Math.max(maxGz,b.gz);
+  }
+  zoom = 1; camX = 0; camY = 0;
+  const cx = (minGx+maxGx)/2, cy = (minGy+maxGy)/2, cz = (minGz+maxGz)/2;
+  const cp = toScreen(cx, cy, cz);
+  camX = W/2 - cp.x;
+  camY = H/2 - cp.y;
   draw();
-  // 匯出
+  // 下載
   const link = document.createElement('a');
   link.download = 'map_' + new Date().toISOString().slice(0,10) + '.png';
   link.href = canvas.toDataURL('image/png');
   link.click();
-  // 還原鏡頭
+  // 還原
   camX = oldCamX; camY = oldCamY; zoom = oldZoom;
   hiddenHeights = oldHH; hiddenLayers = oldHL;
+  showGrid = oldGrid; showVGrid = oldVGrid; showCoords = oldCoord;
   draw();
 });
 

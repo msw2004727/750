@@ -989,9 +989,47 @@ canvas.addEventListener('mouseleave', onUp);
 canvas.addEventListener('wheel', onWheel, {passive:false});
 canvas.addEventListener('dblclick', onDbl);
 canvas.addEventListener('contextmenu', onCtx);
-canvas.addEventListener('touchstart', onDown, {passive:false});
-canvas.addEventListener('touchmove', onMove, {passive:false});
-canvas.addEventListener('touchend', onUp);
+// 手機觸控：單指操作 + 雙指縮放
+let pinch = null; // {dist, zoom0, cx, cy}
+
+canvas.addEventListener('touchstart', (e) => {
+  if(e.touches.length === 2){
+    e.preventDefault();
+    const t0 = e.touches[0], t1 = e.touches[1];
+    const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+    const r = canvas.getBoundingClientRect();
+    pinch = {
+      dist,
+      zoom0: zoom,
+      cx: (t0.clientX + t1.clientX) / 2 - r.left,
+      cy: (t0.clientY + t1.clientY) / 2 - r.top
+    };
+    return;
+  }
+  pinch = null;
+  onDown(e);
+}, {passive:false});
+
+canvas.addEventListener('touchmove', (e) => {
+  if(pinch && e.touches.length === 2){
+    e.preventDefault();
+    const t0 = e.touches[0], t1 = e.touches[1];
+    const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+    const before = toGrid(pinch.cx, pinch.cy);
+    zoom = Math.max(0.15, Math.min(3, pinch.zoom0 * (dist / pinch.dist)));
+    const after = toScreen(before.gx, before.gy, 0);
+    camX += pinch.cx - after.x;
+    camY += pinch.cy - after.y;
+    draw();
+    return;
+  }
+  onMove(e);
+}, {passive:false});
+
+canvas.addEventListener('touchend', (e) => {
+  if(pinch){ pinch = null; return; }
+  onUp(e);
+});
 
 
 // ── 素材定位 ──

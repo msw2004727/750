@@ -85,13 +85,17 @@ export function onDown(e){
     }
   }
 
-  const hit = hitTest(pos.x, pos.y);
-
-  if(S.locateMode && hit){
-    if(_jumpToTile) _jumpToTile(hit.color);
+  // Locate mode: find tile in palette (search all layers)
+  if(S.locateMode){
+    const locHit = hitTestAll(pos.x, pos.y);
+    if(locHit){
+      if(_jumpToTile) _jumpToTile(locHit.color);
+    }
     S.locateMode = false; document.getElementById('chkLocate').checked = false;
     return;
   }
+
+  const hit = hitTest(pos.x, pos.y);
 
   if(S.brushMode && !S.brushTile && !e.shiftKey && !e.ctrlKey){
     alert('請先點擊素材面板或暫存區選擇筆刷素材');

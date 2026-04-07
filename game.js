@@ -832,7 +832,11 @@ function onDown(e){
     return;
   }
 
-  // 筆刷模式：點擊放置
+  // 筆刷模式
+  if(brushMode && !brushTile && !e.shiftKey && !e.ctrlKey){
+    alert('請先點擊素材面板或暫存區選擇筆刷素材');
+    return;
+  }
   if(brushMode && brushTile && !e.shiftKey && !e.ctrlKey){
     const g = toGrid(pos.x, pos.y);
     const gx = snap(g.gx), gy = snap(g.gy);

@@ -210,26 +210,24 @@ export function initStagingGrid(){
     cell.addEventListener('touchstart', (e) => {
       if(!S.staging[i] || S.staging[i].combo) return;
       e.preventDefault();
-      sTouchDrag = false;
+      sTouchDrag = true;
       const t = e.touches[0];
-      const sx = t.clientX, sy = t.clientY;
+      // Immediately create floating preview
+      sTouchEl = document.createElement('div');
+      sTouchEl.style.cssText = 'position:fixed;pointer-events:none;z-index:999;opacity:0.7;width:42px;height:42px;';
+      const img = document.createElement('img');
+      const td = TILES[S.staging[i].color];
+      const src2 = SOURCES.find(s => s.prefix === S.staging[i].color.charAt(0));
+      if(src2 && td) img.src = src2.base + td.file;
+      img.style.cssText = 'width:100%;height:100%;image-rendering:pixelated;';
+      sTouchEl.appendChild(img);
+      document.body.appendChild(sTouchEl);
+      sTouchEl.style.left = (t.clientX - 21) + 'px';
+      sTouchEl.style.top = (t.clientY - 21) + 'px';
       const _onTM = (e2) => {
+        e2.preventDefault();
         const t2 = e2.touches[0];
-        if(!sTouchDrag && (Math.abs(t2.clientX-sx)>6 || Math.abs(t2.clientY-sy)>6)){
-          sTouchDrag = true;
-          e2.preventDefault();
-          sTouchEl = document.createElement('div');
-          sTouchEl.style.cssText = 'position:fixed;pointer-events:none;z-index:999;opacity:0.7;width:42px;height:42px;';
-          const img = document.createElement('img');
-          const td = TILES[S.staging[i].color];
-          const src2 = SOURCES.find(s => s.prefix === S.staging[i].color.charAt(0));
-          if(src2 && td) img.src = src2.base + td.file;
-          img.style.cssText = 'width:100%;height:100%;image-rendering:pixelated;';
-          sTouchEl.appendChild(img);
-          document.body.appendChild(sTouchEl);
-        }
-        if(sTouchDrag && sTouchEl){
-          e2.preventDefault();
+        if(sTouchEl){
           sTouchEl.style.left = (t2.clientX - 21) + 'px';
           sTouchEl.style.top = (t2.clientY - 21) + 'px';
         }

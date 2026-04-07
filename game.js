@@ -161,6 +161,67 @@ for(const src of SOURCES){
   }
 }
 
+// ── 暫存區（9格） ──
+const staging = new Array(9).fill(null); // 每格存 {color, srcH} 或 null
+
+function initStagingGrid(){
+  const grid = document.getElementById('stagingGrid');
+  for(let i = 0; i < 9; i++){
+    const cell = document.createElement('div');
+    cell.className = 'staging-cell';
+    cell.dataset.idx = i;
+    const del = document.createElement('span');
+    del.className = 'staging-del';
+    del.textContent = '✕';
+    del.addEventListener('click', (e) => {
+      e.stopPropagation();
+      staging[i] = null;
+      renderStagingCell(i);
+    });
+    cell.appendChild(del);
+    cell.addEventListener('click', () => {
+      if(!staging[i]) return;
+      // 放到畫面中央位置
+      const center = toGrid(W/2, H/2);
+      const gx = snap(center.gx), gy = snap(center.gy);
+      const s = staging[i];
+      if(hasBlockAt(gx, gy, currentHeight, null, currentLayer)) return;
+      saveSnapshot();
+      blocks.push({gx, gy, gz:currentHeight, layer:currentLayer, color:s.color, srcH:s.srcH, yOffset:0});
+      draw();
+    });
+    grid.appendChild(cell);
+  }
+}
+
+function renderStagingCell(idx){
+  const cells = document.querySelectorAll('.staging-cell');
+  const cell = cells[idx];
+  if(!cell) return;
+  // 移除舊圖片
+  const oldImg = cell.querySelector('img');
+  if(oldImg) oldImg.remove();
+  if(staging[idx]){
+    const td = TILES[staging[idx].color];
+    if(td){
+      const img = document.createElement('img');
+      const src = SOURCES.find(s => s.prefix === staging[idx].color.charAt(0));
+      img.src = (src ? src.base : '') + td.file;
+      cell.insertBefore(img, cell.firstChild);
+    }
+  }
+}
+
+function addToStaging(color, srcH){
+  // 找空格放入，滿了就替換最後一格
+  let slot = staging.indexOf(null);
+  if(slot === -1) slot = 8;
+  staging[slot] = {color, srcH};
+  renderStagingCell(slot);
+}
+
+initStagingGrid();
+
 // ── 狀態 ──
 let blocks = [];
 let selectedBlocks = new Set(); // 金色高亮選取
@@ -956,11 +1017,7 @@ function populatePalette(){
     btn.appendChild(num);
     btn.addEventListener('click', () => {
       const srcH = (TILES[key] && TILES[key].srcH) || 32;
-      const spot = findEmptySpot();
-      if(srcH > 32 && hasBlockAt(spot.gx, spot.gy, currentHeight + 1, null, currentLayer)) return;
-      saveSnapshot();
-      blocks.push({gx:spot.gx, gy:spot.gy, gz:currentHeight, layer:currentLayer, color:key, srcH:srcH});
-      draw();
+      addToStaging(key, srcH);
     });
     container.appendChild(btn);
   }
@@ -1063,11 +1120,7 @@ function populateCrossPalette(){
         btn.appendChild(num);
         btn.addEventListener('click', () => {
           const srcH = (TILES[key] && TILES[key].srcH) || 32;
-          const spot = findEmptySpot();
-          if(srcH > 32 && hasBlockAt(spot.gx, spot.gy, currentHeight + 1, null, currentLayer)) return;
-          saveSnapshot();
-          blocks.push({gx:spot.gx, gy:spot.gy, gz:currentHeight, layer:currentLayer, color:key, srcH:srcH});
-          draw();
+          addToStaging(key, srcH);
         });
         container.appendChild(btn);
       }

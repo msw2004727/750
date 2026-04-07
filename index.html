@@ -45,7 +45,13 @@
   </div>
   <div class="hint" id="hintToggle" style="cursor:pointer;">操作說明 ▼</div>
   <div id="helpPanel" style="display:none;"></div>
-  <canvas id="c"></canvas>
+  <div id="canvasWrap">
+    <div id="stagingArea">
+      <div class="staging-title">暫存區</div>
+      <div id="stagingGrid"></div>
+    </div>
+    <canvas id="c"></canvas>
+  </div>
 </div>
 <script src="game.js"></script>
 </body>

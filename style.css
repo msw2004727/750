@@ -242,10 +242,64 @@ body {
   color: #eee;
   font-family: monospace;
 }
+#canvasWrap { position: relative; }
+#stagingArea {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+  background: rgba(30,30,50,0.85);
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 4px;
+  pointer-events: auto;
+}
+.staging-title {
+  font-size: 10px;
+  color: #888;
+  text-align: center;
+  margin-bottom: 2px;
+}
+#stagingGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 42px);
+  grid-template-rows: repeat(3, 42px);
+  gap: 2px;
+}
+.staging-cell {
+  width: 42px;
+  height: 42px;
+  border-radius: 4px;
+  border: 1px dashed #444;
+  background: rgba(255,255,255,0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+}
+.staging-cell:hover { border-color: #888; }
+.staging-cell img {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+.staging-cell .staging-del {
+  position: absolute;
+  top: -2px;
+  right: 1px;
+  font-size: 8px;
+  color: #666;
+  cursor: pointer;
+  display: none;
+}
+.staging-cell:hover .staging-del { display: block; color: #f66; }
 #c {
   width: 100%;
   border-radius: 10px;
   border: 1px solid #333;
   cursor: grab;
   background: #16213e;
+  position: relative;
 }

@@ -1312,11 +1312,12 @@ function onUp(){
   }
   if(dragBlock){
     stagingHighlight(false);
-    // 檢查是否放到暫存區
+    // 檢查是否放到暫存區 → 移除畫布上的方塊
     const slot = findStagingSlotAt(lastMouseClientX, lastMouseClientY);
     if(slot >= 0){
       addToStaging(dragBlock.color, dragBlock.srcH);
-      // 還原方塊位置（不移動）
+      saveSnapshot();
+      removeBlock(dragBlock);
     }
     if(!groupOffsets){
       dragBlock.gx = lastValidGx;

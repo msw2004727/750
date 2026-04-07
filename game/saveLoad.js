@@ -26,11 +26,19 @@ document.getElementById('layerDown').addEventListener('click', () => {
   if(S.currentLayer > 0){ S.currentLayer--; updateLayerUI(); draw(); }
 });
 
-// ── Save / Load ──
+// ── Save / Save As / Load ──
+function _buildSaveData(){
+  return JSON.stringify({blocks:world.blocks, camX:camera.x, camY:camera.y, zoom:camera.zoom, currentHeight:S.currentHeight, currentLayer:S.currentLayer});
+}
+
+// Save: overwrite localStorage (no file download)
 document.getElementById('saveBtn').addEventListener('click', () => {
-  const data = JSON.stringify({blocks:world.blocks, camX:camera.x, camY:camera.y, zoom:camera.zoom, currentHeight:S.currentHeight, currentLayer:S.currentLayer});
-  localStorage.setItem('blockBuilder_save', data);
-  const blob = new Blob([data], {type:'application/json'});
+  localStorage.setItem('blockBuilder_save', _buildSaveData());
+});
+
+// Save As: download as new JSON file
+document.getElementById('saveAsBtn').addEventListener('click', () => {
+  const blob = new Blob([_buildSaveData()], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'block_save_' + new Date().toISOString().slice(0,10) + '.json';

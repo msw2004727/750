@@ -2489,11 +2489,19 @@ document.getElementById('layerDown').addEventListener('click', () => {
   if(S.currentLayer > 0){ S.currentLayer--; updateLayerUI(); draw(); }
 });
 
-// ── Save / Load ──
+// ── Save / Save As / Load ──
+function _buildSaveData(){
+  return JSON.stringify({blocks:world.blocks, camX:camera.x, camY:camera.y, zoom:camera.zoom, currentHeight:S.currentHeight, currentLayer:S.currentLayer});
+}
+
+// Save: overwrite localStorage (no file download)
 document.getElementById('saveBtn').addEventListener('click', () => {
-  const data = JSON.stringify({blocks:world.blocks, camX:camera.x, camY:camera.y, zoom:camera.zoom, currentHeight:S.currentHeight, currentLayer:S.currentLayer});
-  localStorage.setItem('blockBuilder_save', data);
-  const blob = new Blob([data], {type:'application/json'});
+  localStorage.setItem('blockBuilder_save', _buildSaveData());
+});
+
+// Save As: download as new JSON file
+document.getElementById('saveAsBtn').addEventListener('click', () => {
+  const blob = new Blob([_buildSaveData()], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'block_save_' + new Date().toISOString().slice(0,10) + '.json';
@@ -2773,17 +2781,32 @@ document.getElementById('helpOverlay').addEventListener('click', (e) => {
 
 // These imports trigger their side effects (event listeners, init calls)
 
-// ── Default blocks (5x5 grass field) ──
-const init = [
-  {gx:-2,gy:-3,color:'j019'},{gx:-2,gy:-2,color:'j016'},{gx:-2,gy:-1,color:'j018'},{gx:-2,gy:0,color:'j017'},{gx:-2,gy:1,color:'j018'},
-  {gx:-1,gy:-3,color:'j019'},{gx:-1,gy:-2,color:'j018'},{gx:-1,gy:-1,color:'j016'},{gx:-1,gy:0,color:'j018'},{gx:-1,gy:1,color:'j017'},
-  {gx: 0,gy:-3,color:'j016'},{gx: 0,gy:-2,color:'j018'},{gx: 0,gy:-1,color:'j017'},{gx: 0,gy:0,color:'j016'},{gx: 0,gy:1,color:'j017'},
-  {gx: 1,gy:-3,color:'j019'},{gx: 1,gy:-2,color:'j016'},{gx: 1,gy:-1,color:'j018'},{gx: 1,gy:0,color:'j017'},{gx: 1,gy:1,color:'j018'},
-  {gx: 2,gy:-3,color:'j019'},{gx: 2,gy:-2,color:'j018'},{gx: 2,gy:-1,color:'j016'},{gx: 2,gy:0,color:'j018'},{gx: 2,gy:1,color:'j017'},
-];
-init.forEach(d => {
-  addBlock({gx:d.gx, gy:d.gy, gz:0, layer:0, color:d.color, srcH:32});
-});
+// ── Load saved state or default blocks ──
+
+const saved = localStorage.getItem('blockBuilder_save');
+if(saved){
+  try {
+    const data = JSON.parse(saved);
+    if(data.blocks) setBlocks(data.blocks);
+    if(data.camX !== undefined) camera.x = data.camX;
+    if(data.camY !== undefined) camera.y = data.camY;
+    if(data.zoom !== undefined) camera.zoom = data.zoom;
+    if(data.currentHeight !== undefined){ S.currentHeight = data.currentHeight; updateHeightUI(); }
+    if(data.currentLayer !== undefined){ S.currentLayer = data.currentLayer; updateLayerUI(); }
+  } catch(e){}
+}
+if(world.blocks.length === 0){
+  const init = [
+    {gx:-2,gy:-3,color:'j019'},{gx:-2,gy:-2,color:'j016'},{gx:-2,gy:-1,color:'j018'},{gx:-2,gy:0,color:'j017'},{gx:-2,gy:1,color:'j018'},
+    {gx:-1,gy:-3,color:'j019'},{gx:-1,gy:-2,color:'j018'},{gx:-1,gy:-1,color:'j016'},{gx:-1,gy:0,color:'j018'},{gx:-1,gy:1,color:'j017'},
+    {gx: 0,gy:-3,color:'j016'},{gx: 0,gy:-2,color:'j018'},{gx: 0,gy:-1,color:'j017'},{gx: 0,gy:0,color:'j016'},{gx: 0,gy:1,color:'j017'},
+    {gx: 1,gy:-3,color:'j019'},{gx: 1,gy:-2,color:'j016'},{gx: 1,gy:-1,color:'j018'},{gx: 1,gy:0,color:'j017'},{gx: 1,gy:1,color:'j018'},
+    {gx: 2,gy:-3,color:'j019'},{gx: 2,gy:-2,color:'j018'},{gx: 2,gy:-1,color:'j016'},{gx: 2,gy:0,color:'j018'},{gx: 2,gy:1,color:'j017'},
+  ];
+  init.forEach(d => {
+    addBlock({gx:d.gx, gy:d.gy, gz:0, layer:0, color:d.color, srcH:32});
+  });
+}
 
 // ── Initial resize + start game loop ──
 window.addEventListener('resize', resize);

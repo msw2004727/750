@@ -58,13 +58,15 @@ export function drawCube(gx, gy, gz, color, hl, block){
     const frames = td.frames || 1;
     const imgW = 2 * tw;
     const scale = imgW / srcW;
-    const drawW = srcW * scale;
-    const drawH = srcH * scale;
+    const dw = Math.round(srcW * scale);
+    const dh = Math.round(srcH * scale);
+    const dx = Math.round(x - tw);
+    const dy = Math.round(y + 2 * th - dh);
     if(frames > 1){
       const frame = S.animTick % frames;
-      ctx.drawImage(tileImg, frame * srcW, 0, srcW, srcH, x - tw, y + 2 * th - drawH, drawW, drawH);
+      ctx.drawImage(tileImg, frame * srcW, 0, srcW, srcH, dx, dy, dw, dh);
     } else {
-      ctx.drawImage(tileImg, x - tw, y + 2 * th - drawH, drawW, drawH);
+      ctx.drawImage(tileImg, dx, dy, dw, dh);
     }
   }
 

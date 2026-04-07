@@ -998,13 +998,15 @@ function drawCube(gx, gy, gz, color, hl, block){
     const frames = td.frames || 1;
     const imgW = 2 * tw;
     const scale = imgW / srcW;
-    const drawW = srcW * scale;
-    const drawH = srcH * scale;
+    const dw = Math.round(srcW * scale);
+    const dh = Math.round(srcH * scale);
+    const dx = Math.round(x - tw);
+    const dy = Math.round(y + 2 * th - dh);
     if(frames > 1){
       const frame = S.animTick % frames;
-      ctx.drawImage(tileImg, frame * srcW, 0, srcW, srcH, x - tw, y + 2 * th - drawH, drawW, drawH);
+      ctx.drawImage(tileImg, frame * srcW, 0, srcW, srcH, dx, dy, dw, dh);
     } else {
-      ctx.drawImage(tileImg, x - tw, y + 2 * th - drawH, drawW, drawH);
+      ctx.drawImage(tileImg, dx, dy, dw, dh);
     }
   }
 
@@ -2796,16 +2798,19 @@ if(saved){
   } catch(e){}
 }
 if(world.blocks.length === 0){
-  const init = [
-    {gx:-2,gy:-3,color:'j019'},{gx:-2,gy:-2,color:'j016'},{gx:-2,gy:-1,color:'j018'},{gx:-2,gy:0,color:'j017'},{gx:-2,gy:1,color:'j018'},
-    {gx:-1,gy:-3,color:'j019'},{gx:-1,gy:-2,color:'j018'},{gx:-1,gy:-1,color:'j016'},{gx:-1,gy:0,color:'j018'},{gx:-1,gy:1,color:'j017'},
-    {gx: 0,gy:-3,color:'j016'},{gx: 0,gy:-2,color:'j018'},{gx: 0,gy:-1,color:'j017'},{gx: 0,gy:0,color:'j016'},{gx: 0,gy:1,color:'j017'},
-    {gx: 1,gy:-3,color:'j019'},{gx: 1,gy:-2,color:'j016'},{gx: 1,gy:-1,color:'j018'},{gx: 1,gy:0,color:'j017'},{gx: 1,gy:1,color:'j018'},
-    {gx: 2,gy:-3,color:'j019'},{gx: 2,gy:-2,color:'j018'},{gx: 2,gy:-1,color:'j016'},{gx: 2,gy:0,color:'j018'},{gx: 2,gy:1,color:'j017'},
-  ];
-  init.forEach(d => {
-    addBlock({gx:d.gx, gy:d.gy, gz:0, layer:0, color:d.color, srcH:32});
-  });
+  // Path tile test grid (4x4) — s000~s015 with labels via coordinates
+  // Row 0: s000(path_1)  s001(path_10) s002(path_11) s003(path_12)
+  // Row 1: s004(path_13) s005(path_14) s006(path_15) s007(path_16)
+  // Row 2: s008(path_2)  s009(path_3)  s010(path_4)  s011(path_5)
+  // Row 3: s012(path_6)  s013(path_7)  s014(path_8)  s015(path_9)
+  const pathTiles = [];
+  for(let idx = 0; idx < 16; idx++){
+    const col = idx % 4;
+    const row = Math.floor(idx / 4);
+    const key = 's' + String(idx).padStart(3,'0');
+    pathTiles.push({gx: col * 2, gy: row * 2, gz:0, layer:0, color:key, srcH:100});
+  }
+  pathTiles.forEach(d => addBlock(d));
 }
 
 // ── Initial resize + start game loop ──

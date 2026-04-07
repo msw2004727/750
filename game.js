@@ -329,20 +329,29 @@ document.addEventListener('mousemove', (e) => {
   if(!tileDrag) return;
   tileDrag.el.style.left = (e.clientX - 21) + 'px';
   tileDrag.el.style.top = (e.clientY - 21) + 'px';
+  // 素材庫拖曳到暫存區高亮
+  stagingHighlight(findStagingSlotAt(e.clientX, e.clientY) >= 0);
 });
 
 document.addEventListener('mouseup', (e) => {
   if(!tileDrag) return;
-  // PC 版只放到畫布
-  const r = canvas.getBoundingClientRect();
-  if(e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom){
-    const mx = e.clientX - r.left, my = e.clientY - r.top;
-    const g = toGrid(mx, my);
-    const gx = snap(g.gx), gy = snap(g.gy);
-    if(!hasBlockAt(gx, gy, currentHeight, null, currentLayer)){
-      saveSnapshot();
-      addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:tileDrag.key, srcH:tileDrag.srcH, yOffset:0});
-      draw();
+  stagingHighlight(false);
+  // 先檢查暫存區
+  const slot = findStagingSlotAt(e.clientX, e.clientY);
+  if(slot >= 0){
+    addToStaging(tileDrag.key, tileDrag.srcH);
+  } else {
+    // 放到畫布
+    const r = canvas.getBoundingClientRect();
+    if(e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom){
+      const mx = e.clientX - r.left, my = e.clientY - r.top;
+      const g = toGrid(mx, my);
+      const gx = snap(g.gx), gy = snap(g.gy);
+      if(!hasBlockAt(gx, gy, currentHeight, null, currentLayer)){
+        saveSnapshot();
+        addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:tileDrag.key, srcH:tileDrag.srcH, yOffset:0});
+        draw();
+      }
     }
   }
   tileDrag.el.remove();

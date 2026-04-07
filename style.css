@@ -217,27 +217,62 @@ body {
 .act-btn:hover { background: rgba(255,255,255,0.1); }
 .act-btn.danger { color: #c66; border-color: #633; }
 .act-btn.danger:hover { background: rgba(200,50,50,0.15); }
-/* 說明面板 */
-#helpPanel {
+/* 說明彈窗 */
+.help-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.help-modal {
+  background: #1e1e32;
+  border: 1px solid #444;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.help-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #333;
+  font-size: 15px;
+  font-weight: bold;
+  color: #fff;
+  flex-shrink: 0;
+}
+.help-close {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 22px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.help-close:hover { color: #fff; }
+.help-body {
+  padding: 12px 16px 16px;
+  overflow-y: auto;
   font-size: 12px;
   color: #bbb;
-  background: #1e1e32;
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 4px;
   line-height: 1.8;
-  columns: 2;
-  column-gap: 24px;
 }
-#helpPanel h3 {
+.help-body h3 {
   font-size: 13px;
   color: #e0e0e0;
-  margin: 8px 0 4px;
-  break-after: avoid;
+  margin: 12px 0 4px;
 }
-#helpPanel h3:first-child { margin-top: 0; }
-#helpPanel kbd {
+.help-body h3:first-child { margin-top: 0; }
+.help-body kbd {
   background: #333;
   border: 1px solid #555;
   border-radius: 3px;
@@ -415,7 +450,7 @@ body {
 
 /* 手機適配 */
 @media (max-width: 600px){
-  #helpPanel { columns: 1; }
+  .help-modal { width: 95%; max-height: 85vh; }
   .tb { width: 36px; height: 36px; }
   #stagingGrid { grid-template-columns: repeat(3, 36px); grid-template-rows: repeat(3, 36px); }
   .staging-cell { width: 36px; height: 36px; }

@@ -87,15 +87,16 @@ const helpHTML = `
 <kbd>選取</kbd> 取代 Shift（選取/框選）| <kbd>定位</kbd> 點方塊跳到素材面板 | <kbd>複製</kbd> 取代 Ctrl（複製拖曳）<br>
 雙指捏合縮放 | 暫存區快速放置
 `;
-document.getElementById('helpPanel').innerHTML = helpHTML;
-document.getElementById('hintToggle').addEventListener('click', () => {
-  const panel = document.getElementById('helpPanel');
-  const toggle = document.getElementById('hintToggle');
-  if(panel.style.display === 'none'){
-    panel.style.display = 'block';
-    toggle.textContent = '操作說明 ▲';
-  } else {
-    panel.style.display = 'none';
-    toggle.textContent = '操作說明 ▼';
-  }
+document.getElementById('helpBody').innerHTML = helpHTML;
+
+function _openHelp(){
+  document.getElementById('helpOverlay').style.display = 'flex';
+}
+function _closeHelp(){
+  document.getElementById('helpOverlay').style.display = 'none';
+}
+document.getElementById('hintToggle').addEventListener('click', _openHelp);
+document.getElementById('helpClose').addEventListener('click', _closeHelp);
+document.getElementById('helpOverlay').addEventListener('click', (e) => {
+  if(e.target === e.currentTarget) _closeHelp();
 });

@@ -2404,17 +2404,18 @@ const helpHTML = `
 <kbd>選取</kbd> 取代 Shift（選取/框選）| <kbd>定位</kbd> 點方塊跳到素材面板 | <kbd>複製</kbd> 取代 Ctrl（複製拖曳）<br>
 雙指捏合縮放 | 暫存區快速放置
 `;
-document.getElementById('helpPanel').innerHTML = helpHTML;
-document.getElementById('hintToggle').addEventListener('click', () => {
-  const panel = document.getElementById('helpPanel');
-  const toggle = document.getElementById('hintToggle');
-  if(panel.style.display === 'none'){
-    panel.style.display = 'block';
-    toggle.textContent = '操作說明 ▲';
-  } else {
-    panel.style.display = 'none';
-    toggle.textContent = '操作說明 ▼';
-  }
+document.getElementById('helpBody').innerHTML = helpHTML;
+
+function _openHelp(){
+  document.getElementById('helpOverlay').style.display = 'flex';
+}
+function _closeHelp(){
+  document.getElementById('helpOverlay').style.display = 'none';
+}
+document.getElementById('hintToggle').addEventListener('click', _openHelp);
+document.getElementById('helpClose').addEventListener('click', _closeHelp);
+document.getElementById('helpOverlay').addEventListener('click', (e) => {
+  if(e.target === e.currentTarget) _closeHelp();
 });
 
 
@@ -2423,15 +2424,16 @@ document.getElementById('hintToggle').addEventListener('click', () => {
 
 // These imports trigger their side effects (event listeners, init calls)
 
-// ── Default blocks ──
+// ── Default blocks (5x5 grass field) ──
 const init = [
-  {gx:0,gy:0,color:'t000'},{gx:1,gy:0,color:'t010'},{gx:2,gy:0,color:'t015'},
-  {gx:0,gy:1,color:'t027'},{gx:1,gy:1,color:'t040'},{gx:2,gy:1,color:'t063'},
-  {gx:0,gy:2,color:'t090'},{gx:1,gy:2,color:'t000'},{gx:2,gy:2,color:'t027'},
+  {gx:-2,gy:-3,color:'j019'},{gx:-2,gy:-2,color:'j016'},{gx:-2,gy:-1,color:'j018'},{gx:-2,gy:0,color:'j017'},{gx:-2,gy:1,color:'j018'},
+  {gx:-1,gy:-3,color:'j019'},{gx:-1,gy:-2,color:'j018'},{gx:-1,gy:-1,color:'j016'},{gx:-1,gy:0,color:'j018'},{gx:-1,gy:1,color:'j017'},
+  {gx: 0,gy:-3,color:'j016'},{gx: 0,gy:-2,color:'j018'},{gx: 0,gy:-1,color:'j017'},{gx: 0,gy:0,color:'j016'},{gx: 0,gy:1,color:'j017'},
+  {gx: 1,gy:-3,color:'j019'},{gx: 1,gy:-2,color:'j016'},{gx: 1,gy:-1,color:'j018'},{gx: 1,gy:0,color:'j017'},{gx: 1,gy:1,color:'j018'},
+  {gx: 2,gy:-3,color:'j019'},{gx: 2,gy:-2,color:'j018'},{gx: 2,gy:-1,color:'j016'},{gx: 2,gy:0,color:'j018'},{gx: 2,gy:1,color:'j017'},
 ];
 init.forEach(d => {
-  const srcH = (TILES[d.color] && TILES[d.color].srcH) || 32;
-  addBlock({gx:d.gx, gy:d.gy, gz:0, layer:0, color:d.color, srcH:srcH});
+  addBlock({gx:d.gx, gy:d.gy, gz:0, layer:0, color:d.color, srcH:32});
 });
 
 // ── Initial resize + start game loop ──

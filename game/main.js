@@ -16,15 +16,16 @@ import './saveLoad.js';
 import './combos.js';
 import './ui.js';
 
-// ── Default blocks ──
+// ── Default blocks (5x5 grass field) ──
 const init = [
-  {gx:0,gy:0,color:'t000'},{gx:1,gy:0,color:'t010'},{gx:2,gy:0,color:'t015'},
-  {gx:0,gy:1,color:'t027'},{gx:1,gy:1,color:'t040'},{gx:2,gy:1,color:'t063'},
-  {gx:0,gy:2,color:'t090'},{gx:1,gy:2,color:'t000'},{gx:2,gy:2,color:'t027'},
+  {gx:-2,gy:-3,color:'j019'},{gx:-2,gy:-2,color:'j016'},{gx:-2,gy:-1,color:'j018'},{gx:-2,gy:0,color:'j017'},{gx:-2,gy:1,color:'j018'},
+  {gx:-1,gy:-3,color:'j019'},{gx:-1,gy:-2,color:'j018'},{gx:-1,gy:-1,color:'j016'},{gx:-1,gy:0,color:'j018'},{gx:-1,gy:1,color:'j017'},
+  {gx: 0,gy:-3,color:'j016'},{gx: 0,gy:-2,color:'j018'},{gx: 0,gy:-1,color:'j017'},{gx: 0,gy:0,color:'j016'},{gx: 0,gy:1,color:'j017'},
+  {gx: 1,gy:-3,color:'j019'},{gx: 1,gy:-2,color:'j016'},{gx: 1,gy:-1,color:'j018'},{gx: 1,gy:0,color:'j017'},{gx: 1,gy:1,color:'j018'},
+  {gx: 2,gy:-3,color:'j019'},{gx: 2,gy:-2,color:'j018'},{gx: 2,gy:-1,color:'j016'},{gx: 2,gy:0,color:'j018'},{gx: 2,gy:1,color:'j017'},
 ];
 init.forEach(d => {
-  const srcH = (TILES[d.color] && TILES[d.color].srcH) || 32;
-  addBlock({gx:d.gx, gy:d.gy, gz:0, layer:0, color:d.color, srcH:srcH});
+  addBlock({gx:d.gx, gy:d.gy, gz:0, layer:0, color:d.color, srcH:32});
 });
 
 // ── Initial resize + start game loop ──

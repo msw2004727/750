@@ -66,7 +66,15 @@
       <button id="clearBtn" class="act-btn danger">清除全部</button>
     </div>
   </div>
-  <div id="helpPanel" style="display:none;"></div>
+  <div id="helpOverlay" class="help-overlay" style="display:none;">
+    <div id="helpModal" class="help-modal">
+      <div class="help-header">
+        <span>操作說明</span>
+        <button id="helpClose" class="help-close">&times;</button>
+      </div>
+      <div id="helpBody" class="help-body"></div>
+    </div>
+  </div>
   <div id="canvasWrap">
     <div id="stagingArea">
       <div class="staging-title">暫存區</div>

@@ -218,10 +218,48 @@ function renderStagingCell(idx){
   }
 }
 
-// 暫存區接收 PC 拖放
-document.getElementById('stagingGrid').addEventListener('dragover', (e) => { e.preventDefault(); });
+// 暫存區拖放高亮 + 接收（PC + 手機共用）
+function stagingHighlight(on){
+  document.getElementById('stagingArea').classList.toggle('drag-active', on);
+  document.querySelectorAll('.staging-cell').forEach(c => c.classList.toggle('drag-over', on));
+}
+
+function findStagingSlotAt(clientX, clientY){
+  const cells = document.querySelectorAll('.staging-cell');
+  for(let i = 0; i < cells.length; i++){
+    const r = cells[i].getBoundingClientRect();
+    if(clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) return i;
+  }
+  // 在暫存區範圍內但不在特定格子上 → 找第一個空格
+  const sr = document.getElementById('stagingArea').getBoundingClientRect();
+  if(clientX >= sr.left && clientX <= sr.right && clientY >= sr.top && clientY <= sr.bottom){
+    const slot = staging.indexOf(null);
+    return slot >= 0 ? slot : 8;
+  }
+  return -1;
+}
+
+// PC 拖放到暫存區
+document.getElementById('stagingGrid').addEventListener('dragover', (e) => {
+  e.preventDefault();
+  stagingHighlight(true);
+});
+document.getElementById('stagingGrid').addEventListener('dragleave', () => { stagingHighlight(false); });
 document.getElementById('stagingGrid').addEventListener('drop', (e) => {
   e.preventDefault();
+  stagingHighlight(false);
+  const key = e.dataTransfer.getData('text/plain');
+  if(key && TILES[key]) addToStaging(key, TILES[key].srcH);
+});
+// 暫存區也接收整個 stagingArea
+document.getElementById('stagingArea').addEventListener('dragover', (e) => {
+  e.preventDefault();
+  stagingHighlight(true);
+});
+document.getElementById('stagingArea').addEventListener('dragleave', () => { stagingHighlight(false); });
+document.getElementById('stagingArea').addEventListener('drop', (e) => {
+  e.preventDefault();
+  stagingHighlight(false);
   const key = e.dataTransfer.getData('text/plain');
   if(key && TILES[key]) addToStaging(key, TILES[key].srcH);
 });
@@ -338,6 +376,7 @@ let eraserMode = false;  // 橡皮擦工具
 let brushTile = null;    // 筆刷選中的素材 {color, srcH}
 let brushPainting = false; // 正在筆刷繪製中
 let brushCursorGx = -999, brushCursorGy = -999;
+let lastMouseClientX = 0, lastMouseClientY = 0;
 let hiddenHeights = new Set(); // 隱藏的高度層
 let hiddenLayers = new Set();  // 隱藏的圖層
 let fillMode = false;          // 填充工具
@@ -1117,6 +1156,11 @@ function onDown(e){
 }
 
 function onMove(e){
+  // 追蹤滑鼠位置（用於 onUp 時判斷暫存區）
+  if(e.clientX !== undefined){ lastMouseClientX = e.clientX; lastMouseClientY = e.clientY; }
+  else if(e.touches && e.touches[0]){ lastMouseClientX = e.touches[0].clientX; lastMouseClientY = e.touches[0].clientY; }
+  // 拖曳方塊時暫存區高亮
+  if(dragBlock){ stagingHighlight(findStagingSlotAt(lastMouseClientX, lastMouseClientY) >= 0); }
   // 筆刷/橡皮擦/矩形/線段拖曳
   if(brushPainting){
     e.preventDefault();
@@ -1267,6 +1311,13 @@ function onUp(){
     return;
   }
   if(dragBlock){
+    stagingHighlight(false);
+    // 檢查是否放到暫存區
+    const slot = findStagingSlotAt(lastMouseClientX, lastMouseClientY);
+    if(slot >= 0){
+      addToStaging(dragBlock.color, dragBlock.srcH);
+      // 還原方塊位置（不移動）
+    }
     if(!groupOffsets){
       dragBlock.gx = lastValidGx;
       dragBlock.gy = lastValidGy;
@@ -1279,7 +1330,7 @@ function onUp(){
   }
   reachableSet = null;
   panDrag = false;
-  canvas.style.cursor = 'grab';
+  canvas.style.cursor = (brushMode||eraserMode||fillMode||rectMode||lineMode) ? 'crosshair' : 'grab';
   draw();
 }
 
@@ -1377,7 +1428,7 @@ function setupMobileTileDrag(btn, key){
       const t = e.touches[0];
       mobileDragEl.style.left = (t.clientX - 21) + 'px';
       mobileDragEl.style.top = (t.clientY - 21) + 'px';
-    }, 150);
+    }, 100);
   }, {passive:false});
 
   btn.addEventListener('touchmove', (e) => {
@@ -1388,6 +1439,9 @@ function setupMobileTileDrag(btn, key){
         mobileDragEl.style.left = (t.clientX - 21) + 'px';
         mobileDragEl.style.top = (t.clientY - 21) + 'px';
       }
+      // 暫存區高亮
+      const slot = findStagingSlotAt(t.clientX, t.clientY);
+      stagingHighlight(slot >= 0);
     } else {
       clearTimeout(timer);
     }
@@ -1397,24 +1451,22 @@ function setupMobileTileDrag(btn, key){
     clearTimeout(timer);
     if(mobileDragKey && mobileDragEl){
       const t = e.changedTouches[0];
-      const r = canvas.getBoundingClientRect();
-      // 放到畫布
-      if(t.clientX >= r.left && t.clientX <= r.right && t.clientY >= r.top && t.clientY <= r.bottom){
-        const mx = t.clientX - r.left, my = t.clientY - r.top;
-        const g = toGrid(mx, my);
-        const gx = snap(g.gx), gy = snap(g.gy);
-        if(!hasBlockAt(gx, gy, currentHeight, null, currentLayer)){
-          saveSnapshot();
-          addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:mobileDragKey, srcH:TILES[mobileDragKey].srcH, yOffset:0});
-          draw();
-        }
+      stagingHighlight(false);
+      // 先檢查暫存區
+      const slot = findStagingSlotAt(t.clientX, t.clientY);
+      if(slot >= 0){
+        addToStaging(mobileDragKey, TILES[mobileDragKey].srcH);
       } else {
-        // 放到暫存區
-        const stagingEl = document.getElementById('stagingArea');
-        if(stagingEl){
-          const sr = stagingEl.getBoundingClientRect();
-          if(t.clientX >= sr.left && t.clientX <= sr.right && t.clientY >= sr.top && t.clientY <= sr.bottom){
-            addToStaging(mobileDragKey, TILES[mobileDragKey].srcH);
+        // 放到畫布
+        const r = canvas.getBoundingClientRect();
+        if(t.clientX >= r.left && t.clientX <= r.right && t.clientY >= r.top && t.clientY <= r.bottom){
+          const mx = t.clientX - r.left, my = t.clientY - r.top;
+          const g = toGrid(mx, my);
+          const gx = snap(g.gx), gy = snap(g.gy);
+          if(!hasBlockAt(gx, gy, currentHeight, null, currentLayer)){
+            saveSnapshot();
+            addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:mobileDragKey, srcH:TILES[mobileDragKey].srcH, yOffset:0});
+            draw();
           }
         }
       }

@@ -289,6 +289,8 @@ body {
   position: relative;
 }
 .staging-cell:hover { border-color: #888; }
+.staging-cell.drag-over { border-color: #FFD700; background: rgba(255,215,0,0.15); }
+#stagingArea.drag-active { box-shadow: 0 0 8px rgba(255,215,0,0.4); }
 .staging-cell img {
   max-width: 100%;
   max-height: 100%;

@@ -20,6 +20,7 @@
       <span class="fold-toggle" data-target="foldTools">工具箱 ▼</span>
       <span class="fold-toggle" data-target="foldShortcuts">快捷類 ▼</span>
       <span class="fold-toggle" data-target="foldDisplay">顯示類 ▼</span>
+      <span class="fold-toggle" data-target="foldVis">隱藏高度 ▼</span>
       <span id="brushInfo" style="display:none;font-size:10px;color:#FFD700;"></span>
     </div>
     <div id="foldTools" class="fold-panel" style="display:none;">
@@ -41,8 +42,7 @@
       <label class="ck"><input type="checkbox" id="chkCoord"> 座標</label>
       <label class="ck"><input type="checkbox" id="chkMinimap"> 小地圖</label>
     </div>
-    <div id="visRow">
-      <span class="label">隱藏高度：</span>
+    <div id="foldVis" class="fold-panel" style="display:none;">
       <select id="hideHeight"><option value="">無</option></select>
       <button id="hideHeightBtn" class="toggle-btn">隱藏</button>
       <button id="showAllBtn" class="toggle-btn">全部顯示</button>

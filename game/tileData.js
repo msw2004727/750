@@ -5,7 +5,15 @@ const IMG_BASE_A = '%E7%B4%A0%E6%9D%90/isometric%20tileset/separated%20images/';
 const IMG_BASE_B = '%E7%B4%A0%E6%9D%90/isometric_jumpstart_v230311/separated/';
 const IMG_BASE_C = '%E7%B4%A0%E6%9D%90/3232iso/';
 const IMG_BASE_D = '%E7%B4%A0%E6%9D%90/Isometric%20Strategy/';
-const IMG_BASE_E = '%E7%B4%A0%E6%9D%90/medieval/mw1/';
+let IMG_BASE_E = '%E7%B4%A0%E6%9D%90/medieval/mw1/';
+export const MEDIEVAL_VARIANTS = [
+  {key:'mw1',  label:'日間'},
+  {key:'mw2',  label:'夜間'},
+  {key:'mw3',  label:'原色'},
+  {key:'mw1w', label:'冬季'},
+  {key:'mw2w', label:'冬夜'},
+  {key:'mw3w', label:'冬原'},
+];
 
 function tileFile(i){ return 'tile_' + String(i).padStart(3,'0') + '.png'; }
 
@@ -114,7 +122,7 @@ export const SOURCES = [
       {label:'裝飾',     tiles:[67,68,76,77,78,79,80,81,82,83,88,89],             stroke:'#6A4A4A', ghost:'#AA7777'},
       {label:'動畫',     tiles:[90,91,92,93],                                     stroke:'#AA5500', ghost:'#FF8833'},
     ]},
-  { key:'E', label:'Medieval', base:IMG_BASE_E, count:89, prefix:'m',
+  { key:'E', label:'Medieval', get base(){ return IMG_BASE_E; }, count:89, prefix:'m',
     fileOf:i => 'tile_' + String(i+1).padStart(3,'0') + '.png',
     cropOf:() => 0, srcHOf:() => 96, srcWOf:() => 96,
     cats:[
@@ -152,5 +160,20 @@ for(const src of SOURCES){
     const img = new Image();
     img.onload = () => { tileImages[key] = img; if(++tilesLoaded >= totalImages) draw(); };
     img.src = src.base + file;
+  }
+}
+
+// ── Switch Medieval variant (reload images only) ──
+export function switchMedievalVariant(variantKey){
+  const newBase = '%E7%B4%A0%E6%9D%90/medieval/' + variantKey + '/';
+  IMG_BASE_E = newBase;
+  const medSrc = SOURCES.find(s => s.prefix === 'm');
+  if(!medSrc) return;
+  for(let i = 0; i < medSrc.count; i++){
+    const key = 'm' + String(i).padStart(3,'0');
+    const file = medSrc.fileOf(i);
+    const img = new Image();
+    img.onload = () => { tileImages[key] = img; draw(); };
+    img.src = newBase + file;
   }
 }

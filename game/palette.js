@@ -1,5 +1,5 @@
 import { S, camera, draw } from './state.js';
-import { TILES, SOURCES } from './tileData.js';
+import { TILES, SOURCES, MEDIEVAL_VARIANTS, switchMedievalVariant } from './tileData.js';
 import { startTileDrag } from './staging.js';
 import { updateBrushIndicator } from './tools.js';
 import { setupMobileTileDrag } from './touch.js';
@@ -183,8 +183,30 @@ function initSelectors(){
   });
   srcSel.value = -1;
 
+  // Medieval variant selector (inserted after srcSelect)
+  const varSel = document.createElement('select');
+  varSel.id = 'variantSelect';
+  varSel.style.cssText = 'display:none;font-size:11px;background:#2a2a3e;color:#ccc;border:1px solid #444;border-radius:4px;padding:2px 4px;';
+  for(const v of MEDIEVAL_VARIANTS){
+    const opt = document.createElement('option');
+    opt.value = v.key; opt.textContent = v.label;
+    varSel.appendChild(opt);
+  }
+  srcSel.parentElement.insertBefore(varSel, srcSel.nextSibling);
+
+  function _updateVariantVisibility(){
+    const medIdx = SOURCES.findIndex(s => s.prefix === 'm');
+    varSel.style.display = (S.selectedSrc === medIdx) ? '' : 'none';
+  }
+
+  varSel.addEventListener('change', () => {
+    switchMedievalVariant(varSel.value);
+    populatePalette();
+  });
+
   srcSel.addEventListener('change', () => {
     S.selectedSrc = parseInt(srcSel.value);
+    _updateVariantVisibility();
     buildCatOptions();
     populatePalette();
   });

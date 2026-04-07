@@ -134,7 +134,15 @@ const IMG_BASE_A = '%E7%B4%A0%E6%9D%90/isometric%20tileset/separated%20images/';
 const IMG_BASE_B = '%E7%B4%A0%E6%9D%90/isometric_jumpstart_v230311/separated/';
 const IMG_BASE_C = '%E7%B4%A0%E6%9D%90/3232iso/';
 const IMG_BASE_D = '%E7%B4%A0%E6%9D%90/Isometric%20Strategy/';
-const IMG_BASE_E = '%E7%B4%A0%E6%9D%90/medieval/mw1/';
+let IMG_BASE_E = '%E7%B4%A0%E6%9D%90/medieval/mw1/';
+const MEDIEVAL_VARIANTS = [
+  {key:'mw1',  label:'日間'},
+  {key:'mw2',  label:'夜間'},
+  {key:'mw3',  label:'原色'},
+  {key:'mw1w', label:'冬季'},
+  {key:'mw2w', label:'冬夜'},
+  {key:'mw3w', label:'冬原'},
+];
 
 function tileFile(i){ return 'tile_' + String(i).padStart(3,'0') + '.png'; }
 
@@ -243,7 +251,7 @@ const SOURCES = [
       {label:'裝飾',     tiles:[67,68,76,77,78,79,80,81,82,83,88,89],             stroke:'#6A4A4A', ghost:'#AA7777'},
       {label:'動畫',     tiles:[90,91,92,93],                                     stroke:'#AA5500', ghost:'#FF8833'},
     ]},
-  { key:'E', label:'Medieval', base:IMG_BASE_E, count:89, prefix:'m',
+  { key:'E', label:'Medieval', get base(){ return IMG_BASE_E; }, count:89, prefix:'m',
     fileOf:i => 'tile_' + String(i+1).padStart(3,'0') + '.png',
     cropOf:() => 0, srcHOf:() => 96, srcWOf:() => 96,
     cats:[
@@ -281,6 +289,21 @@ for(const src of SOURCES){
     const img = new Image();
     img.onload = () => { tileImages[key] = img; if(++tilesLoaded >= totalImages) draw(); };
     img.src = src.base + file;
+  }
+}
+
+// ── Switch Medieval variant (reload images only) ──
+function switchMedievalVariant(variantKey){
+  const newBase = '%E7%B4%A0%E6%9D%90/medieval/' + variantKey + '/';
+  IMG_BASE_E = newBase;
+  const medSrc = SOURCES.find(s => s.prefix === 'm');
+  if(!medSrc) return;
+  for(let i = 0; i < medSrc.count; i++){
+    const key = 'm' + String(i).padStart(3,'0');
+    const file = medSrc.fileOf(i);
+    const img = new Image();
+    img.onload = () => { tileImages[key] = img; draw(); };
+    img.src = newBase + file;
   }
 }
 
@@ -2671,8 +2694,30 @@ function initSelectors(){
   });
   srcSel.value = -1;
 
+  // Medieval variant selector (inserted after srcSelect)
+  const varSel = document.createElement('select');
+  varSel.id = 'variantSelect';
+  varSel.style.cssText = 'display:none;font-size:11px;background:#2a2a3e;color:#ccc;border:1px solid #444;border-radius:4px;padding:2px 4px;';
+  for(const v of MEDIEVAL_VARIANTS){
+    const opt = document.createElement('option');
+    opt.value = v.key; opt.textContent = v.label;
+    varSel.appendChild(opt);
+  }
+  srcSel.parentElement.insertBefore(varSel, srcSel.nextSibling);
+
+  function _updateVariantVisibility(){
+    const medIdx = SOURCES.findIndex(s => s.prefix === 'm');
+    varSel.style.display = (S.selectedSrc === medIdx) ? '' : 'none';
+  }
+
+  varSel.addEventListener('change', () => {
+    switchMedievalVariant(varSel.value);
+    populatePalette();
+  });
+
   srcSel.addEventListener('change', () => {
     S.selectedSrc = parseInt(srcSel.value);
+    _updateVariantVisibility();
     buildCatOptions();
     populatePalette();
   });

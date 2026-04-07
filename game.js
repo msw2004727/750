@@ -1688,7 +1688,7 @@ function setupMobileTileDrag(btn, key){
       const t = e.touches[0];
       mobileDragEl.style.left = (t.clientX - 21) + 'px';
       mobileDragEl.style.top = (t.clientY - 21) + 'px';
-    }, 100);
+    }, 50);
   }, {passive:false});
 
   btn.addEventListener('touchmove', (e) => {

@@ -158,7 +158,6 @@ body {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
-  margin-left: auto;
 }
 .act-btn {
   font-size: 11px;

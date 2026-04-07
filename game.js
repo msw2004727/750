@@ -336,6 +336,7 @@ let fillMode = false;          // 填充工具
 let rectMode = false;          // 矩形繪製
 let lineMode = false;          // 線段繪製
 let rectStart = null;          // {gx, gy} 矩形/線段起點
+let fillPreview = [];          // 填充預覽座標 [[gx,gy],...]
 let clipboard = null;          // 複製的方塊 [{dx,dy,color,srcH,yOffset}]
 let showMinimap = false;
 
@@ -761,36 +762,6 @@ function draw(){
     ctx.setLineDash([]);
   }
 
-  // 矩形/線段起點標記
-  if(rectStart && (rectMode || lineMode)){
-    const sp = toScreen(rectStart.gx, rectStart.gy, currentHeight);
-    const tw2 = TW*zoom, th2t = TH*zoom, ch2 = CUBE_H*zoom;
-    ctx.globalAlpha = 0.5;
-    ctx.strokeStyle = '#00FF88';
-    ctx.lineWidth = 2;
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    ctx.moveTo(sp.x, sp.y-ch2);
-    ctx.lineTo(sp.x-tw2, sp.y+th2t-ch2);
-    ctx.lineTo(sp.x, sp.y+th2t*2-ch2);
-    ctx.lineTo(sp.x+tw2, sp.y+th2t-ch2);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-    // 預覽線到游標
-    if(brushCursorGx !== -999){
-      const ep = toScreen(brushCursorGx, brushCursorGy, currentHeight);
-      ctx.globalAlpha = 0.3;
-      ctx.setLineDash([4,4]);
-      ctx.beginPath();
-      ctx.moveTo(sp.x, sp.y+th2t-ch2);
-      ctx.lineTo(ep.x, ep.y+TH*zoom-ch2);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.globalAlpha = 1;
-    }
-  }
-
   // 筆刷游標預覽
   if(brushMode && brushTile && brushCursorGx !== -999){
     ctx.globalAlpha = 0.5;
@@ -811,6 +782,36 @@ function draw(){
     ctx.closePath();
     ctx.fill();
     ctx.globalAlpha = 1;
+  }
+
+  // 填充預覽
+  if(fillMode && fillPreview.length > 0 && brushTile){
+    ctx.globalAlpha = 0.3;
+    for(const [fx,fy] of fillPreview){
+      drawCube(fx, fy, currentHeight, brushTile.color, false, null);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // 矩形/線段拖曳預覽
+  if(brushPainting && rectStart && (rectMode||lineMode) && brushTile){
+    const cells = getRectLineCells(rectStart.gx, rectStart.gy, brushCursorGx, brushCursorGy);
+    ctx.globalAlpha = 0.4;
+    for(const [cx,cy] of cells){
+      drawCube(cx, cy, currentHeight, brushTile.color, false, null);
+    }
+    ctx.globalAlpha = 1;
+    // 起點標記
+    const sp = toScreen(rectStart.gx, rectStart.gy, currentHeight);
+    ctx.strokeStyle = '#00FF88';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([3,3]);
+    const ep = toScreen(brushCursorGx, brushCursorGy, currentHeight);
+    ctx.beginPath();
+    ctx.moveTo(sp.x, sp.y + TH*zoom);
+    ctx.lineTo(ep.x, ep.y + TH*zoom);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
 
   // 右下角資訊
@@ -843,16 +844,26 @@ function draw(){
       ctx.fillStyle = b.gz === currentHeight ? '#8af' : '#456';
       ctx.fillRect(px-1, py-1, 2, 2);
     }
-    // 視窗框
+    // 視窗框（四角等距菱形）
     const vr2 = getVisibleRange();
-    const v1x = (vr2.minGx-cx2)*scale2, v1y = (vr2.minGy-cy2)*scale2;
-    const v2x = (vr2.maxGx-cx2)*scale2, v2y = (vr2.maxGy-cy2)*scale2;
-    ctx.strokeStyle = '#FFD700';
+    const corners2 = [
+      [vr2.minGx, vr2.minGy], [vr2.maxGx, vr2.minGy],
+      [vr2.maxGx, vr2.maxGy], [vr2.minGx, vr2.maxGy]
+    ];
+    ctx.strokeStyle = 'rgba(180,200,255,0.5)';
     ctx.lineWidth = 1;
-    ctx.strokeRect(
-      ox+(v1x-v1y)*0.7, oy+(v1x+v1y)*0.35,
-      (v2x-v1x-v2y+v1y)*0.7, (v2x-v1x+v2y-v1y)*0.35
-    );
+    ctx.beginPath();
+    for(let ci=0; ci<4; ci++){
+      const [cgx,cgy] = corners2[ci];
+      const rx = (cgx-cx2)*scale2, ry = (cgy-cy2)*scale2;
+      const ppx = ox + (rx-ry)*0.7, ppy = oy + (rx+ry)*0.35;
+      if(ci===0) ctx.moveTo(ppx, ppy); else ctx.lineTo(ppx, ppy);
+    }
+    ctx.closePath();
+    ctx.stroke();
+    // 邊界框
+    ctx.strokeStyle = 'rgba(100,120,160,0.3)';
+    ctx.strokeRect(mmX, mmY, mmW, mmH);
   }
 }
 
@@ -875,6 +886,53 @@ function pointInCube(px, py, bx, by){
     if(((yi>py)!==(yj>py))&&(px<(xj-xi)*(py-yi)/(yj-yi)+xi)) inside=!inside;
   }
   return inside;
+}
+
+// 計算矩形或線段覆蓋的格子
+function getRectLineCells(x0,y0,x1,y1){
+  const cells = [];
+  if(rectMode){
+    const ax = Math.min(x0,x1), bx = Math.max(x0,x1);
+    const ay = Math.min(y0,y1), by = Math.max(y0,y1);
+    for(let x=ax;x<=bx;x++) for(let y=ay;y<=by;y++) cells.push([x,y]);
+  } else {
+    let cx=x0,cy=y0;
+    const dx=Math.abs(x1-cx),dy=Math.abs(y1-cy);
+    const sx=cx<x1?1:-1,sy=cy<y1?1:-1;
+    let err=dx-dy;
+    while(true){
+      cells.push([cx,cy]);
+      if(cx===x1&&cy===y1) break;
+      const e2=2*err;
+      if(e2>-dy){err-=dy;cx+=sx;}
+      if(e2<dx){err+=dx;cy+=sy;}
+    }
+  }
+  return cells;
+}
+
+// 計算填充預覽區域
+function computeFillPreview(gx, gy){
+  const result = [];
+  if(hasBlockAt(gx, gy, currentHeight, null, currentLayer)) return result;
+  const visited = new Set();
+  const queue = [[gx, gy]];
+  const key = (x,y) => x+','+y;
+  visited.add(key(gx, gy));
+  const MAX = 500;
+  while(queue.length > 0 && visited.size < MAX){
+    const [cx, cy] = queue.shift();
+    result.push([cx, cy]);
+    for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const nx=cx+dx, ny=cy+dy;
+      const k = key(nx, ny);
+      if(!visited.has(k) && !hasBlockAt(nx, ny, currentHeight, null, currentLayer)){
+        visited.add(k);
+        queue.push([nx, ny]);
+      }
+    }
+  }
+  return result;
 }
 
 function hitTest(mx, my){
@@ -930,80 +988,27 @@ function onDown(e){
     return;
   }
 
-  // 填充工具：flood fill 空白區域
-  if(fillMode && brushTile && !e.shiftKey){
-    const g = toGrid(pos.x, pos.y);
-    const gx = snap(g.gx), gy = snap(g.gy);
-    if(!hasBlockAt(gx, gy, currentHeight, null, currentLayer)){
+  // 填充工具：點擊執行（預覽在 draw 中處理）
+  if(fillMode && !e.shiftKey){
+    if(!brushTile){ alert('請先選擇筆刷素材再使用填充'); return; }
+    if(fillPreview.length > 0){
       saveSnapshot();
-      const filled = new Set();
-      const queue = [[gx, gy]];
-      const key = (x,y) => x+','+y;
-      filled.add(key(gx, gy));
-      const MAX = 500;
-      while(queue.length > 0 && filled.size < MAX){
-        const [cx, cy] = queue.shift();
-        addBlock({gx:cx, gy:cy, gz:currentHeight, layer:currentLayer, color:brushTile.color, srcH:brushTile.srcH, yOffset:0});
-        for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
-          const nx = cx+dx, ny = cy+dy;
-          const k = key(nx, ny);
-          if(!filled.has(k) && !hasBlockAt(nx, ny, currentHeight, null, currentLayer)){
-            filled.add(k);
-            queue.push([nx, ny]);
-          }
-        }
+      for(const [fx,fy] of fillPreview){
+        addBlock({gx:fx, gy:fy, gz:currentHeight, layer:currentLayer, color:brushTile.color, srcH:brushTile.srcH, yOffset:0});
       }
+      fillPreview = [];
       draw();
     }
-    return;
-  }
-  if(fillMode && !brushTile){
-    alert('請先選擇筆刷素材再使用填充');
     return;
   }
 
-  // 矩形/線段繪製：第一次點擊設起點，第二次點擊填充
-  if((rectMode || lineMode) && brushTile && !e.shiftKey){
+  // 矩形/線段繪製：按住拖曳 → 預覽 → 放開填充
+  if((rectMode || lineMode) && !e.shiftKey){
+    if(!brushTile){ alert('請先選擇筆刷素材'); return; }
     const g = toGrid(pos.x, pos.y);
-    const gx = snap(g.gx), gy = snap(g.gy);
-    if(!rectStart){
-      rectStart = {gx, gy};
-      draw();
-    } else {
-      saveSnapshot();
-      if(rectMode){
-        const x1 = Math.min(rectStart.gx, gx), x2 = Math.max(rectStart.gx, gx);
-        const y1 = Math.min(rectStart.gy, gy), y2 = Math.max(rectStart.gy, gy);
-        for(let x = x1; x <= x2; x++){
-          for(let y = y1; y <= y2; y++){
-            if(!hasBlockAt(x, y, currentHeight, null, currentLayer)){
-              addBlock({gx:x, gy:y, gz:currentHeight, layer:currentLayer, color:brushTile.color, srcH:brushTile.srcH, yOffset:0});
-            }
-          }
-        }
-      } else {
-        // Bresenham 線段
-        let x0 = rectStart.gx, y0 = rectStart.gy, x1 = gx, y1 = gy;
-        const dx = Math.abs(x1-x0), dy = Math.abs(y1-y0);
-        const sx = x0<x1?1:-1, sy = y0<y1?1:-1;
-        let err = dx-dy;
-        while(true){
-          if(!hasBlockAt(x0, y0, currentHeight, null, currentLayer)){
-            addBlock({gx:x0, gy:y0, gz:currentHeight, layer:currentLayer, color:brushTile.color, srcH:brushTile.srcH, yOffset:0});
-          }
-          if(x0===x1 && y0===y1) break;
-          const e2 = 2*err;
-          if(e2 > -dy){ err -= dy; x0 += sx; }
-          if(e2 < dx){ err += dx; y0 += sy; }
-        }
-      }
-      rectStart = null;
-      draw();
-    }
-    return;
-  }
-  if((rectMode || lineMode) && !brushTile){
-    alert('請先選擇筆刷素材');
+    rectStart = {gx: snap(g.gx), gy: snap(g.gy)};
+    brushPainting = true;
+    draw();
     return;
   }
 
@@ -1104,7 +1109,7 @@ function onDown(e){
 }
 
 function onMove(e){
-  // 筆刷/橡皮擦拖曳繪製
+  // 筆刷/橡皮擦/矩形/線段拖曳
   if(brushPainting){
     e.preventDefault();
     const pos = mousePos(e);
@@ -1116,14 +1121,12 @@ function onMove(e){
         addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:brushTile.color, srcH:brushTile.srcH, yOffset:0});
       }
     } else if(eraserMode){
-      const hit = hitTest(pos.x, pos.y);
-      if(hit && hit.gz === currentHeight && hit.layer === currentLayer){
-        removeBlock(hit);
+      const hit2 = hitTest(pos.x, pos.y);
+      if(hit2 && hit2.gz === currentHeight && hit2.layer === currentLayer){
+        removeBlock(hit2);
       }
     }
-    const hk = shKey(gx, gy, currentHeight, currentLayer);
-    const hs = spatialHash.get(hk);
-    hoverBlock = hs ? [...hs][0] : null;
+    // 矩形/線段只更新游標位置（預覽在 draw 中）
     draw();
     return;
   }
@@ -1197,22 +1200,20 @@ function onMove(e){
     camX = panCamStartX + (pos.x - panStartX);
     camY = panCamStartY + (pos.y - panStartY);
     draw();
-  } else if(showHover || brushMode || eraserMode){
+  } else if(showHover || brushMode || eraserMode || fillMode || rectMode || lineMode){
     const pos = mousePos(e);
     let needDraw = false;
-    if(brushMode || eraserMode){
-      // 筆刷/橡皮擦：用 toGrid 座標統一游標和懸停
-      const g = toGrid(pos.x, pos.y);
-      const newGx = snap(g.gx), newGy = snap(g.gy);
-      if(newGx !== brushCursorGx || newGy !== brushCursorGy){
-        brushCursorGx = newGx; brushCursorGy = newGy;
-        // 用座標查找方塊作為懸停目標（與游標一致）
-        const k = shKey(newGx, newGy, currentHeight, currentLayer);
-        const s = spatialHash.get(k);
-        hoverBlock = s ? [...s][0] : null;
-        needDraw = true;
+    const g = toGrid(pos.x, pos.y);
+    const newGx = snap(g.gx), newGy = snap(g.gy);
+    if(newGx !== brushCursorGx || newGy !== brushCursorGy){
+      brushCursorGx = newGx; brushCursorGy = newGy;
+      needDraw = true;
+      // 填充預覽
+      if(fillMode && brushTile){
+        fillPreview = computeFillPreview(newGx, newGy);
       }
-    } else if(showHover){
+    }
+    if(showHover){
       const prev = hoverBlock;
       hoverBlock = hitTest(pos.x, pos.y);
       if(hoverBlock !== prev) needDraw = true;
@@ -1222,7 +1223,23 @@ function onMove(e){
 }
 
 function onUp(){
-  if(brushPainting){ brushPainting = false; return; }
+  if(brushPainting){
+    brushPainting = false;
+    // 矩形/線段放開時執行填充
+    if((rectMode || lineMode) && rectStart && brushTile){
+      const gx = brushCursorGx, gy = brushCursorGy;
+      saveSnapshot();
+      const cells = getRectLineCells(rectStart.gx, rectStart.gy, gx, gy);
+      for(const [cx,cy] of cells){
+        if(!hasBlockAt(cx, cy, currentHeight, null, currentLayer)){
+          addBlock({gx:cx, gy:cy, gz:currentHeight, layer:currentLayer, color:brushTile.color, srcH:brushTile.srcH, yOffset:0});
+        }
+      }
+      rectStart = null;
+      draw();
+    }
+    return;
+  }
   if(boxSelect){
     // 框選結束：選取框內的方塊
     const x1 = Math.min(boxSelect.sx, boxSelect.ex);

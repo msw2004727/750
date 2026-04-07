@@ -181,6 +181,12 @@ function initStagingGrid(){
     cell.appendChild(del);
     cell.addEventListener('click', () => {
       if(!staging[i]) return;
+      if(brushMode){
+        // 筆刷模式：選為筆刷素材
+        brushTile = {color: staging[i].color, srcH: staging[i].srcH};
+        updateBrushIndicator();
+        return;
+      }
       // 放到畫面中央位置
       const center = toGrid(W/2, H/2);
       const gx = snap(center.gx), gy = snap(center.gy);
@@ -218,6 +224,18 @@ function addToStaging(color, srcH){
   if(slot === -1) slot = 8;
   staging[slot] = {color, srcH};
   renderStagingCell(slot);
+}
+
+function updateBrushIndicator(){
+  const el = document.getElementById('brushInfo');
+  if(!el) return;
+  if(brushTile){
+    const td = TILES[brushTile.color];
+    el.textContent = brushTile.color;
+    el.style.display = 'inline';
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 initStagingGrid();
@@ -307,6 +325,13 @@ let hoverBlock = null;
 let selectMode = false;
 let locateMode = false;
 let copyMode = false;
+let brushMode = false;   // 筆刷工具
+let eraserMode = false;  // 橡皮擦工具
+let brushTile = null;    // 筆刷選中的素材 {color, srcH}
+let brushPainting = false; // 正在筆刷繪製中
+let brushCursorGx = -999, brushCursorGy = -999;
+let hiddenHeights = new Set(); // 隱藏的高度層
+let hiddenLayers = new Set();  // 隱藏的圖層
 
 // ── 座標轉換 ──
 function resize(){
@@ -680,8 +705,8 @@ function draw(){
   ctx.clearRect(0,0,W,H);
   const vr = getVisibleRange();
 
-  // 只排序可見方塊
-  const visible = blocks.filter(b => isVisible(b, vr));
+  // 只排序可見且未隱藏的方塊
+  const visible = blocks.filter(b => isVisible(b, vr) && !hiddenHeights.has(b.gz) && !hiddenLayers.has(b.layer));
   const sorted = visible.sort((a,b) => {
     return (a.gx+a.gy)*100+a.gz - ((b.gx+b.gy)*100+b.gz);
   });
@@ -728,6 +753,28 @@ function draw(){
     ctx.strokeRect(bx, by, bw, bh);
     ctx.fillRect(bx, by, bw, bh);
     ctx.setLineDash([]);
+  }
+
+  // 筆刷游標預覽
+  if(brushMode && brushTile && brushCursorGx !== -999){
+    ctx.globalAlpha = 0.5;
+    drawCube(brushCursorGx, brushCursorGy, currentHeight, brushTile.color, false, null);
+    ctx.globalAlpha = 1;
+  }
+  // 橡皮擦游標
+  if(eraserMode && brushCursorGx !== -999){
+    const ep = toScreen(brushCursorGx, brushCursorGy, currentHeight);
+    const tw2 = TW*zoom, th2 = TH*zoom, ch2 = CUBE_H*zoom;
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = '#ff4444';
+    ctx.beginPath();
+    ctx.moveTo(ep.x, ep.y-ch2);
+    ctx.lineTo(ep.x-tw2, ep.y+th2-ch2);
+    ctx.lineTo(ep.x, ep.y+th2*2-ch2);
+    ctx.lineTo(ep.x+tw2, ep.y+th2-ch2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
   }
 
   // 右下角資訊
@@ -782,6 +829,30 @@ function onDown(e){
   if(locateMode && hit){
     jumpToTile(hit.color);
     locateMode = false; document.getElementById('chkLocate').checked = false;
+    return;
+  }
+
+  // 筆刷模式：點擊放置
+  if(brushMode && brushTile && !e.shiftKey && !e.ctrlKey){
+    const g = toGrid(pos.x, pos.y);
+    const gx = snap(g.gx), gy = snap(g.gy);
+    if(!hasBlockAt(gx, gy, currentHeight, null, currentLayer)){
+      saveSnapshot();
+      addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:brushTile.color, srcH:brushTile.srcH, yOffset:0});
+      draw();
+    }
+    brushPainting = true;
+    return;
+  }
+
+  // 橡皮擦模式：點擊刪除
+  if(eraserMode && hit && !e.shiftKey){
+    if(hit.gz === currentHeight && hit.layer === currentLayer){
+      saveSnapshot();
+      removeBlock(hit);
+      draw();
+    }
+    brushPainting = true; // 複用此 flag 做連續擦除
     return;
   }
 
@@ -882,6 +953,26 @@ function onDown(e){
 }
 
 function onMove(e){
+  // 筆刷/橡皮擦拖曳繪製
+  if(brushPainting){
+    e.preventDefault();
+    const pos = mousePos(e);
+    const g = toGrid(pos.x, pos.y);
+    const gx = snap(g.gx), gy = snap(g.gy);
+    if(brushMode && brushTile){
+      if(!hasBlockAt(gx, gy, currentHeight, null, currentLayer)){
+        addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:brushTile.color, srcH:brushTile.srcH, yOffset:0});
+        draw();
+      }
+    } else if(eraserMode){
+      const hit = hitTest(pos.x, pos.y);
+      if(hit && hit.gz === currentHeight && hit.layer === currentLayer){
+        removeBlock(hit);
+        draw();
+      }
+    }
+    return;
+  }
   if(dragBlock){
     e.preventDefault();
     const pos = mousePos(e);
@@ -952,15 +1043,26 @@ function onMove(e){
     camX = panCamStartX + (pos.x - panStartX);
     camY = panCamStartY + (pos.y - panStartY);
     draw();
-  } else if(showHover){
+  } else if(showHover || brushMode || eraserMode){
     const pos = mousePos(e);
-    const prev = hoverBlock;
-    hoverBlock = hitTest(pos.x, pos.y);
-    if(hoverBlock !== prev) draw();
+    if(showHover){
+      const prev = hoverBlock;
+      hoverBlock = hitTest(pos.x, pos.y);
+      if(hoverBlock !== prev) draw();
+    }
+    if(brushMode || eraserMode){
+      const g = toGrid(pos.x, pos.y);
+      const newGx = snap(g.gx), newGy = snap(g.gy);
+      if(newGx !== brushCursorGx || newGy !== brushCursorGy){
+        brushCursorGx = newGx; brushCursorGy = newGy;
+        draw();
+      }
+    }
   }
 }
 
 function onUp(){
+  if(brushPainting){ brushPainting = false; return; }
   if(boxSelect){
     // 框選結束：選取框內的方塊
     const x1 = Math.min(boxSelect.sx, boxSelect.ex);
@@ -1158,6 +1260,7 @@ function populatePalette(){
     btn.appendChild(num);
     btn.addEventListener('click', () => {
       const srcH = (TILES[key] && TILES[key].srcH) || 32;
+      if(brushMode){ brushTile = {color:key, srcH}; updateBrushIndicator(); return; }
       addToStaging(key, srcH);
     });
     container.appendChild(btn);
@@ -1275,6 +1378,16 @@ document.getElementById('clearBtn').addEventListener('click', () => {
 });
 
 // ── 勾選開關 ──
+document.getElementById('chkBrush').addEventListener('change', (e) => {
+  brushMode = e.target.checked;
+  if(brushMode){ eraserMode = false; document.getElementById('chkEraser').checked = false; }
+  canvas.style.cursor = brushMode ? 'crosshair' : 'grab';
+});
+document.getElementById('chkEraser').addEventListener('change', (e) => {
+  eraserMode = e.target.checked;
+  if(eraserMode){ brushMode = false; document.getElementById('chkBrush').checked = false; }
+  canvas.style.cursor = eraserMode ? 'crosshair' : 'grab';
+});
 document.getElementById('chkSelect').addEventListener('change', (e) => { selectMode = e.target.checked; });
 document.getElementById('chkLocate').addEventListener('change', (e) => { locateMode = e.target.checked; });
 document.getElementById('chkCopy').addEventListener('change', (e) => { copyMode = e.target.checked; });
@@ -1282,6 +1395,68 @@ document.getElementById('chkHover').addEventListener('change', (e) => { showHove
 document.getElementById('chkGrid').addEventListener('change', (e) => { showGrid = e.target.checked; draw(); });
 document.getElementById('chkVGrid').addEventListener('change', (e) => { showVGrid = e.target.checked; draw(); });
 document.getElementById('chkCoord').addEventListener('change', (e) => { showCoords = e.target.checked; draw(); });
+
+// ── 回到原點 ──
+document.getElementById('homeBtn').addEventListener('click', () => {
+  camX = 0; camY = 0; zoom = 1; draw();
+});
+
+// ── 匯出地圖為圖片 ──
+document.getElementById('exportImg').addEventListener('click', () => {
+  // 計算所有方塊的邊界
+  if(blocks.length === 0){ alert('沒有方塊可匯出'); return; }
+  const margin = 2;
+  let minGx = Infinity, maxGx = -Infinity, minGy = Infinity, maxGy = -Infinity, minGz = Infinity, maxGz = -Infinity;
+  for(const b of blocks){
+    minGx = Math.min(minGx, b.gx); maxGx = Math.max(maxGx, b.gx);
+    minGy = Math.min(minGy, b.gy); maxGy = Math.max(maxGy, b.gy);
+    minGz = Math.min(minGz, b.gz); maxGz = Math.max(maxGz, b.gz);
+  }
+  // 暫存鏡頭，用適合匯出的視角
+  const oldCamX = camX, oldCamY = camY, oldZoom = zoom;
+  const oldHH = hiddenHeights, oldHL = hiddenLayers;
+  hiddenHeights = new Set(); hiddenLayers = new Set();
+  const cx = (minGx + maxGx) / 2, cy = (minGy + maxGy) / 2;
+  zoom = 1;
+  const center = toScreen(cx, cy, (minGz + maxGz) / 2);
+  camX = W/2 - center.x + camX;
+  camY = H/2 - center.y + camY;
+  draw();
+  // 匯出
+  const link = document.createElement('a');
+  link.download = 'map_' + new Date().toISOString().slice(0,10) + '.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  // 還原鏡頭
+  camX = oldCamX; camY = oldCamY; zoom = oldZoom;
+  hiddenHeights = oldHH; hiddenLayers = oldHL;
+  draw();
+});
+
+// ── 圖層可見度 ──
+(function(){
+  const sel = document.getElementById('hideHeight');
+  for(let h = -5; h <= 5; h++){
+    const opt = document.createElement('option');
+    opt.value = h; opt.textContent = '高度 ' + h;
+    sel.appendChild(opt);
+  }
+})();
+document.getElementById('hideHeightBtn').addEventListener('click', () => {
+  const v = parseInt(document.getElementById('hideHeight').value);
+  if(isNaN(v)) return;
+  if(hiddenHeights.has(v)) hiddenHeights.delete(v);
+  else hiddenHeights.add(v);
+  document.getElementById('hideHeightBtn').textContent = hiddenHeights.has(v) ? '顯示' : '隱藏';
+  draw();
+});
+document.getElementById('hideHeight').addEventListener('change', () => {
+  const v = parseInt(document.getElementById('hideHeight').value);
+  document.getElementById('hideHeightBtn').textContent = hiddenHeights.has(v) ? '顯示' : '隱藏';
+});
+document.getElementById('showAllBtn').addEventListener('click', () => {
+  hiddenHeights.clear(); hiddenLayers.clear(); draw();
+});
 
 // ── 儲存 / 載入 ──
 document.getElementById('saveBtn').addEventListener('click', () => {
@@ -1394,53 +1569,46 @@ init.forEach(d => {
 
 // ── 操作說明面板 ──
 const helpHTML = `
+<h3>繪製工具</h3>
+<kbd>筆刷</kbd> — 開啟後點素材選為筆刷，在畫布上點擊/拖曳連續放置<br>
+<kbd>橡皮擦</kbd> — 開啟後點擊/拖曳連續刪除方塊<br>
+游標會顯示半透明預覽（筆刷）或紅色標記（橡皮擦）
+
 <h3>基本操作</h3>
-點擊素材面板 — 新增方塊到場景<br>
 <kbd>左鍵</kbd> 拖曳方塊 — 移動（被四面包圍無法移動）<br>
-<kbd>Ctrl</kbd>+<kbd>拖曳</kbd> 方塊 — 複製並拖曳副本到新位置<br>
+<kbd>Ctrl</kbd>+<kbd>拖曳</kbd> — 複製並拖曳副本<br>
+拖曳中 <kbd>滾輪</kbd> — 微調素材高度（1/5 格）<br>
 <kbd>雙擊</kbd> / <kbd>右鍵</kbd> — 刪除方塊<br>
-空白處 <kbd>左鍵</kbd> 拖曳 — 平移視角<br>
-<kbd>滾輪</kbd> — 縮放視角
+空白處拖曳 — 平移視角<br>
+<kbd>滾輪</kbd> / 雙指捏合 — 縮放
 
 <h3>高度與圖層</h3>
-<kbd>高度 ▲▼</kbd> — 切換垂直高度（-5 ~ +5）<br>
-<kbd>圖層 ▲▼</kbd> — 切換重疊圖層（0 ~ 5）<br>
-同位置不同圖層可放置不同素材<br>
+<kbd>高度 ▲▼</kbd> — 垂直高度（-5 ~ +5）<br>
+<kbd>圖層 ▲▼</kbd> — 重疊圖層（0 ~ 5）<br>
+<kbd>隱藏高度</kbd> — 隱藏/顯示指定高度層<br>
 只能操作當前高度 + 圖層的方塊
 
 <h3>選取與整組操作</h3>
-<kbd>Shift</kbd>+<kbd>點擊</kbd> 方塊 — 高亮相鄰連接的方塊群組<br>
-<kbd>Shift</kbd>+<kbd>拖曳</kbd> 空白處 — 框選高亮區域內的方塊<br>
+<kbd>Shift</kbd>+<kbd>點擊</kbd> — 高亮相鄰方塊群組<br>
+<kbd>Shift</kbd>+<kbd>拖曳</kbd> — 框選區域<br>
 拖曳高亮方塊 — 整組移動<br>
-點擊任意處（不按 Shift）— 取消高亮
+點擊空白 — 取消高亮
 
-<h3>自訂組合</h3>
-先高亮選取 2 個以上方塊 → 點 <kbd>存選取</kbd> → 輸入名稱<br>
-選擇已存組合 → 點 <kbd>放置組合</kbd> — 一鍵放入場景<br>
-組合列表中點 <kbd>✕</kbd> 可刪除
+<h3>範本</h3>
+高亮 2+ 方塊 → <kbd>儲存</kbd> → 命名<br>
+選範本 → <kbd>放置</kbd> → 一鍵放入
 
 <h3>顯示工具</h3>
-<kbd>懸停</kbd> — 滑鼠移過方塊時反白高亮，確認可操作的方塊<br>
-<kbd>格線</kbd> — 顯示每層水平格線，當前高度加亮<br>
-<kbd>立體</kbd> — 顯示每格垂直格線，呈現 3D 空間感<br>
-<kbd>座標</kbd> — 顯示/隱藏方塊座標
+<kbd>懸停</kbd> 反白 | <kbd>格線</kbd> 水平 | <kbd>立體</kbd> 垂直 | <kbd>座標</kbd> 顯示
 
-<h3>儲存與載入</h3>
-<kbd>儲存</kbd> — 匯出場景為 JSON 檔案<br>
-<kbd>載入</kbd> — 從 JSON 檔案還原場景<br>
-<kbd>返回</kbd> / <kbd>Ctrl+Z</kbd> — 回到上一步（最多 50 步）<br>
-<kbd>復原</kbd> / <kbd>Ctrl+Y</kbd> — 重做被返回的操作<br>
-<kbd>清除全部</kbd> — 移除所有方塊
+<h3>檔案操作</h3>
+<kbd>返回</kbd> <kbd>Ctrl+Z</kbd> | <kbd>復原</kbd> <kbd>Ctrl+Y</kbd><br>
+<kbd>儲存</kbd> JSON | <kbd>載入</kbd> JSON | <kbd>匯出圖</kbd> PNG<br>
+<kbd>原點</kbd> 回到 (0,0) | <kbd>清除全部</kbd>
 
-<h3>手機模式按鈕</h3>
-<kbd>選取</kbd> — 取代 Shift，點擊或拖曳進行選取/框選<br>
-<kbd>定位</kbd> — 點擊方塊跳到該素材在面板中的位置<br>
-<kbd>複製</kbd> — 取代 Ctrl，拖曳方塊時複製副本
-
-<h3>素材來源</h3>
-四組素材分頁，每組有子分類<br>
-下拉選單可跨來源依種類篩選<br>
-Strategy 素材含動畫（火焰、旗幟、風車），放置後自動播放
+<h3>手機操作</h3>
+<kbd>選取</kbd> 取代 Shift | <kbd>定位</kbd> 跳到素材 | <kbd>複製</kbd> 取代 Ctrl<br>
+雙指捏合縮放 | 暫存區快速放置
 `;
 document.getElementById('helpPanel').innerHTML = helpHTML;
 document.getElementById('hintToggle').addEventListener('click', () => {

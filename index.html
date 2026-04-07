@@ -15,13 +15,24 @@
     </div>
     <div id="tilePalette"></div>
     <div id="toggleRow">
+      <label class="ck"><input type="checkbox" id="chkBrush"> 筆刷</label>
+      <label class="ck"><input type="checkbox" id="chkEraser"> 橡皮擦</label>
+      <span id="brushInfo" style="display:none;font-size:10px;color:#FFD700;"></span>
+      <span class="sep">|</span>
       <label class="ck"><input type="checkbox" id="chkSelect"> 選取</label>
       <label class="ck"><input type="checkbox" id="chkLocate"> 定位</label>
       <label class="ck"><input type="checkbox" id="chkCopy"> 複製</label>
+      <span class="sep">|</span>
       <label class="ck"><input type="checkbox" id="chkHover"> 懸停</label>
       <label class="ck"><input type="checkbox" id="chkGrid"> 格線</label>
       <label class="ck"><input type="checkbox" id="chkVGrid"> 立體</label>
       <label class="ck"><input type="checkbox" id="chkCoord"> 座標</label>
+    </div>
+    <div id="visRow">
+      <span class="label">隱藏高度：</span>
+      <select id="hideHeight"><option value="">無</option></select>
+      <button id="hideHeightBtn" class="toggle-btn">隱藏</button>
+      <button id="showAllBtn" class="toggle-btn">全部顯示</button>
     </div>
     <div id="comboBar">
       <span class="label">範本：</span>
@@ -38,6 +49,8 @@
       <button id="redoBtn" class="act-btn">復原</button>
       <button id="saveBtn" class="act-btn">儲存</button>
       <button id="loadBtn" class="act-btn">載入</button>
+      <button id="homeBtn" class="act-btn">原點</button>
+      <button id="exportImg" class="act-btn">匯出圖</button>
       <button id="clearBtn" class="act-btn danger">清除全部</button>
     </div>
   </div>

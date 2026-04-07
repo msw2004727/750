@@ -959,18 +959,19 @@ function onMove(e){
     const pos = mousePos(e);
     const g = toGrid(pos.x, pos.y);
     const gx = snap(g.gx), gy = snap(g.gy);
+    brushCursorGx = gx; brushCursorGy = gy;
     if(brushMode && brushTile){
       if(!hasBlockAt(gx, gy, currentHeight, null, currentLayer)){
         addBlock({gx, gy, gz:currentHeight, layer:currentLayer, color:brushTile.color, srcH:brushTile.srcH, yOffset:0});
-        draw();
       }
     } else if(eraserMode){
       const hit = hitTest(pos.x, pos.y);
       if(hit && hit.gz === currentHeight && hit.layer === currentLayer){
         removeBlock(hit);
-        draw();
       }
     }
+    hoverBlock = hitTest(pos.x, pos.y);
+    draw();
     return;
   }
   if(dragBlock){

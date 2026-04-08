@@ -209,8 +209,11 @@ function _getCharImg(charName, style, action, frameIdx){
 function _drawCharacter(block){
   const p = _pixelPos(block.gx, block.gy, block.gz);
   const tw = _stepTW, th = _stepTH;
-  const x = p.x, y = p.y;
+  // Sub-grid offset
   const st = block.state || {};
+  const subX = st.subX || 0, subY = st.subY || 0;
+  const x = p.x + Math.round((subX - subY) * tw);
+  const y = p.y + Math.round((subX + subY) * th * 0.5);
   const action = st.action || 'idle';
   const style = st.style || 'outline';
   const actions = st.actions || {};

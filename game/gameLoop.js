@@ -1,5 +1,6 @@
 import { S, game } from './state.js';
 import { bus } from './eventBus.js';
+import { tickMovement, isAnyMoving } from './charMove.js';
 
 // ── Real draw registration (renderer registers its draw function here) ──
 let _realDraw = () => {};
@@ -39,6 +40,12 @@ function loop(now) {
   if (game.running && now - game.lastTick >= 1000) {
     game.lastTick = now;
     bus.emit('play:tick', now);
+  }
+
+  // Character movement sub-tick (200ms steps)
+  if (game.running) {
+    tickMovement(now);
+    if (isAnyMoving()) S._dirty = true;
   }
 
   // Render once per frame if needed

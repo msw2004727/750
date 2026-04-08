@@ -33,6 +33,8 @@ const ORDER = [
   'playMode.js',
   'resourceUI.js',
   'characterLib.js',
+  'charMove.js',
+  'charAI.js',
   'main.js',
 ];
 

@@ -526,6 +526,12 @@ function loop(now) {
     bus.emit('play:tick', now);
   }
 
+  // Character movement sub-tick (200ms steps)
+  if (game.running) {
+    tickMovement(now);
+    if (isAnyMoving()) S._dirty = true;
+  }
+
   // Render once per frame if needed
   if (S._dirty) {
     _realDraw();
@@ -1381,8 +1387,11 @@ function _getCharImg(charName, style, action, frameIdx){
 function _drawCharacter(block){
   const p = _pixelPos(block.gx, block.gy, block.gz);
   const tw = _stepTW, th = _stepTH;
-  const x = p.x, y = p.y;
+  // Sub-grid offset
   const st = block.state || {};
+  const subX = st.subX || 0, subY = st.subY || 0;
+  const x = p.x + Math.round((subX - subY) * tw);
+  const y = p.y + Math.round((subX + subY) * th * 0.5);
   const action = st.action || 'idle';
   const style = st.style || 'outline';
   const actions = st.actions || {};
@@ -4310,12 +4319,15 @@ document.getElementById('charPlaceBtn').addEventListener('click', () => {
       cls: _curChar.cls,
       clsLabel: _curChar.clsLabel,
       charType: _curChar.type,
-      action: _curAction,
+      action: 'idle',
       style: _style,
       facing: 'SE',
       speed: 1,
       path: [],
       actions: _curChar.actions,
+      subX: 0.25, subY: 0.25,
+      visited: {},
+      _stuckCount: 0,
     }
   });
   draw();
@@ -4359,6 +4371,254 @@ function canMoveTo(charBlock, nx, ny){
 }
 
 // Export CHARS for external use
+
+
+// ── charMove.js ──
+// ── Character sub-grid movement + smooth interpolation ──
+
+
+const SUB_STEP = 0.25;  // 4x4 sub-grid
+const MOVE_INTERVAL = 200; // ms per sub-step
+let _moveAccum = 0;
+let _lastTime = 0;
+
+// ── Find free sub-slot in a tile (spiral from preferred position) ──
+function findFreeSlot(gx, gy, gz, preferSx, preferSy, exclude){
+  const chars = _charsAtTile(gx, gy, gz);
+  const occupied = new Set();
+  for(const c of chars){
+    if(c === exclude) continue;
+    occupied.add(_subKey(c.state.subX || 0, c.state.subY || 0));
+  }
+  // Spiral outward from preferred
+  const slots = [];
+  for(let sx = 0; sx < 1; sx += SUB_STEP){
+    for(let sy = 0; sy < 1; sy += SUB_STEP){
+      const dist = Math.abs(sx - preferSx) + Math.abs(sy - preferSy);
+      slots.push({sx, sy, dist});
+    }
+  }
+  slots.sort((a,b) => a.dist - b.dist);
+  for(const s of slots){
+    if(!occupied.has(_subKey(s.sx, s.sy))) return {sx: s.sx, sy: s.sy};
+  }
+  return {sx: preferSx, sy: preferSy}; // fallback
+}
+
+function _subKey(sx, sy){ return Math.round(sx*100) + ',' + Math.round(sy*100); }
+
+function _charsAtTile(gx, gy, gz){
+  const set = shGet(shKey(gx, gy, gz, CHAR_LAYER));
+  if(!set) return [];
+  return [...set].filter(b => b.type === 'character');
+}
+
+// ── Move character one sub-step toward target ──
+function stepCharacter(ch){
+  const st = ch.state;
+  if(!st._targetGx && st._targetGx !== 0) return false; // no target
+
+  const targetGx = st._targetGx;
+  const targetGy = st._targetGy;
+  const curSx = st.subX || 0;
+  const curSy = st.subY || 0;
+
+  // Same tile — move within sub-grid
+  if(ch.gx === targetGx && ch.gy === targetGy){
+    const tSx = st._targetSubX || 0;
+    const tSy = st._targetSubY || 0;
+    if(Math.abs(curSx - tSx) < 0.01 && Math.abs(curSy - tSy) < 0.01){
+      // Arrived
+      st.subX = tSx; st.subY = tSy;
+      st._targetGx = undefined;
+      st.action = 'idle';
+      return false;
+    }
+    st.subX = _approach(curSx, tSx, SUB_STEP);
+    st.subY = _approach(curSy, tSy, SUB_STEP);
+    return true;
+  }
+
+  // Different tile — walk to edge, then cross
+  const dx = targetGx - ch.gx;
+  const dy = targetGy - ch.gy;
+
+  // Walk to edge of current tile (sub 0.75 in direction)
+  const edgeSx = dx > 0 ? 0.75 : dx < 0 ? 0 : curSx;
+  const edgeSy = dy > 0 ? 0.75 : dy < 0 ? 0 : curSy;
+
+  if(Math.abs(curSx - edgeSx) > 0.01 || Math.abs(curSy - edgeSy) > 0.01){
+    st.subX = _approach(curSx, edgeSx, SUB_STEP);
+    st.subY = _approach(curSy, edgeSy, SUB_STEP);
+    // Update facing
+    if(dx > 0) st.facing = 'SE';
+    else if(dx < 0) st.facing = 'NW';
+    else if(dy > 0) st.facing = 'SW';
+    else if(dy < 0) st.facing = 'NE';
+    st.action = 'walk';
+    return true;
+  }
+
+  // Cross tile boundary
+  shRemove(ch);
+  ch.gx = targetGx;
+  ch.gy = targetGy;
+  shAdd(ch);
+  // Enter from opposite edge
+  st.subX = dx > 0 ? 0 : dx < 0 ? 0.75 : 0.25;
+  st.subY = dy > 0 ? 0 : dy < 0 ? 0.75 : 0.25;
+  // Find free slot near center
+  const slot = findFreeSlot(ch.gx, ch.gy, ch.gz, 0.25, 0.25, ch);
+  st._targetSubX = slot.sx;
+  st._targetSubY = slot.sy;
+  st._targetGx = ch.gx; // now same tile, will settle into sub-slot
+  st._targetGy = ch.gy;
+  st.action = 'walk';
+
+  // Mark visited
+  if(!st.visited) st.visited = {};
+  st.visited[ch.gx + ',' + ch.gy] = st._tickCount || 0;
+
+  return true;
+}
+
+function _approach(cur, target, step){
+  if(Math.abs(target - cur) <= step) return target;
+  return cur + (target > cur ? step : -step);
+}
+
+// ── Movement tick (called from gameLoop via sub-tick) ──
+let _moving = false;
+function tickMovement(now){
+  if(!_lastTime) _lastTime = now;
+  const dt = now - _lastTime;
+  _lastTime = now;
+  _moveAccum += dt;
+  if(_moveAccum < MOVE_INTERVAL) return;
+  _moveAccum -= MOVE_INTERVAL;
+
+  _moving = false;
+  const chars = world.blocks.filter(b => b.type === 'character');
+  for(const ch of chars){
+    if(stepCharacter(ch)) _moving = true;
+  }
+  if(_moving) S._dirty = true;
+}
+
+function isAnyMoving(){ return _moving; }
+
+
+// ── charAI.js ──
+// ── Character AI: exploration + flocking ──
+
+
+const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
+const VISIT_DECAY = 200;     // ticks before old memory fades
+const FLOCK_RANGE = 8;       // Manhattan distance for attraction
+const FLOCK_WEIGHT = 0.05;   // attraction per tile closer
+const STUCK_LIMIT = 3;       // ticks stuck before memory reset
+
+let _aiTick = 0;
+
+// ── Visit score: higher = more attractive (unvisited = 1.0) ──
+function _visitScore(ch, gx, gy){
+  const visited = ch.state.visited;
+  if(!visited) return 1;
+  const key = gx + ',' + gy;
+  const lastTick = visited[key];
+  if(lastTick === undefined) return 1;
+  return Math.min(_aiTick - lastTick, VISIT_DECAY) / VISIT_DECAY;
+}
+
+// ── Flock score: same-type characters nearby pull toward them ──
+function _flockScore(ch, nx, ny){
+  let pull = 0;
+  const chars = world.blocks.filter(b => b.type === 'character' && b !== ch);
+  for(const other of chars){
+    if(other.state.clsLabel !== ch.state.clsLabel) continue;
+    const dist = Math.abs(other.gx - nx) + Math.abs(other.gy - ny);
+    if(dist < FLOCK_RANGE){
+      pull += (FLOCK_RANGE - dist) * FLOCK_WEIGHT;
+    }
+  }
+  return pull;
+}
+
+// ── Pick next move for a character ──
+function _pickMove(ch){
+  const candidates = [];
+  for(const [dx, dy] of DIRS){
+    const nx = ch.gx + dx, ny = ch.gy + dy;
+    if(!canMoveTo(ch, nx, ny)) continue;
+    let score = _visitScore(ch, nx, ny);
+    score += _flockScore(ch, nx, ny);
+    candidates.push({nx, ny, score});
+  }
+  if(candidates.length === 0) return null;
+  // Weighted random selection
+  const total = candidates.reduce((s, c) => s + c.score, 0);
+  if(total <= 0) return candidates[Math.floor(Math.random() * candidates.length)];
+  let r = Math.random() * total;
+  for(const c of candidates){
+    r -= c.score;
+    if(r <= 0) return c;
+  }
+  return candidates[candidates.length - 1];
+}
+
+// ── AI tick: evaluate each character ──
+function _tickAI(){
+  _aiTick++;
+  const chars = world.blocks.filter(b => b.type === 'character');
+  for(const ch of chars){
+    const st = ch.state;
+    if(!st._tickCount) st._tickCount = 0;
+    st._tickCount = _aiTick;
+
+    // Skip if still moving to a target
+    if(st._targetGx !== undefined && (st._targetGx !== ch.gx || st._targetGy !== ch.gy)) continue;
+
+    // Stagger: only decide every 2 ticks, offset by char index
+    const idx = world.blocks.indexOf(ch);
+    if((_aiTick + idx) % 2 !== 0) continue;
+
+    const move = _pickMove(ch);
+    if(!move){
+      st._stuckCount = (st._stuckCount || 0) + 1;
+      if(st._stuckCount > STUCK_LIMIT){
+        st.visited = {}; // clear memory
+        st._stuckCount = 0;
+      }
+      continue;
+    }
+    st._stuckCount = 0;
+
+    // Set target tile
+    st._targetGx = move.nx;
+    st._targetGy = move.ny;
+    // Target sub-slot in new tile
+    const slot = findFreeSlot(move.nx, move.ny, ch.gz, 0.25, 0.25, ch);
+    st._targetSubX = slot.sx;
+    st._targetSubY = slot.sy;
+
+    // Mark current tile as visited
+    if(!st.visited) st.visited = {};
+    st.visited[ch.gx + ',' + ch.gy] = _aiTick;
+
+    // Cap visited memory
+    const keys = Object.keys(st.visited);
+    if(keys.length > 5000){
+      // Remove oldest 1000
+      const sorted = keys.sort((a,b) => st.visited[a] - st.visited[b]);
+      for(let i = 0; i < 1000; i++) delete st.visited[sorted[i]];
+    }
+  }
+}
+
+// Listen to game tick for AI decisions
+bus.on('play:tick', () => {
+  _tickAI();
+});
 
 
 // ── main.js ──

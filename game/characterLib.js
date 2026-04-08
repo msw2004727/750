@@ -266,12 +266,15 @@ document.getElementById('charPlaceBtn').addEventListener('click', () => {
       cls: _curChar.cls,
       clsLabel: _curChar.clsLabel,
       charType: _curChar.type,
-      action: _curAction,
+      action: 'idle',
       style: _style,
       facing: 'SE',
       speed: 1,
       path: [],
       actions: _curChar.actions,
+      subX: 0.25, subY: 0.25,
+      visited: {},
+      _stuckCount: 0,
     }
   });
   draw();

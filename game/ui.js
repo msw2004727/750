@@ -1,4 +1,4 @@
-import { S, camera, canvas, draw } from './state.js';
+import { S, camera, canvas, draw, world } from './state.js';
 import { setBlocks } from './spatialHash.js';
 import { saveSnapshot } from './history.js';
 import { clearDrawTools, updateBrushIndicator } from './tools.js';
@@ -20,6 +20,20 @@ document.getElementById('chkVGrid').addEventListener('change', (e) => { S.showVG
 document.getElementById('chkCoord').addEventListener('change', (e) => { S.showCoords = e.target.checked; draw(); });
 document.getElementById('chkLayerInfo').addEventListener('change', (e) => { S.showLayerInfo = e.target.checked; draw(); });
 document.getElementById('chkAutoSelect').addEventListener('change', (e) => { S.autoSelectMode = e.target.checked; });
+
+// ── Fog of war controls ──
+document.getElementById('fogRadius').addEventListener('change', (e) => {
+  world.fogRadius = parseInt(e.target.value) || 0;
+  draw();
+});
+document.getElementById('fogCenterGx').addEventListener('change', (e) => {
+  world.fogCenter.gx = parseInt(e.target.value) || 0;
+  draw();
+});
+document.getElementById('fogCenterGy').addEventListener('change', (e) => {
+  world.fogCenter.gy = parseInt(e.target.value) || 0;
+  draw();
+});
 
 // ── Home button ──
 document.getElementById('homeBtn').addEventListener('click', () => {

@@ -194,7 +194,13 @@ function _drawActual(){
   ctx.clearRect(0,0,camera.W,camera.H);
   const vr = getVisibleRange();
 
-  const visible = world.blocks.filter(b => isVisible(b, vr) && !S.hiddenHeights.has(b.gz) && !S.hiddenLayers.has(b.layer));
+  // Fog of war: diamond (Manhattan) distance filter
+  const fogOn = world.fogRadius > 0;
+  const fogR = world.fogRadius / 2;
+  const fogCx = world.fogCenter.gx, fogCy = world.fogCenter.gy;
+
+  const visible = world.blocks.filter(b => isVisible(b, vr) && !S.hiddenHeights.has(b.gz) && !S.hiddenLayers.has(b.layer)
+    && (!fogOn || (Math.abs(b.gx - fogCx) + Math.abs(b.gy - fogCy)) <= fogR));
   const sorted = visible.sort((a,b) => {
     return (a.gx+a.gy)*1000+a.gz*10+a.layer - ((b.gx+b.gy)*1000+b.gz*10+b.layer);
   });
@@ -282,6 +288,40 @@ function _drawActual(){
     ctx.beginPath();
     ctx.moveTo(sp.x, sp.y + _stepTH);
     ctx.lineTo(ep.x, ep.y + _stepTH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Fog of war overlay
+  if(fogOn){
+    const th2 = _stepTH;
+    const n = _pixelPos(fogCx, fogCy - fogR, S.currentHeight);
+    const e = _pixelPos(fogCx + fogR, fogCy, S.currentHeight);
+    const s = _pixelPos(fogCx, fogCy + fogR, S.currentHeight);
+    const w = _pixelPos(fogCx - fogR, fogCy, S.currentHeight);
+    // Dark area outside diamond
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, camera.W, camera.H);
+    ctx.moveTo(n.x, n.y + th2);
+    ctx.lineTo(w.x, w.y + th2);
+    ctx.lineTo(s.x, s.y + th2);
+    ctx.lineTo(e.x, e.y + th2);
+    ctx.closePath();
+    ctx.clip('evenodd');
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, 0, camera.W, camera.H);
+    ctx.restore();
+    // Diamond border
+    ctx.setLineDash([6,4]);
+    ctx.strokeStyle = 'rgba(100,160,255,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(n.x, n.y + th2);
+    ctx.lineTo(e.x, e.y + th2);
+    ctx.lineTo(s.x, s.y + th2);
+    ctx.lineTo(w.x, w.y + th2);
+    ctx.closePath();
     ctx.stroke();
     ctx.setLineDash([]);
   }

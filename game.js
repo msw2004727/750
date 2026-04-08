@@ -14,7 +14,7 @@ const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 
 // ── Separated sub-objects ──
-const world = { blocks: [] };
+const world = { blocks: [], fogRadius: 0, fogCenter: { gx: 0, gy: 0 } };
 const camera = { x: 0, y: 0, zoom: 1, W: 0, H: 0 };
 const game = { running: false, resources: {}, lastTick: 0 };
 
@@ -1197,7 +1197,13 @@ function _drawActual(){
   ctx.clearRect(0,0,camera.W,camera.H);
   const vr = getVisibleRange();
 
-  const visible = world.blocks.filter(b => isVisible(b, vr) && !S.hiddenHeights.has(b.gz) && !S.hiddenLayers.has(b.layer));
+  // Fog of war: diamond (Manhattan) distance filter
+  const fogOn = world.fogRadius > 0;
+  const fogR = world.fogRadius / 2;
+  const fogCx = world.fogCenter.gx, fogCy = world.fogCenter.gy;
+
+  const visible = world.blocks.filter(b => isVisible(b, vr) && !S.hiddenHeights.has(b.gz) && !S.hiddenLayers.has(b.layer)
+    && (!fogOn || (Math.abs(b.gx - fogCx) + Math.abs(b.gy - fogCy)) <= fogR));
   const sorted = visible.sort((a,b) => {
     return (a.gx+a.gy)*1000+a.gz*10+a.layer - ((b.gx+b.gy)*1000+b.gz*10+b.layer);
   });
@@ -1285,6 +1291,40 @@ function _drawActual(){
     ctx.beginPath();
     ctx.moveTo(sp.x, sp.y + _stepTH);
     ctx.lineTo(ep.x, ep.y + _stepTH);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Fog of war overlay
+  if(fogOn){
+    const th2 = _stepTH;
+    const n = _pixelPos(fogCx, fogCy - fogR, S.currentHeight);
+    const e = _pixelPos(fogCx + fogR, fogCy, S.currentHeight);
+    const s = _pixelPos(fogCx, fogCy + fogR, S.currentHeight);
+    const w = _pixelPos(fogCx - fogR, fogCy, S.currentHeight);
+    // Dark area outside diamond
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, camera.W, camera.H);
+    ctx.moveTo(n.x, n.y + th2);
+    ctx.lineTo(w.x, w.y + th2);
+    ctx.lineTo(s.x, s.y + th2);
+    ctx.lineTo(e.x, e.y + th2);
+    ctx.closePath();
+    ctx.clip('evenodd');
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, 0, camera.W, camera.H);
+    ctx.restore();
+    // Diamond border
+    ctx.setLineDash([6,4]);
+    ctx.strokeStyle = 'rgba(100,160,255,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(n.x, n.y + th2);
+    ctx.lineTo(e.x, e.y + th2);
+    ctx.lineTo(s.x, s.y + th2);
+    ctx.lineTo(w.x, w.y + th2);
+    ctx.closePath();
     ctx.stroke();
     ctx.setLineDash([]);
   }
@@ -2898,7 +2938,7 @@ document.getElementById('layerDown').addEventListener('click', () => {
 
 // ── Save / Save As / Load ──
 function _buildSaveData(){
-  return JSON.stringify({blocks:world.blocks, camX:camera.x, camY:camera.y, zoom:camera.zoom, currentHeight:S.currentHeight, currentLayer:S.currentLayer});
+  return JSON.stringify({blocks:world.blocks, camX:camera.x, camY:camera.y, zoom:camera.zoom, currentHeight:S.currentHeight, currentLayer:S.currentLayer, fogRadius:world.fogRadius, fogCenter:world.fogCenter});
 }
 
 function _doSave(label){
@@ -3041,6 +3081,15 @@ document.getElementById('cloudOverlay').addEventListener('click', (e) => {
   if(e.target === e.currentTarget) _closeCloudModal();
 });
 
+function _updateFogUI(){
+  const sel = document.getElementById('fogRadius');
+  if(sel) sel.value = world.fogRadius;
+  const gxIn = document.getElementById('fogCenterGx');
+  const gyIn = document.getElementById('fogCenterGy');
+  if(gxIn) gxIn.value = world.fogCenter.gx;
+  if(gyIn) gyIn.value = world.fogCenter.gy;
+}
+
 function loadFromData(data){
   if(data.blocks) setBlocks(data.blocks);
   if(data.camX !== undefined) camera.x = data.camX;
@@ -3048,6 +3097,9 @@ function loadFromData(data){
   if(data.zoom !== undefined) camera.zoom = data.zoom;
   if(data.currentHeight !== undefined){ S.currentHeight = data.currentHeight; updateHeightUI(); }
   if(data.currentLayer !== undefined){ S.currentLayer = data.currentLayer; updateLayerUI(); }
+  world.fogRadius = data.fogRadius || 0;
+  world.fogCenter = data.fogCenter || { gx: 0, gy: 0 };
+  _updateFogUI();
   draw();
 }
 
@@ -3266,6 +3318,20 @@ document.getElementById('chkVGrid').addEventListener('change', (e) => { S.showVG
 document.getElementById('chkCoord').addEventListener('change', (e) => { S.showCoords = e.target.checked; draw(); });
 document.getElementById('chkLayerInfo').addEventListener('change', (e) => { S.showLayerInfo = e.target.checked; draw(); });
 document.getElementById('chkAutoSelect').addEventListener('change', (e) => { S.autoSelectMode = e.target.checked; });
+
+// ── Fog of war controls ──
+document.getElementById('fogRadius').addEventListener('change', (e) => {
+  world.fogRadius = parseInt(e.target.value) || 0;
+  draw();
+});
+document.getElementById('fogCenterGx').addEventListener('change', (e) => {
+  world.fogCenter.gx = parseInt(e.target.value) || 0;
+  draw();
+});
+document.getElementById('fogCenterGy').addEventListener('change', (e) => {
+  world.fogCenter.gy = parseInt(e.target.value) || 0;
+  draw();
+});
 
 // ── Home button ──
 document.getElementById('homeBtn').addEventListener('click', () => {

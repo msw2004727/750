@@ -10,6 +10,8 @@ export function resetState() {
 
   // World
   world.blocks = [];
+  world.fogRadius = 0;
+  world.fogCenter = { gx: 0, gy: 0 };
 
   // Camera
   camera.x = 0;

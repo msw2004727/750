@@ -2,7 +2,7 @@ export const canvas = document.getElementById('c');
 export const ctx = canvas.getContext('2d');
 
 // ── Separated sub-objects ──
-export const world = { blocks: [] };
+export const world = { blocks: [], fogRadius: 0, fogCenter: { gx: 0, gy: 0 } };
 export const camera = { x: 0, y: 0, zoom: 1, W: 0, H: 0 };
 export const game = { running: false, resources: {}, lastTick: 0 };
 

@@ -30,7 +30,7 @@ document.getElementById('layerDown').addEventListener('click', () => {
 
 // ── Save / Save As / Load ──
 function _buildSaveData(){
-  return JSON.stringify({blocks:world.blocks, camX:camera.x, camY:camera.y, zoom:camera.zoom, currentHeight:S.currentHeight, currentLayer:S.currentLayer});
+  return JSON.stringify({blocks:world.blocks, camX:camera.x, camY:camera.y, zoom:camera.zoom, currentHeight:S.currentHeight, currentLayer:S.currentLayer, fogRadius:world.fogRadius, fogCenter:world.fogCenter});
 }
 
 function _doSave(label){
@@ -173,6 +173,15 @@ document.getElementById('cloudOverlay').addEventListener('click', (e) => {
   if(e.target === e.currentTarget) _closeCloudModal();
 });
 
+function _updateFogUI(){
+  const sel = document.getElementById('fogRadius');
+  if(sel) sel.value = world.fogRadius;
+  const gxIn = document.getElementById('fogCenterGx');
+  const gyIn = document.getElementById('fogCenterGy');
+  if(gxIn) gxIn.value = world.fogCenter.gx;
+  if(gyIn) gyIn.value = world.fogCenter.gy;
+}
+
 export function loadFromData(data){
   if(data.blocks) setBlocks(data.blocks);
   if(data.camX !== undefined) camera.x = data.camX;
@@ -180,6 +189,9 @@ export function loadFromData(data){
   if(data.zoom !== undefined) camera.zoom = data.zoom;
   if(data.currentHeight !== undefined){ S.currentHeight = data.currentHeight; updateHeightUI(); }
   if(data.currentLayer !== undefined){ S.currentLayer = data.currentLayer; updateLayerUI(); }
+  world.fogRadius = data.fogRadius || 0;
+  world.fogCenter = data.fogCenter || { gx: 0, gy: 0 };
+  _updateFogUI();
   draw();
 }
 

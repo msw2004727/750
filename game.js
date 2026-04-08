@@ -1197,13 +1197,14 @@ function _drawActual(){
   ctx.clearRect(0,0,camera.W,camera.H);
   const vr = getVisibleRange();
 
-  // Fog of war: diamond (Manhattan) distance filter
+  // Fog of war: circular (Euclidean) distance filter
   const fogOn = world.fogRadius > 0;
   const fogR = world.fogRadius / 2;
   const fogCx = world.fogCenter.gx, fogCy = world.fogCenter.gy;
+  const fogR2 = fogR * fogR;
 
   const visible = world.blocks.filter(b => isVisible(b, vr) && !S.hiddenHeights.has(b.gz) && !S.hiddenLayers.has(b.layer)
-    && (!fogOn || (Math.abs(b.gx - fogCx) + Math.abs(b.gy - fogCy)) <= fogR));
+    && (!fogOn || ((b.gx - fogCx) * (b.gx - fogCx) + (b.gy - fogCy) * (b.gy - fogCy)) <= fogR2));
   const sorted = visible.sort((a,b) => {
     return (a.gx+a.gy)*1000+a.gz*10+a.layer - ((b.gx+b.gy)*1000+b.gz*10+b.layer);
   });
@@ -1295,38 +1296,36 @@ function _drawActual(){
     ctx.setLineDash([]);
   }
 
-  // Fog of war overlay
+  // Fog of war overlay — circular with gradient edge
   if(fogOn){
-    const th2 = _stepTH;
-    const n = _pixelPos(fogCx, fogCy - fogR, S.currentHeight);
-    const e = _pixelPos(fogCx + fogR, fogCy, S.currentHeight);
-    const s = _pixelPos(fogCx, fogCy + fogR, S.currentHeight);
-    const w = _pixelPos(fogCx - fogR, fogCy, S.currentHeight);
-    // Dark area outside diamond
+    const center = _pixelPos(fogCx, fogCy, S.currentHeight);
+    const cx = center.x, cy = center.y + _stepTH;
+    // Screen-space radius: use average of TW and TH scaled by zoom and fogR
+    const screenR = fogR * (_stepTW + _stepTH);
+    const innerR = screenR * 0.75;  // fully clear zone
+    // Radial gradient: transparent center → black edge
+    const grad = ctx.createRadialGradient(cx, cy, innerR, cx, cy, screenR);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(0.6, 'rgba(0,0,0,0.3)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.85)');
+    // Draw gradient ring (fog edge)
     ctx.save();
     ctx.beginPath();
     ctx.rect(0, 0, camera.W, camera.H);
-    ctx.moveTo(n.x, n.y + th2);
-    ctx.lineTo(w.x, w.y + th2);
-    ctx.lineTo(s.x, s.y + th2);
-    ctx.lineTo(e.x, e.y + th2);
-    ctx.closePath();
+    ctx.arc(cx, cy, innerR, 0, Math.PI * 2, true);
     ctx.clip('evenodd');
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillStyle = grad;
+    ctx.fillRect(cx - screenR, cy - screenR, screenR * 2, screenR * 2);
+    ctx.restore();
+    // Solid black outside the outer radius
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, camera.W, camera.H);
+    ctx.arc(cx, cy, screenR, 0, Math.PI * 2, true);
+    ctx.clip('evenodd');
+    ctx.fillStyle = 'rgba(0,0,0,0.85)';
     ctx.fillRect(0, 0, camera.W, camera.H);
     ctx.restore();
-    // Diamond border
-    ctx.setLineDash([6,4]);
-    ctx.strokeStyle = 'rgba(100,160,255,0.35)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(n.x, n.y + th2);
-    ctx.lineTo(e.x, e.y + th2);
-    ctx.lineTo(s.x, s.y + th2);
-    ctx.lineTo(w.x, w.y + th2);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.setLineDash([]);
   }
 
   ctx.globalAlpha = 0.5;

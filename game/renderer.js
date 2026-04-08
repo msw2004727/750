@@ -214,21 +214,48 @@ function _drawCharacter(block){
   const subX = st.subX || 0, subY = st.subY || 0;
   const x = p.x + Math.round((subX - subY) * tw);
   const y = p.y + Math.round((subX + subY) * th * 0.5);
-  const action = st.action || 'idle';
+  const facing = st.facing || 'SE';
   const style = st.style || 'outline';
   const actions = st.actions || {};
+  // Choose action: use walk_back for backward movement if available
+  let action = st.action || 'idle';
+  const isBack = (facing === 'NW' || facing === 'NE');
+  if(action === 'walk' && isBack && actions['walk_back']) action = 'walk_back';
+  if(action === 'idle' && isBack && actions['idle_back']) action = 'idle_back';
   const frameCount = actions[action] || 1;
   const frame = S.animTick % frameCount;
   const img = _getCharImg(block.color, style, action, frame);
   if(!img || !img.complete || !img.naturalWidth) return;
   ctx.imageSmoothingEnabled = false;
-  // Draw character centered on tile, scaled to tile width
+  // Mirror horizontally when facing left (SW or NW)
+  const shouldFlip = (facing === 'SW' || facing === 'NW');
+  // Flip transition animation (squeeze & expand)
+  if(st._flipState === undefined) st._flipState = shouldFlip ? -1 : 1;
+  const targetFlip = shouldFlip ? -1 : 1;
+  if(st._flipState !== targetFlip){
+    // Animate: move toward 0 first (squeeze), then to target (expand)
+    const speed = 0.15;
+    if(Math.abs(st._flipState) > 0.05){
+      st._flipState -= Math.sign(st._flipState) * speed;
+    } else {
+      st._flipState = targetFlip * 0.05;
+    }
+    if(Math.sign(st._flipState) === Math.sign(targetFlip)){
+      st._flipState += Math.sign(targetFlip) * speed;
+      if(Math.abs(st._flipState) >= 1) st._flipState = targetFlip;
+    }
+    S._dirty = true; // keep redrawing during transition
+  }
+  const flipScale = st._flipState;
   const scale = (tw * 2) / img.naturalWidth;
   const dw = Math.round(img.naturalWidth * scale);
   const dh = Math.round(img.naturalHeight * scale);
-  const dx = x - dw / 2;
-  const dy = y + th - dh; // feet at tile center bottom
-  ctx.drawImage(img, dx, dy, dw, dh);
+  const dy = y + th - dh;
+  ctx.save();
+  ctx.translate(x, 0);
+  ctx.scale(flipScale, 1);
+  ctx.drawImage(img, -dw / 2, dy, dw, dh);
+  ctx.restore();
   // Shadow ellipse
   ctx.globalAlpha = 0.2;
   ctx.fillStyle = '#000';

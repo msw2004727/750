@@ -33,8 +33,10 @@ const ORDER = [
   'playMode.js',
   'resourceUI.js',
   'characterLib.js',
+  'floatingFX.js',
   'charMove.js',
   'charAI.js',
+  'combatAI.js',
   'main.js',
 ];
 

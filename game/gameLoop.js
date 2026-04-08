@@ -1,6 +1,8 @@
 import { S, game } from './state.js';
 import { bus } from './eventBus.js';
 import { tickMovement, isAnyMoving } from './charMove.js';
+import { updateProjectiles, updateFloats } from './floatingFX.js';
+import { onProjectileHit } from './combatAI.js';
 
 // ── Real draw registration (renderer registers its draw function here) ──
 let _realDraw = () => {};
@@ -46,6 +48,8 @@ function loop(now) {
   // Character movement sub-tick (200ms steps)
   if (game.running) {
     tickMovement(now);
+    updateProjectiles(now, onProjectileHit);
+    updateFloats(now);
     if (isAnyMoving()) S._dirty = true;
   }
 

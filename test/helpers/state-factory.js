@@ -12,6 +12,8 @@ export function resetState() {
   world.blocks = [];
   world.fogRadius = 0;
   world.fogCenter = { gx: 0, gy: 0 };
+  world.projectiles = [];
+  world.floats = [];
 
   // Camera
   camera.x = 0;

@@ -14,7 +14,7 @@ const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 
 // ── Separated sub-objects ──
-const world = { blocks: [], fogRadius: 0, fogCenter: { gx: 0, gy: 0 } };
+const world = { blocks: [], fogRadius: 0, fogCenter: { gx: 0, gy: 0 }, projectiles: [], floats: [] };
 const camera = { x: 0, y: 0, zoom: 1, W: 0, H: 0 };
 const game = { running: false, resources: {}, lastTick: 0 };
 
@@ -530,6 +530,8 @@ function loop(now) {
   // Character movement sub-tick (200ms steps)
   if (game.running) {
     tickMovement(now);
+    updateProjectiles(now, onProjectileHit);
+    updateFloats(now);
     if (isAnyMoving()) S._dirty = true;
   }
 
@@ -1587,6 +1589,10 @@ function _drawActual(){
     ctx.stroke();
     ctx.setLineDash([]);
   }
+
+  // Projectiles + floating numbers (before fog so they're visible in clear area)
+  drawProjectiles();
+  drawFloats();
 
   // Fog of war overlay — circular with gradient edge
   if(fogOn){
@@ -4103,11 +4109,11 @@ const ACTION_LABEL = {
 
 // ── Class base stats ──
 const CLASS_STATS = {
-  '村民': { hp:30, atk:3,  def:1, spd:3, range:1, atkSpeed:1.0 },
-  '步兵': { hp:80, atk:10, def:8, spd:2, range:1, atkSpeed:1.2 },
-  '射手': { hp:50, atk:12, def:3, spd:2, range:4, atkSpeed:1.5 },
-  '法師': { hp:45, atk:15, def:2, spd:1, range:3, atkSpeed:2.0 },
-  '騎兵': { hp:70, atk:12, def:5, spd:4, range:1, atkSpeed:1.0 },
+  '村民': { hp:30, atk:3,  def:1, spd:3, range:1, atkSpeed:1.0, maxMp:0,   mpCost:0  },
+  '步兵': { hp:80, atk:10, def:8, spd:2, range:1, atkSpeed:1.2, maxMp:0,   mpCost:0  },
+  '射手': { hp:50, atk:12, def:3, spd:2, range:4, atkSpeed:1.5, maxMp:0,   mpCost:0  },
+  '法師': { hp:45, atk:15, def:2, spd:1, range:3, atkSpeed:2.0, maxMp:100, mpCost:15 },
+  '騎兵': { hp:70, atk:12, def:5, spd:4, range:1, atkSpeed:1.0, maxMp:0,   mpCost:0  },
 };
 
 // ── Faction system ──
@@ -4394,6 +4400,10 @@ document.getElementById('charPlaceBtn').addEventListener('click', () => {
       charType: _curChar.type,
       faction: faction,
       curHp: stats.hp,
+      curMp: stats.maxMp,
+      aiState: 'idle',
+      outOfCombatTicks: 0,
+      attackCooldown: 0,
       action: 'idle',
       style: _style,
       facing: 'right',
@@ -4446,6 +4456,140 @@ function canMoveTo(charBlock, nx, ny){
 }
 
 // Export CHARS for external use
+
+
+// ── floatingFX.js ──
+// ── Floating damage/heal numbers + projectile visuals ──
+
+
+const FLOAT_DURATION = 900;
+const FLOAT_RISE = 40;
+const FLOAT_STACK_GAP = 18;
+const MAX_FLOATS = 40;
+
+const FX_COLORS = {
+  dmgPhys:  '#ff3333',
+  dmgMagic: '#cc44ff',
+  heal:     '#33ff66',
+  mpCost:   '#4488ff',
+  mpRecover:'#44ddff',
+};
+
+// ── Spawn floating number ──
+function spawnFloat(gx, gy, gz, text, type){
+  const p = toScreen(gx, gy, gz);
+  // Count recent floats at same position for stacking
+  const now = performance.now();
+  const nearby = world.floats.filter(f => Math.abs(f.sx - p.x) < 10 && Math.abs(f.sy - p.y) < 10 && now - f.born < 500);
+  world.floats.push({
+    sx: p.x, sy: p.y,
+    text: String(text),
+    color: FX_COLORS[type] || '#fff',
+    born: now,
+    slot: nearby.length,
+  });
+  if(world.floats.length > MAX_FLOATS) world.floats.shift();
+  S._dirty = true;
+}
+
+// ── Spawn projectile ──
+function spawnProjectile(srcGx, srcGy, srcGz, tgtGx, tgtGy, tgtGz, type, damage, targetId){
+  const s = toScreen(srcGx, srcGy, srcGz);
+  const t = toScreen(tgtGx, tgtGy, tgtGz);
+  const duration = type === 'arrow' ? 250 : 400;
+  world.projectiles.push({
+    sx: s.x, sy: s.y, tx: t.x, ty: t.y,
+    born: performance.now(),
+    duration,
+    type, damage, targetId,
+  });
+  S._dirty = true;
+}
+
+// ── Update projectiles (called from gameLoop) ──
+function updateProjectiles(now, onHit){
+  const alive = [];
+  for(const p of world.projectiles){
+    const t = (now - p.born) / p.duration;
+    if(t >= 1){
+      // Arrived → trigger hit callback
+      if(onHit) onHit(p);
+    } else {
+      p._progress = t;
+      alive.push(p);
+    }
+  }
+  world.projectiles = alive;
+  if(alive.length > 0) S._dirty = true;
+}
+
+// ── Update floats (prune expired) ──
+function updateFloats(now){
+  world.floats = world.floats.filter(f => now - f.born < FLOAT_DURATION);
+  if(world.floats.length > 0) S._dirty = true;
+}
+
+// ── Render floating numbers ──
+function drawFloats(){
+  const now = performance.now();
+  ctx.save();
+  for(const f of world.floats){
+    const elapsed = now - f.born;
+    const t = elapsed / FLOAT_DURATION;
+    const rise = FLOAT_RISE * (1 - (1 - t) * (1 - t)); // ease-out
+    const alpha = t > 0.55 ? 1 - (t - 0.55) / 0.45 : 1;
+    const x = f.sx;
+    const y = f.sy - rise - f.slot * FLOAT_STACK_GAP;
+    ctx.globalAlpha = alpha;
+    ctx.font = 'bold 14px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    // Black outline
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 3;
+    ctx.lineJoin = 'round';
+    ctx.strokeText(f.text, x, y);
+    ctx.fillStyle = f.color;
+    ctx.fillText(f.text, x, y);
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+// ── Render projectiles ──
+function drawProjectiles(){
+  const now = performance.now();
+  ctx.save();
+  for(const p of world.projectiles){
+    const t = p._progress || 0;
+    const x = p.sx + (p.tx - p.sx) * t;
+    const y = p.sy + (p.ty - p.sy) * t;
+    if(p.type === 'arrow'){
+      // Line segment pointing toward target
+      const angle = Math.atan2(p.ty - p.sy, p.tx - p.sx);
+      ctx.strokeStyle = '#ffcc44';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x - Math.cos(angle) * 6, y - Math.sin(angle) * 6);
+      ctx.lineTo(x + Math.cos(angle) * 3, y + Math.sin(angle) * 3);
+      ctx.stroke();
+    } else {
+      // Magic orb with trail
+      for(let i = 2; i >= 0; i--){
+        const tt = Math.max(0, t - i * 0.05);
+        const tx2 = p.sx + (p.tx - p.sx) * tt;
+        const ty2 = p.sy + (p.ty - p.sy) * tt;
+        ctx.globalAlpha = [0.8, 0.4, 0.15][i];
+        ctx.fillStyle = '#cc44ff';
+        ctx.beginPath();
+        ctx.arc(tx2, ty2, 4 - i, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+  ctx.restore();
+}
 
 
 // ── charMove.js ──
@@ -4692,6 +4836,242 @@ function _tickAI(){
 bus.on('play:tick', () => {
   _tickAI();
 });
+
+
+// ── combatAI.js ──
+// ── Combat AI: attack, flee, rest, damage, death ──
+
+
+const FLEE_SPEED_MULT = 1.5;
+const REST_THRESHOLD = 5; // ticks out of combat before rest
+const LOW_HP_PCT = 0.2;
+const MP_FLEE_THRESHOLD = 15;
+const MP_REENGAGE = 30;
+
+// ── Find nearest hostile in range ──
+function _findTarget(ch){
+  const stats = getClassStats(ch.state.clsLabel);
+  const range = stats.range;
+  let best = null, bestDist = Infinity;
+  for(const b of world.blocks){
+    if(b.type !== 'character' || b === ch) continue;
+    if(b.state.aiState === 'dead') continue;
+    const rel = getRelation(ch.state.faction, b.state.faction);
+    if(rel !== 'hostile' && rel !== 'flee') continue;
+    const dist = Math.max(Math.abs(b.gx - ch.gx), Math.abs(b.gy - ch.gy)); // Chebyshev
+    if(dist <= range && dist < bestDist){
+      bestDist = dist;
+      best = { target: b, dist, relation: rel };
+    }
+  }
+  return best;
+}
+
+// ── Find nearest threat (for flee detection, larger range) ──
+function _findThreat(ch){
+  const detectionRange = 6;
+  let best = null, bestDist = Infinity;
+  for(const b of world.blocks){
+    if(b.type !== 'character' || b === ch) continue;
+    if(b.state.aiState === 'dead') continue;
+    const rel = getRelation(ch.state.faction, b.state.faction);
+    if(rel !== 'hostile' && rel !== 'flee') continue;
+    const dist = Math.max(Math.abs(b.gx - ch.gx), Math.abs(b.gy - ch.gy));
+    if(dist <= detectionRange && dist < bestDist){
+      bestDist = dist;
+      best = b;
+    }
+  }
+  return best;
+}
+
+// ── Should this character flee? ──
+function _shouldFlee(ch){
+  const st = ch.state;
+  const stats = getClassStats(st.clsLabel);
+  if(st.faction === '善良') return true;
+  if(st.curHp < stats.hp * LOW_HP_PCT) return true;
+  if(st.charType === '魔法' && (st.curMp || 0) < MP_FLEE_THRESHOLD) return true;
+  return false;
+}
+
+// ── Apply damage to target ──
+function _applyDamage(attacker, target, damage, isMagic){
+  const st = target.state;
+  const actualDmg = Math.max(1, damage);
+  st.curHp = Math.max(0, st.curHp - actualDmg);
+  st.action = 'hurt';
+  st.outOfCombatTicks = 0;
+  spawnFloat(target.gx, target.gy, target.gz,
+    '-' + actualDmg, isMagic ? 'dmgMagic' : 'dmgPhys');
+  if(st.curHp <= 0){
+    st.aiState = 'dead';
+    st.action = st.actions && st.actions.death ? 'death' : 'hurt';
+    // Remove after delay
+    setTimeout(() => {
+      if(world.blocks.includes(target)) removeBlock(target);
+      S._dirty = true;
+    }, 600);
+  }
+}
+
+// ── Projectile hit callback ──
+function _onProjectileHit(proj){
+  const target = world.blocks.find(b => b.id === proj.targetId);
+  if(!target || target.state.aiState === 'dead') return;
+  const stats = getClassStats(target.state.clsLabel);
+  const def = stats.def;
+  const isMagic = proj.type === 'magic';
+  const effectiveDef = isMagic ? Math.floor(def * 0.5) : def;
+  _applyDamage(null, target, proj.damage - effectiveDef, isMagic);
+}
+
+// ── Combat tick (called from play:tick) ──
+function _tickCombat(){
+  const chars = world.blocks.filter(b => b.type === 'character' && b.state.aiState !== 'dead');
+
+  for(const ch of chars){
+    const st = ch.state;
+    const stats = getClassStats(st.clsLabel);
+
+    // Decrement attack cooldown
+    if(st.attackCooldown > 0) st.attackCooldown--;
+
+    const threat = _findThreat(ch);
+
+    // ── No threat: rest or explore ──
+    if(!threat){
+      st.outOfCombatTicks = (st.outOfCombatTicks || 0) + 1;
+      if(st.outOfCombatTicks >= REST_THRESHOLD){
+        st.aiState = 'rest';
+        // HP regen
+        if(st.curHp < stats.hp){
+          const heal = Math.ceil(stats.hp * 0.05);
+          st.curHp = Math.min(stats.hp, st.curHp + heal);
+          spawnFloat(ch.gx, ch.gy, ch.gz, '+' + heal, 'heal');
+        }
+        // MP regen
+        if(stats.maxMp > 0 && st.curMp < stats.maxMp){
+          const mpHeal = 8;
+          st.curMp = Math.min(stats.maxMp, (st.curMp || 0) + mpHeal);
+          spawnFloat(ch.gx, ch.gy, ch.gz, '+' + mpHeal, 'mpRecover');
+        }
+      }
+      if(st.aiState !== 'rest') st.aiState = 'idle';
+      continue;
+    }
+
+    // Has a threat → reset out-of-combat counter
+    st.outOfCombatTicks = 0;
+
+    // ── Flee? ──
+    if(_shouldFlee(ch)){
+      st.aiState = 'flee';
+      st.action = 'walk';
+      // Move away from threat
+      const dx = ch.gx - threat.gx;
+      const dy = ch.gy - threat.gy;
+      const fleeX = ch.gx + Math.sign(dx || 1);
+      const fleeY = ch.gy + Math.sign(dy || 1);
+      // Try flee direction, then perpendicular
+      const tries = [[fleeX, ch.gy], [ch.gx, fleeY], [fleeX, fleeY]];
+      for(const [nx, ny] of tries){
+        if(canMoveTo(ch, nx, ny)){
+          st._targetGx = nx; st._targetGy = ny;
+          const slot = findFreeSlot(nx, ny, ch.gz, 0.25, 0.25, ch);
+          st._targetSubX = slot.sx; st._targetSubY = slot.sy;
+          break;
+        }
+      }
+      // MP regen while fleeing (slow)
+      if(stats.maxMp > 0 && st.curMp < stats.maxMp){
+        st.curMp = Math.min(stats.maxMp, (st.curMp || 0) + 2);
+      }
+      // Check re-engage for magic users
+      if(st.charType === '魔法' && st.curMp >= MP_REENGAGE && st.curHp >= stats.hp * LOW_HP_PCT){
+        if(st.faction !== '善良') st.aiState = 'idle'; // re-engage next tick
+      }
+      continue;
+    }
+
+    // ── In range: attack ──
+    const found = _findTarget(ch);
+    if(found && found.relation === 'hostile'){
+      const target = found.target;
+      st.aiState = 'attack';
+
+      // Face target
+      st.facing = (target.gx > ch.gx || target.gy < ch.gy) ? 'right' : 'left';
+
+      if(st.attackCooldown <= 0){
+        // Set cooldown (atkSpeed in seconds, ticks are 1s each via play:tick)
+        st.attackCooldown = Math.ceil(stats.atkSpeed);
+
+        const isMagic = st.charType === '魔法';
+        const damage = stats.atk;
+
+        // MP check for magic
+        if(isMagic && stats.mpCost > 0){
+          if((st.curMp || 0) < stats.mpCost) continue; // can't afford
+          st.curMp -= stats.mpCost;
+          spawnFloat(ch.gx, ch.gy, ch.gz, '-' + stats.mpCost, 'mpCost');
+        }
+
+        // Choose attack animation
+        if(isMagic && st.actions){
+          const casts = ['cast_1','cast_2','cast_3','cast_4'].filter(a => st.actions[a]);
+          st.action = casts.length > 0 ? casts[Math.floor(Math.random() * casts.length)] : 'attack';
+        } else {
+          st.action = 'attack';
+        }
+
+        // Melee or ranged?
+        if(stats.range <= 1){
+          // Melee: apply damage directly
+          const def = getClassStats(target.state.clsLabel).def;
+          _applyDamage(ch, target, damage - def, isMagic);
+        } else {
+          // Ranged: spawn projectile
+          spawnProjectile(
+            ch.gx, ch.gy, ch.gz,
+            target.gx, target.gy, target.gz,
+            isMagic ? 'magic' : 'arrow',
+            damage, target.id
+          );
+        }
+
+        // In-combat MP regen (slow)
+        if(stats.maxMp > 0 && st.curMp < stats.maxMp){
+          st.curMp = Math.min(stats.maxMp, (st.curMp || 0) + 2);
+        }
+      } else {
+        st.action = 'idle'; // waiting for cooldown
+      }
+      continue;
+    }
+
+    // ── Threat exists but out of attack range: approach ──
+    if(threat){
+      st.aiState = 'approach';
+      st.action = 'walk';
+      const dx = Math.sign(threat.gx - ch.gx);
+      const dy = Math.sign(threat.gy - ch.gy);
+      const tries = [[ch.gx + dx, ch.gy], [ch.gx, ch.gy + dy], [ch.gx + dx, ch.gy + dy]];
+      for(const [nx, ny] of tries){
+        if(canMoveTo(ch, nx, ny)){
+          st._targetGx = nx; st._targetGy = ny;
+          const slot = findFreeSlot(nx, ny, ch.gz, 0.25, 0.25, ch);
+          st._targetSubX = slot.sx; st._targetSubY = slot.sy;
+          break;
+        }
+      }
+    }
+  }
+
+  S._dirty = true;
+}
+
+bus.on('play:tick', _tickCombat);
 
 
 // ── main.js ──

@@ -19,6 +19,7 @@ import { togglePlay } from './playMode.js';
 import './resourceUI.js';
 import './charMove.js';
 import './charAI.js';
+import './combatAI.js';
 
 // ── Load saved state or default blocks ──
 import { loadFromData } from './saveLoad.js';

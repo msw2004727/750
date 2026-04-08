@@ -19,11 +19,11 @@ const ACTION_LABEL = {
 
 // ── Class base stats ──
 const CLASS_STATS = {
-  '村民': { hp:30, atk:3,  def:1, spd:3, range:1, atkSpeed:1.0 },
-  '步兵': { hp:80, atk:10, def:8, spd:2, range:1, atkSpeed:1.2 },
-  '射手': { hp:50, atk:12, def:3, spd:2, range:4, atkSpeed:1.5 },
-  '法師': { hp:45, atk:15, def:2, spd:1, range:3, atkSpeed:2.0 },
-  '騎兵': { hp:70, atk:12, def:5, spd:4, range:1, atkSpeed:1.0 },
+  '村民': { hp:30, atk:3,  def:1, spd:3, range:1, atkSpeed:1.0, maxMp:0,   mpCost:0  },
+  '步兵': { hp:80, atk:10, def:8, spd:2, range:1, atkSpeed:1.2, maxMp:0,   mpCost:0  },
+  '射手': { hp:50, atk:12, def:3, spd:2, range:4, atkSpeed:1.5, maxMp:0,   mpCost:0  },
+  '法師': { hp:45, atk:15, def:2, spd:1, range:3, atkSpeed:2.0, maxMp:100, mpCost:15 },
+  '騎兵': { hp:70, atk:12, def:5, spd:4, range:1, atkSpeed:1.0, maxMp:0,   mpCost:0  },
 };
 
 // ── Faction system ──
@@ -310,6 +310,10 @@ document.getElementById('charPlaceBtn').addEventListener('click', () => {
       charType: _curChar.type,
       faction: faction,
       curHp: stats.hp,
+      curMp: stats.maxMp,
+      aiState: 'idle',
+      outOfCombatTicks: 0,
+      attackCooldown: 0,
       action: 'idle',
       style: _style,
       facing: 'right',

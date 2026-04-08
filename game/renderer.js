@@ -7,6 +7,7 @@ import { setRealDraw } from './gameLoop.js';
 import { drawGrid, drawVGrid } from './gridOverlay.js';
 import { drawMinimap } from './minimap.js';
 import { CHARS, IMG_BASE, FACTION_COLORS } from './characterLib.js';
+import { drawProjectiles, drawFloats } from './floatingFX.js';
 
 // ── Shake animation (gameLoop handles the timing) ──
 export function triggerShake(block){
@@ -406,6 +407,10 @@ function _drawActual(){
     ctx.stroke();
     ctx.setLineDash([]);
   }
+
+  // Projectiles + floating numbers (before fog so they're visible in clear area)
+  drawProjectiles();
+  drawFloats();
 
   // Fog of war overlay — circular with gradient edge
   if(fogOn){

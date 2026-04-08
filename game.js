@@ -1492,7 +1492,7 @@ function _showPropertyPanel(block, cx, cy){
   function _updateBlock(){
     document.getElementById('_prop_高度').textContent = block.gz;
     document.getElementById('_prop_圖層').textContent = block.layer;
-    // Auto-switch to the block's new height+layer
+    document.getElementById('_prop_偏移').textContent = block.yOffset || 0;
     S.currentHeight = block.gz;
     S.currentLayer = block.layer;
     document.getElementById('heightNum').textContent = S.currentHeight;
@@ -1506,6 +1506,10 @@ function _showPropertyPanel(block, cx, cy){
   _makeRow('圖層', block.layer,
     () => { if(block.layer < 5){ saveSnapshot(); shRemove(block); block.layer++; shAdd(block); _updateBlock(); draw(); }},
     () => { if(block.layer > 0){ saveSnapshot(); shRemove(block); block.layer--; shAdd(block); _updateBlock(); draw(); }}
+  );
+  _makeRow('偏移', block.yOffset || 0,
+    () => { if((block.yOffset||0) < 5){ saveSnapshot(); block.yOffset = Math.round(((block.yOffset||0) + 0.25) * 100) / 100; _updateBlock(); draw(); }},
+    () => { if((block.yOffset||0) > 0){ saveSnapshot(); block.yOffset = Math.round(((block.yOffset||0) - 0.25) * 100) / 100; _updateBlock(); draw(); }}
   );
 
   // Close button
@@ -1556,7 +1560,7 @@ function onCtx(e){
       const nx = hit.gx+dx, ny = hit.gy+dy;
       if(!hasBlockAt(nx, ny, S.currentHeight, null, S.currentLayer)){
         saveSnapshot();
-        addBlock({gx:nx, gy:ny, gz:hit.gz, layer:hit.layer, color:hit.color, srcH:hit.srcH, yOffset:hit.yOffset||0});
+        addBlock({gx:nx, gy:ny, gz:hit.gz, layer:hit.layer, color:hit.color, srcH:hit.srcH, yOffset:hit.yOffset||0, state:{...(hit.state||{})}});
         draw();
         return;
       }
@@ -1658,7 +1662,7 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault();
       const sel = [...S.selectedBlocks];
       const minGx = Math.min(...sel.map(b=>b.gx)), minGy = Math.min(...sel.map(b=>b.gy));
-      S.clipboard = sel.map(b => ({dx:b.gx-minGx, dy:b.gy-minGy, color:b.color, srcH:b.srcH, yOffset:b.yOffset||0}));
+      S.clipboard = sel.map(b => ({dx:b.gx-minGx, dy:b.gy-minGy, color:b.color, srcH:b.srcH, yOffset:b.yOffset||0, state:{...(b.state||{})}}));
     }
   }
   if(e.ctrlKey && e.key === 'v'){
@@ -1671,7 +1675,7 @@ document.addEventListener('keydown', (e) => {
       for(const t of S.clipboard){
         const nx = gx+t.dx, ny = gy+t.dy;
         if(!hasBlockAt(nx, ny, S.currentHeight, null, S.currentLayer)){
-          const b = {gx:nx, gy:ny, gz:S.currentHeight, layer:S.currentLayer, color:t.color, srcH:t.srcH, yOffset:t.yOffset};
+          const b = {gx:nx, gy:ny, gz:S.currentHeight, layer:S.currentLayer, color:t.color, srcH:t.srcH, yOffset:t.yOffset, state:{...(t.state||{})}};
           addBlock(b);
           pasted.push(b);
         }
@@ -2265,7 +2269,7 @@ function onDown(e){
   if((e.ctrlKey || S.copyMode) && hit){
     if(hit.gz !== S.currentHeight || hit.layer !== S.currentLayer) return;
     saveSnapshot();
-    const clone = {gx:hit.gx, gy:hit.gy, gz:hit.gz, layer:hit.layer, color:hit.color, srcH:hit.srcH};
+    const clone = {gx:hit.gx, gy:hit.gy, gz:hit.gz, layer:hit.layer, color:hit.color, srcH:hit.srcH, yOffset:hit.yOffset||0, state:{...(hit.state||{})}};
     addBlock(clone);
     S.reachableSet = null;
     S.groupOffsets = null;
@@ -3265,7 +3269,7 @@ document.getElementById('comboSave').addEventListener('click', () => {
   if(!name) return;
   const minGx = Math.min(...sel.map(b => b.gx));
   const minGy = Math.min(...sel.map(b => b.gy));
-  const tiles = sel.map(b => ({dx:b.gx - minGx, dy:b.gy - minGy, color:b.color, srcH:b.srcH, yOffset:b.yOffset||0}));
+  const tiles = sel.map(b => ({dx:b.gx - minGx, dy:b.gy - minGy, color:b.color, srcH:b.srcH, yOffset:b.yOffset||0, state:{...(b.state||{})}}));
   S.combos.push({name, tiles});
   saveCombos();
   S.selectedBlocks = new Set();
@@ -3282,7 +3286,7 @@ document.getElementById('comboPlace').addEventListener('click', () => {
     const gx = spot.gx + t.dx;
     const gy = spot.gy + t.dy;
     if(!hasBlockAt(gx, gy, S.currentHeight, null, S.currentLayer)){
-      addBlock({gx, gy, gz:S.currentHeight, layer:S.currentLayer, color:t.color, srcH:t.srcH});
+      addBlock({gx, gy, gz:S.currentHeight, layer:S.currentLayer, color:t.color, srcH:t.srcH, yOffset:t.yOffset||0, state:{...(t.state||{})}});
     }
   }
   draw();

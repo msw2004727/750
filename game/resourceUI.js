@@ -19,7 +19,7 @@ function _resetRateTracking(){
 _resetRateTracking();
 
 // Called by game tick to record production deltas
-export function recordProduction(element, amount){
+function recordProduction(element, amount){
   _rateAccum[element] = (_rateAccum[element] || 0) + amount;
 }
 

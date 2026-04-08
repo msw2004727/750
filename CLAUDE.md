@@ -12,12 +12,13 @@
 ├── build.cjs               # 打包腳本：node build.cjs（CommonJS）
 ├── package.json            # type:module + npm test 腳本
 ├── CLAUDE.md
-├── game/                   # 源碼模組（開發時編輯這裡，25 個模組）
+├── game/                   # 源碼模組（開發時編輯這裡，35 個模組）
 │   ├── main.js             # 入口：預設方塊 + 初始化
 │   ├── constants.js        # 網格常數 (TILE, TW, TH, CUBE_H)
 │   ├── state.js            # 集中狀態 S 物件 + draw 註冊
 │   ├── tileData.js         # 素材定義 + 圖片預載
 │   ├── spatialHash.js      # 空間雜湊 + 方塊 CRUD + animBlockCount
+│   ├── charData.js         # 角色純資料 + 查詢函式（Data 層）
 │   ├── coords.js           # 座標轉換 (toScreen/toGrid/snap)
 │   ├── blocks.js           # 碰撞、flood fill、連通選取（用 spatial hash）
 │   ├── geometry.js         # 純幾何計算（矩形/線段/flood fill）
@@ -25,18 +26,20 @@
 │   ├── gridOverlay.js      # 格線 + 立體格線繪製
 │   ├── minimap.js          # 右下角小地圖
 │   ├── history.js          # undo/redo + Ctrl+Z/Y/C/V + 觸發自動存檔
-│   ├── renderer.js         # 所有繪製 + 動畫 + draw()
+│   ├── renderChar.js       # 角色精靈渲染（Engine 層）
+│   ├── renderer.js         # 方塊繪製 + 迷霧 + draw()
 │   ├── hitTest.js          # 等距方塊點擊偵測
 │   ├── contextMenu.js      # 右鍵選單 + 屬性面板
 │   ├── staging.js          # 暫存區 + 拖曳系統
 │   ├── inputDrag.js        # 方塊拖曳機制（start/update/end + overlay）
 │   ├── input.js            # 滑鼠/鍵盤事件分派（狀態機）
 │   ├── touch.js            # 手機觸控 + 雙指縮放
+│   ├── tilePropertyMenu.js # 素材屬性右鍵選單（高度/屬性/裁切）
 │   ├── palette.js          # 素材面板 + 搜尋（共用 _createTileButton）
 │   ├── saveLoad.js         # 儲存/載入/匯出 + 自動存檔 + Ctrl+S
 │   ├── combos.js           # 自訂組合
-│   └── ui.js               # 工具開關 + 面板 + 說明 + toast + 快捷鍵
-├── test/                   # 自動化測試（86 個案例）
+│   └── ui.js               # 工具開關 + 高度/圖層 + 說明 + toast + 快捷鍵
+├── test/                   # 自動化測試（118 個案例）
 │   ├── helpers/
 │   │   ├── dom-stub.js     # 輕量 DOM/Canvas/localStorage 模擬
 │   │   └── state-factory.js # resetState() 測試隔離
@@ -51,7 +54,10 @@
 │   ├── tools.test.js       # 工具委派
 │   ├── renderer.test.js    # visibleRange
 │   ├── minimap.test.js     # minimapToGrid
-│   └── gameLoop.test.js    # drawNow
+│   ├── gameLoop.test.js    # drawNow
+│   ├── charData.test.js    # 角色資料 + 查詢函式
+│   ├── combatAI.test.js    # 戰鬥傷害計算
+│   └── charMove.test.js    # 角色移動 + 子格系統
 ├── 素材/
 │   ├── isometric tileset/        # A 組（115 張 32x32）
 │   ├── isometric_jumpstart_v230311/  # B 組（132 張，32x32 + 32x48）
@@ -64,7 +70,7 @@
 ## 開發工作流
 1. 編輯 `game/*.js` 模組
 2. 執行 `node build.cjs` 打包成 `game.js`
-3. 執行 `npm test` 驗證（86 個自動化測試）
+3. 執行 `npm test` 驗證（118 個自動化測試）
 4. 直接開 `index.html`（支援 file://）
 5. 或用 HTTP server 開發模式：改 index.html 為 `<script type="module" src="game/main.js">`
 
@@ -294,6 +300,7 @@ Data → Engine               ✗ 禁止
 
 ### 已知的模組循環（安全）
 - `ui.js → history.js → saveLoad.js → ui.js`（全部是函式呼叫，非頂層取值，執行期安全）
+- `gameLoop.js` import `charMove.js`、`floatingFX.js`、`combatAI.js`（前向引用，runtime 安全：gameLoop 在 ORDER 靠前但只在 rAF 回呼中呼叫這些函式）
 
 ## 遊戲設計（Game Design）
 

@@ -3,30 +3,7 @@ import { drawNow } from './gameLoop.js';
 import { TILES, SOURCES } from './tileData.js';
 import { setBlocks } from './spatialHash.js';
 import { toScreen } from './coords.js';
-import { showToast } from './ui.js';
-
-export function updateHeightUI(){
-  const el = document.getElementById('heightNum');
-  if(el) el.textContent = S.currentHeight;
-}
-export function updateLayerUI(){
-  const el = document.getElementById('layerNum');
-  if(el) el.textContent = S.currentLayer;
-}
-
-// ── Height + Layer controls ──
-document.getElementById('heightUp').addEventListener('click', () => {
-  if(S.currentHeight < 5){ S.currentHeight++; updateHeightUI(); draw(); }
-});
-document.getElementById('heightDown').addEventListener('click', () => {
-  if(S.currentHeight > -5){ S.currentHeight--; updateHeightUI(); draw(); }
-});
-document.getElementById('layerUp').addEventListener('click', () => {
-  if(S.currentLayer < 5){ S.currentLayer++; updateLayerUI(); draw(); }
-});
-document.getElementById('layerDown').addEventListener('click', () => {
-  if(S.currentLayer > 0){ S.currentLayer--; updateLayerUI(); draw(); }
-});
+import { showToast, updateHeightUI, updateLayerUI } from './ui.js';
 
 // ── Save / Save As / Load ──
 function _buildSaveData(){

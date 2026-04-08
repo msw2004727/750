@@ -636,6 +636,122 @@ function setBlocks(newBlocks){
 }
 
 
+// ── charData.js ──
+// ── Character Data: pure data + query helpers (Data layer) ──
+
+
+const IMG_BASE = '%E7%B4%A0%E6%9D%90/%E4%BA%BA%E7%89%A9/%E5%88%87%E5%89%B2/';
+const CHAR_LAYER = 6; // above tiles (0-5) but below gz+1 in sort key
+
+// Action English → Chinese label
+const ACTION_LABEL = {
+  idle:'待機', walk:'走路', idle_back:'待機(背面)', walk_back:'走路(背面)',
+  interact:'互動', attack:'攻擊', attack_back:'攻擊(背面)',
+  hurt:'受傷', death:'死亡', block:'防禦', reload:'裝填',
+  cast_1:'施法1', cast_2:'施法2', cast_3:'施法3', cast_4:'施法4',
+  work_1:'工作1', work_2:'工作2', run:'奔跑',
+};
+
+// ── Class base stats ──
+const CLASS_STATS = {
+  '村民': { hp:30, atk:3,  def:1, spd:3, range:1, atkSpeed:1.0, maxMp:0,   mpCost:0  },
+  '步兵': { hp:80, atk:10, def:8, spd:2, range:1, atkSpeed:1.2, maxMp:0,   mpCost:0  },
+  '射手': { hp:50, atk:12, def:3, spd:2, range:4, atkSpeed:1.5, maxMp:0,   mpCost:0  },
+  '法師': { hp:45, atk:15, def:2, spd:1, range:3, atkSpeed:2.0, maxMp:100, mpCost:15 },
+  '騎兵': { hp:70, atk:12, def:5, spd:4, range:1, atkSpeed:1.0, maxMp:0,   mpCost:0  },
+};
+
+// ── Faction system ──
+const FACTIONS = ['正義','反派','邪惡','善良'];
+const FACTION_COLORS = { '正義':'#4A9FDD', '反派':'#E85050', '邪惡':'#9B59B6', '善良':'#5CBF5C' };
+const FACTION_LABELS = { '正義':'Justice', '反派':'Villain', '邪惡':'Evil', '善良':'Gentle' };
+
+// Relation matrix: how factionA reacts to factionB
+// 'hostile' = attack, 'flee' = run away, 'neutral' = ignore
+const RELATIONS = {
+  '正義': { '正義':'neutral', '反派':'hostile', '邪惡':'hostile', '善良':'neutral' },
+  '反派': { '正義':'hostile', '反派':'neutral', '邪惡':'hostile', '善良':'neutral' },
+  '邪惡': { '正義':'hostile', '反派':'hostile', '邪惡':'neutral', '善良':'hostile' },
+  '善良': { '正義':'neutral', '反派':'flee',    '邪惡':'flee',    '善良':'neutral' },
+};
+
+function getRelation(factionA, factionB){
+  if(!RELATIONS[factionA]) return 'neutral';
+  return RELATIONS[factionA][factionB] || 'neutral';
+}
+
+function getClassStats(clsLabel){
+  return CLASS_STATS[clsLabel] || CLASS_STATS['村民'];
+}
+
+// Character database
+const CHARS = [
+  {name:'NobleMan',     label:'貴族男',   cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,walk_back:3,interact:4}},
+  {name:'NobleWoman',   label:'貴族女',   cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,walk_back:3,interact:4}},
+  {name:'OldMan',       label:'老人',     cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,walk_back:3,interact:3}},
+  {name:'OldWoman',     label:'老婦',     cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,walk_back:3,interact:4}},
+  {name:'VillagerMan',  label:'村民男',   cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,walk_back:3,interact:4}},
+  {name:'VillagerWoman',label:'村民女',   cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,walk_back:3,interact:4}},
+  {name:'Princess',     label:'公主',     cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,walk_back:3,interact:5}},
+  {name:'Queen',        label:'皇后',     cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,walk_back:3,interact:5}},
+  {name:'Worker',       label:'工人',     cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,work_1:4,work_2:5,hurt:3,death:4}},
+  {name:'Peasant',      label:'農夫',     cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,attack:6,hurt:3,death:4}},
+
+  {name:'SwordMan',     label:'劍士',     cls:'2_步兵', clsLabel:'步兵', type:'物理', actions:{idle:4,walk:6,idle_back:3,attack:6,hurt:3,death:4}},
+  {name:'HalberdMan',   label:'戟兵',     cls:'2_步兵', clsLabel:'步兵', type:'物理', actions:{idle:4,walk:6,idle_back:3,attack:6,hurt:3,death:5}},
+  {name:'SpearMan',     label:'槍兵',     cls:'2_步兵', clsLabel:'步兵', type:'物理', actions:{idle:4,walk:6,idle_back:3,attack:7,hurt:3,death:5}},
+  {name:'ShieldMan',    label:'盾兵',     cls:'2_步兵', clsLabel:'步兵', type:'物理', actions:{idle:4,walk:6,idle_back:3,attack:6,block:6,hurt:3,death:4}},
+  {name:'PrinceMan',    label:'王子',     cls:'2_步兵', clsLabel:'步兵', type:'物理', actions:{idle:4,walk:6,idle_back:5,attack:6,hurt:3,death:6}},
+  {name:'KingMan',      label:'國王',     cls:'2_步兵', clsLabel:'步兵', type:'物理', actions:{idle:4,walk:5,walk_back:6,idle_back:5,attack:10,hurt:3,death:6}},
+
+  {name:'ArcherMan',    label:'弓箭手',   cls:'3_射手', clsLabel:'射手', type:'物理', actions:{idle:4,walk:6,idle_back:3,attack:11,attack_back:6,hurt:3,death:4}},
+  {name:'CrossBowMan',  label:'弩手',     cls:'3_射手', clsLabel:'射手', type:'物理', actions:{idle:4,walk:6,idle_back:3,attack:10,reload:4,hurt:3,death:4}},
+
+  {name:'Mage',         label:'法師',     cls:'4_法師', clsLabel:'法師', type:'魔法', actions:{idle:4,walk:6,idle_back:3,cast_1:11,cast_2:9,cast_3:9,hurt:2,death:9}},
+  {name:'ArchMage',     label:'大法師',   cls:'4_法師', clsLabel:'法師', type:'魔法', actions:{idle:4,walk:6,idle_back:3,cast_1:11,cast_2:9,cast_3:9,cast_4:10,hurt:2,death:9}},
+
+  {name:'CavalierMan',  label:'騎士',     cls:'5_騎兵', clsLabel:'騎兵', type:'物理', actions:{idle:8,walk:6,run:6,idle_back:3,attack:7,hurt:2,death:6}},
+  {name:'HorseMan',     label:'馬兵',     cls:'5_騎兵', clsLabel:'騎兵', type:'物理', actions:{idle:8,walk:6,run:6,idle_back:3,attack:7,hurt:2,death:6}},
+];
+
+// ── Query helpers ──
+function getCharAt(gx, gy, gz){
+  const set = shGet(shKey(gx, gy, gz, CHAR_LAYER));
+  if(!set) return null;
+  for(const b of set){
+    if(b.type === 'character') return b;
+  }
+  return null;
+}
+
+function canMoveTo(charBlock, nx, ny){
+  const gz = charBlock.gz;
+  // Check ground: need a tile at (nx, ny, gz, layer 0-5)
+  let hasGround = false;
+  for(let l = 0; l <= 5; l++){
+    const s = shGet(shKey(nx, ny, gz, l));
+    if(s && s.size > 0){
+      // Check if any ground tile is a tall wall (srcH > 32)
+      for(const b of s){
+        const bTd = TILES[b.color];
+        const bH = (bTd && bTd.blockH) || b.srcH || 32;
+        if(b.type === 'tile' && bH > 32) return false; // wall blocks
+      }
+      hasGround = true;
+    }
+  }
+  if(!hasGround) return false;
+  // Check head space: nothing at gz+1 blocking
+  for(let l = 0; l <= 5; l++){
+    const s = shGet(shKey(nx, ny, gz + 1, l));
+    if(s && s.size > 0) return false;
+  }
+  // Check no other character there
+  if(getCharAt(nx, ny, gz)) return false;
+  return true;
+}
+
+
 // ── coords.js ──
 
 function toScreen(gx, gy, gz){
@@ -1198,6 +1314,112 @@ function minimapToGrid(px, py){
 }
 
 
+// ── renderChar.js ──
+// ── Character sprite rendering (Engine layer) ──
+
+
+// ── Character sprite cache ──
+const _charImgCache = new Map();
+function _getCharImg(charName, style, action, frameIdx){
+  const charDef = CHARS.find(c => c.name === charName);
+  if(!charDef) return null;
+  // Fallback: if this action doesn't exist for the character, use idle
+  if(!charDef.actions[action]) action = 'idle';
+  const cls = charDef.cls;
+  const path = IMG_BASE +
+    encodeURIComponent(cls) + '/' +
+    charName + '/' + style + '/' + action + '/' + frameIdx + '.png';
+  if(!_charImgCache.has(path)){
+    const img = new Image();
+    img.src = path;
+    _charImgCache.set(path, img);
+  }
+  return _charImgCache.get(path);
+}
+
+function drawCharacter(block, pixelPosFn, stepTW, stepTH, stepCH){
+  const p = pixelPosFn(block.gx, block.gy, block.gz);
+  const tw = stepTW, th = stepTH;
+  // Sub-grid offset
+  const st = block.state || {};
+  const subX = st.subX || 0, subY = st.subY || 0;
+  const x = p.x + Math.round((subX - subY) * tw);
+  const y = p.y + Math.round((subX + subY) * th * 0.5);
+  const facing = st.facing || 'right';
+  const style = st.style || 'outline';
+  const actions = st.actions || {};
+  let action = st.action || 'idle';
+  const frameCount = actions[action] || 1;
+  const frame = S.animTick % frameCount;
+  const img = _getCharImg(block.color, style, action, frame);
+  if(!img || !img.complete || !img.naturalWidth) return;
+  ctx.imageSmoothingEnabled = false;
+  // Mirror horizontally when facing left
+  const shouldFlip = (facing === 'left');
+  // Flip transition: squeeze to 0 then expand to target direction
+  if(st._flipState === undefined) st._flipState = shouldFlip ? -1 : 1;
+  const targetFlip = shouldFlip ? -1 : 1;
+  if(st._flipState !== targetFlip){
+    const speed = 0.25;
+    // Move toward target: 1 → 0 → -1 or -1 → 0 → 1
+    st._flipState += (targetFlip - st._flipState > 0 ? speed : -speed);
+    // Snap when close
+    if(Math.abs(st._flipState - targetFlip) < speed) st._flipState = targetFlip;
+    S._dirty = true;
+  }
+  const flipScale = st._flipState || 1;
+  // Find ground block height at character position (use blockH for logical height)
+  let groundBlockH = 32;
+  for(const b of world.blocks){
+    if(b.type === 'character') continue;
+    if(b.gx === block.gx && b.gy === block.gy && b.gz === block.gz && b.layer <= 5){
+      const td = TILES[b.color];
+      const bh = (td && td.blockH) || b.srcH || 32;
+      if(bh > groundBlockH) groundBlockH = bh;
+    }
+  }
+  // Scale standing offset proportionally (16=0.5x, 32=1x, 48=1.5x CUBE_H)
+  const tileTopOffset = Math.round(stepCH * (groundBlockH / 32));
+  const scale = (tw * 2) / img.naturalWidth;
+  const dw = Math.round(img.naturalWidth * scale);
+  const dh = Math.round(img.naturalHeight * scale);
+  // Feet on top face of the ground tile
+  const feetY = y + th - tileTopOffset;
+  const dy = feetY - dh;
+  ctx.save();
+  ctx.translate(x, 0);
+  ctx.scale(flipScale, 1);
+  ctx.drawImage(img, -dw / 2, dy, dw, dh);
+  ctx.restore();
+  // Faction color ring (on top face)
+  const factionColor = FACTION_COLORS[st.faction];
+  if(factionColor){
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = factionColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(x, feetY, tw * 0.45, th * 0.3, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  // Shadow ellipse (on top face)
+  ctx.globalAlpha = 0.15;
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.ellipse(x, feetY, tw * 0.35, th * 0.25, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  // Selection highlight
+  if(S.selectedBlocks.has(block)){
+    ctx.strokeStyle = '#FFD700';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.ellipse(x, feetY, tw * 0.5, th * 0.35, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+
 // ── renderer.js ──
 
 // ── Shake animation (gameLoop handles the timing) ──
@@ -1397,107 +1619,6 @@ function drawCube(gx, gy, gz, color, hl, block){
   }
 }
 
-// ── Character sprite cache + draw ──
-const _charImgCache = new Map();
-function _getCharImg(charName, style, action, frameIdx){
-  const charDef = CHARS.find(c => c.name === charName);
-  if(!charDef) return null;
-  // Fallback: if this action doesn't exist for the character, use idle
-  if(!charDef.actions[action]) action = 'idle';
-  const cls = charDef.cls;
-  const path = IMG_BASE +
-    encodeURIComponent(cls) + '/' +
-    charName + '/' + style + '/' + action + '/' + frameIdx + '.png';
-  if(!_charImgCache.has(path)){
-    const img = new Image();
-    img.src = path;
-    _charImgCache.set(path, img);
-  }
-  return _charImgCache.get(path);
-}
-
-function _drawCharacter(block){
-  const p = _pixelPos(block.gx, block.gy, block.gz);
-  const tw = _stepTW, th = _stepTH, ch = _stepCH;
-  // Sub-grid offset
-  const st = block.state || {};
-  const subX = st.subX || 0, subY = st.subY || 0;
-  const x = p.x + Math.round((subX - subY) * tw);
-  const y = p.y + Math.round((subX + subY) * th * 0.5);
-  const facing = st.facing || 'right';
-  const style = st.style || 'outline';
-  const actions = st.actions || {};
-  let action = st.action || 'idle';
-  const frameCount = actions[action] || 1;
-  const frame = S.animTick % frameCount;
-  const img = _getCharImg(block.color, style, action, frame);
-  if(!img || !img.complete || !img.naturalWidth) return;
-  ctx.imageSmoothingEnabled = false;
-  // Mirror horizontally when facing left
-  const shouldFlip = (facing === 'left');
-  // Flip transition: squeeze to 0 then expand to target direction
-  if(st._flipState === undefined) st._flipState = shouldFlip ? -1 : 1;
-  const targetFlip = shouldFlip ? -1 : 1;
-  if(st._flipState !== targetFlip){
-    const speed = 0.25;
-    // Move toward target: 1 → 0 → -1 or -1 → 0 → 1
-    st._flipState += (targetFlip - st._flipState > 0 ? speed : -speed);
-    // Snap when close
-    if(Math.abs(st._flipState - targetFlip) < speed) st._flipState = targetFlip;
-    S._dirty = true;
-  }
-  const flipScale = st._flipState || 1;
-  // Find ground block height at character position (use blockH for logical height)
-  let groundBlockH = 32;
-  for(const b of world.blocks){
-    if(b.type === 'character') continue;
-    if(b.gx === block.gx && b.gy === block.gy && b.gz === block.gz && b.layer <= 5){
-      const td = TILES[b.color];
-      const bh = (td && td.blockH) || b.srcH || 32;
-      if(bh > groundBlockH) groundBlockH = bh;
-    }
-  }
-  // Scale standing offset proportionally (16=0.5x, 32=1x, 48=1.5x CUBE_H)
-  const tileTopOffset = Math.round(_stepCH * (groundBlockH / 32));
-  const scale = (tw * 2) / img.naturalWidth;
-  const dw = Math.round(img.naturalWidth * scale);
-  const dh = Math.round(img.naturalHeight * scale);
-  // Feet on top face of the ground tile
-  const feetY = y + th - tileTopOffset;
-  const dy = feetY - dh;
-  ctx.save();
-  ctx.translate(x, 0);
-  ctx.scale(flipScale, 1);
-  ctx.drawImage(img, -dw / 2, dy, dw, dh);
-  ctx.restore();
-  // Faction color ring (on top face)
-  const factionColor = FACTION_COLORS[st.faction];
-  if(factionColor){
-    ctx.globalAlpha = 0.5;
-    ctx.strokeStyle = factionColor;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.ellipse(x, feetY, tw * 0.45, th * 0.3, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-  }
-  // Shadow ellipse (on top face)
-  ctx.globalAlpha = 0.15;
-  ctx.fillStyle = '#000';
-  ctx.beginPath();
-  ctx.ellipse(x, feetY, tw * 0.35, th * 0.25, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.globalAlpha = 1;
-  // Selection highlight
-  if(S.selectedBlocks.has(block)){
-    ctx.strokeStyle = '#FFD700';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.ellipse(x, feetY, tw * 0.5, th * 0.35, 0, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-}
-
 // ── Draw ghost preview ──
 function drawGhost(gx, gy, gz, color, valid){
   const p = _pixelPos(gx, gy, gz);
@@ -1543,7 +1664,7 @@ function _drawActual(){
   for(const b of sorted){
     if(b.gz < S.currentHeight){
       ctx.globalAlpha = 0.4;
-      if(b.type === 'character') _drawCharacter(b);
+      if(b.type === 'character') drawCharacter(b, _pixelPos, _stepTW, _stepTH, _stepCH);
       else drawCube(b.gx, b.gy, b.gz, b.color, b===S.dragBlock, b);
       ctx.globalAlpha = 1;
     }
@@ -1561,7 +1682,7 @@ function _drawActual(){
 
   for(const b of sorted){
     if(b.gz >= S.currentHeight){
-      if(b.type === 'character') _drawCharacter(b);
+      if(b.type === 'character') drawCharacter(b, _pixelPos, _stepTW, _stepTH, _stepCH);
       else drawCube(b.gx, b.gy, b.gz, b.color, b===S.dragBlock, b);
     }
   }
@@ -3018,6 +3139,164 @@ canvas.addEventListener('touchend', (e) => {
 // Mobile pan: canvas only (no document-level pan)
 
 
+// ── tilePropertyMenu.js ──
+// ── Tile property right-click menus (Editor layer) ──
+
+
+let _propMenuEl = null;
+let _onDone = null;
+
+function _hideMenu(){
+  if(_propMenuEl){ _propMenuEl.remove(); _propMenuEl = null; }
+}
+
+function showPropertyMenu(cx, cy, keys, onDone){
+  _onDone = onDone;
+  _hideMenu();
+  if(!Array.isArray(keys)) keys = [keys];
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
+  menu.style.left = cx + 'px';
+  menu.style.top = cy + 'px';
+  // Title
+  const title = document.createElement('div');
+  title.style.cssText = 'padding:4px 14px;font-size:10px;color:#888;';
+  if(keys.length === 1){
+    const td = TILES[keys[0]];
+    title.textContent = keys[0] + ' H:' + (td && td.srcH || 32) + ' ' + (td && td.elem || '無');
+  } else {
+    title.textContent = '批次修改 ' + keys.length + ' 個素材';
+  }
+  menu.appendChild(title);
+  // Option 1: Height
+  const hItem = document.createElement('div');
+  hItem.className = 'ctx-item';
+  hItem.textContent = '修改高度';
+  hItem.addEventListener('click', (e) => {
+    e.stopPropagation();
+    _hideMenu();
+    _showHeightPicker(cx, cy, keys);
+  });
+  menu.appendChild(hItem);
+  // Option 2: Element
+  const eItem = document.createElement('div');
+  eItem.className = 'ctx-item';
+  eItem.textContent = '修改屬性';
+  eItem.addEventListener('click', (e) => {
+    e.stopPropagation();
+    _hideMenu();
+    _showElemPicker(cx, cy, keys);
+  });
+  menu.appendChild(eItem);
+  // Option 3: CropB
+  const cItem = document.createElement('div');
+  cItem.className = 'ctx-item';
+  cItem.textContent = '修改裁切';
+  cItem.addEventListener('click', (e2) => {
+    e2.stopPropagation();
+    _hideMenu();
+    _showCropBPicker(cx, cy, keys);
+  });
+  menu.appendChild(cItem);
+  document.body.appendChild(menu);
+  _propMenuEl = menu;
+  setTimeout(() => document.addEventListener('click', _hideMenu, {once:true}), 10);
+}
+
+// ── Height picker ──
+function _showHeightPicker(cx, cy, keys){
+  _hideMenu();
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
+  menu.style.left = cx + 'px';
+  menu.style.top = cy + 'px';
+  const title = document.createElement('div');
+  title.style.cssText = 'padding:4px 14px;font-size:10px;color:#888;';
+  title.textContent = '選擇高度（srcH）';
+  menu.appendChild(title);
+  for(const h of [16, 32, 48, 96]){
+    const item = document.createElement('div');
+    item.className = 'ctx-item';
+    item.textContent = h + 'px';
+    item.addEventListener('click', () => {
+      for(const k of keys){
+        const td = TILES[k];
+        if(td){ td.blockH = h; td._srcHOverride = true; }
+      }
+      _hideMenu();
+      if(_onDone) _onDone();
+      showToast(keys.length + ' 個素材高度 → ' + h);
+    });
+    menu.appendChild(item);
+  }
+  document.body.appendChild(menu);
+  _propMenuEl = menu;
+  setTimeout(() => document.addEventListener('click', _hideMenu, {once:true}), 10);
+}
+
+// ── CropB picker (bottom crop) ──
+function _showCropBPicker(cx, cy, keys){
+  _hideMenu();
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
+  menu.style.left = cx + 'px';
+  menu.style.top = cy + 'px';
+  const title = document.createElement('div');
+  title.style.cssText = 'padding:4px 14px;font-size:10px;color:#888;';
+  title.textContent = '底部裁切（cropB）';
+  menu.appendChild(title);
+  for(const v of [0, 2, 4, 6, 8, 10, 12, 14, 16]){
+    const item = document.createElement('div');
+    item.className = 'ctx-item';
+    item.textContent = v + 'px' + (v === 0 ? '（不裁）' : '');
+    item.addEventListener('click', () => {
+      for(const k of keys){
+        const td = TILES[k];
+        if(td){ td.cropB = v; td._cropBOverride = true; }
+      }
+      _hideMenu();
+      if(_onDone) _onDone();
+      showToast(keys.length + ' 個素材底部裁切 → ' + v + 'px');
+    });
+    menu.appendChild(item);
+  }
+  document.body.appendChild(menu);
+  _propMenuEl = menu;
+  setTimeout(() => document.addEventListener('click', _hideMenu, {once:true}), 10);
+}
+
+// ── Element picker ──
+function _showElemPicker(cx, cy, keys){
+  _hideMenu();
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
+  menu.style.left = cx + 'px';
+  menu.style.top = cy + 'px';
+  const title = document.createElement('div');
+  title.style.cssText = 'padding:4px 14px;font-size:10px;color:#888;';
+  title.textContent = '選擇屬性';
+  menu.appendChild(title);
+  for(const el of ['金','木','水','火','土','無']){
+    const item = document.createElement('div');
+    item.className = 'ctx-item';
+    item.textContent = el;
+    item.addEventListener('click', () => {
+      for(const k of keys){
+        const td = TILES[k];
+        if(td){ td.elem = el; td._elemOverride = true; }
+      }
+      _hideMenu();
+      if(_onDone) _onDone();
+      showToast(keys.length + ' 個素材 → ' + el);
+    });
+    menu.appendChild(item);
+  }
+  document.body.appendChild(menu);
+  _propMenuEl = menu;
+  setTimeout(() => document.addEventListener('click', _hideMenu, {once:true}), 10);
+}
+
+
 // ── palette.js ──
 
 // ── Place tile on canvas (spiral search for free cell) ──
@@ -3176,162 +3455,13 @@ function _createTileButton(container, key, src, i){
   btn.addEventListener('contextmenu', (e) => {
     e.preventDefault();
     const targets = _paletteSelected.size > 0 ? [..._paletteSelected] : [key];
-    _showPropertyMenu(e.clientX, e.clientY, targets);
+    showPropertyMenu(e.clientX, e.clientY, targets, () => {
+      _clearPaletteSelection();
+      populatePalette();
+    });
   });
   setupMobileTileDrag(btn, key);
   container.appendChild(btn);
-}
-
-// ── Right-click property menu (height / element, supports batch) ──
-let _propMenuEl = null;
-function _hideMenu(){
-  if(_propMenuEl){ _propMenuEl.remove(); _propMenuEl = null; }
-}
-
-function _showPropertyMenu(cx, cy, keys){
-  _hideMenu();
-  if(!Array.isArray(keys)) keys = [keys];
-  const menu = document.createElement('div');
-  menu.className = 'ctx-menu';
-  menu.style.left = cx + 'px';
-  menu.style.top = cy + 'px';
-  // Title
-  const title = document.createElement('div');
-  title.style.cssText = 'padding:4px 14px;font-size:10px;color:#888;';
-  if(keys.length === 1){
-    const td = TILES[keys[0]];
-    title.textContent = keys[0] + ' H:' + (td && td.srcH || 32) + ' ' + (td && td.elem || '無');
-  } else {
-    title.textContent = '批次修改 ' + keys.length + ' 個素材';
-  }
-  menu.appendChild(title);
-  // Option 1: Height
-  const hItem = document.createElement('div');
-  hItem.className = 'ctx-item';
-  hItem.textContent = '修改高度';
-  hItem.addEventListener('click', (e) => {
-    e.stopPropagation();
-    _hideMenu();
-    _showHeightPicker(cx, cy, keys);
-  });
-  menu.appendChild(hItem);
-  // Option 2: Element
-  const eItem = document.createElement('div');
-  eItem.className = 'ctx-item';
-  eItem.textContent = '修改屬性';
-  eItem.addEventListener('click', (e) => {
-    e.stopPropagation();
-    _hideMenu();
-    _showElemPicker(cx, cy, keys);
-  });
-  menu.appendChild(eItem);
-  // Option 3: CropB
-  const cItem = document.createElement('div');
-  cItem.className = 'ctx-item';
-  cItem.textContent = '修改裁切';
-  cItem.addEventListener('click', (e2) => {
-    e2.stopPropagation();
-    _hideMenu();
-    _showCropBPicker(cx, cy, keys);
-  });
-  menu.appendChild(cItem);
-  document.body.appendChild(menu);
-  _propMenuEl = menu;
-  setTimeout(() => document.addEventListener('click', _hideMenu, {once:true}), 10);
-}
-
-// ── Height picker ──
-function _showHeightPicker(cx, cy, keys){
-  _hideMenu();
-  const menu = document.createElement('div');
-  menu.className = 'ctx-menu';
-  menu.style.left = cx + 'px';
-  menu.style.top = cy + 'px';
-  const title = document.createElement('div');
-  title.style.cssText = 'padding:4px 14px;font-size:10px;color:#888;';
-  title.textContent = '選擇高度（srcH）';
-  menu.appendChild(title);
-  for(const h of [16, 32, 48, 96]){
-    const item = document.createElement('div');
-    item.className = 'ctx-item';
-    item.textContent = h + 'px';
-    item.addEventListener('click', () => {
-      for(const k of keys){
-        const td = TILES[k];
-        if(td){ td.blockH = h; td._srcHOverride = true; }
-      }
-      _hideMenu();
-      _clearPaletteSelection();
-      populatePalette(); // refresh to update labels
-      showToast(keys.length + ' 個素材高度 → ' + h);
-    });
-    menu.appendChild(item);
-  }
-  document.body.appendChild(menu);
-  _propMenuEl = menu;
-  setTimeout(() => document.addEventListener('click', _hideMenu, {once:true}), 10);
-}
-
-// ── CropB picker (bottom crop) ──
-function _showCropBPicker(cx, cy, keys){
-  _hideMenu();
-  const menu = document.createElement('div');
-  menu.className = 'ctx-menu';
-  menu.style.left = cx + 'px';
-  menu.style.top = cy + 'px';
-  const title = document.createElement('div');
-  title.style.cssText = 'padding:4px 14px;font-size:10px;color:#888;';
-  title.textContent = '底部裁切（cropB）';
-  menu.appendChild(title);
-  for(const v of [0, 2, 4, 6, 8, 10, 12, 14, 16]){
-    const item = document.createElement('div');
-    item.className = 'ctx-item';
-    item.textContent = v + 'px' + (v === 0 ? '（不裁）' : '');
-    item.addEventListener('click', () => {
-      for(const k of keys){
-        const td = TILES[k];
-        if(td){ td.cropB = v; td._cropBOverride = true; }
-      }
-      _hideMenu();
-      _clearPaletteSelection();
-      showToast(keys.length + ' 個素材底部裁切 → ' + v + 'px');
-    });
-    menu.appendChild(item);
-  }
-  document.body.appendChild(menu);
-  _propMenuEl = menu;
-  setTimeout(() => document.addEventListener('click', _hideMenu, {once:true}), 10);
-}
-
-// ── Element picker ──
-function _showElemPicker(cx, cy, keys){
-  _hideMenu();
-  const menu = document.createElement('div');
-  menu.className = 'ctx-menu';
-  menu.style.left = cx + 'px';
-  menu.style.top = cy + 'px';
-  const title = document.createElement('div');
-  title.style.cssText = 'padding:4px 14px;font-size:10px;color:#888;';
-  title.textContent = '選擇屬性';
-  menu.appendChild(title);
-  for(const el of ['金','木','水','火','土','無']){
-    const item = document.createElement('div');
-    item.className = 'ctx-item';
-    item.textContent = el;
-    item.addEventListener('click', () => {
-      for(const k of keys){
-        const td = TILES[k];
-        if(td){ td.elem = el; td._elemOverride = true; }
-      }
-      _hideMenu();
-      _clearPaletteSelection();
-      showToast(keys.length + ' 個素材 → ' + el);
-    });
-    menu.appendChild(item);
-  }
-  document.body.appendChild(menu);
-  _propMenuEl = menu;
-  setTimeout(() => document.addEventListener('click', _hideMenu, {once:true}), 10);
 }
 
 // ── Palette population ──
@@ -3490,29 +3620,6 @@ document.getElementById('tileSearch').addEventListener('input', (e) => {
 
 
 // ── saveLoad.js ──
-
-function updateHeightUI(){
-  const el = document.getElementById('heightNum');
-  if(el) el.textContent = S.currentHeight;
-}
-function updateLayerUI(){
-  const el = document.getElementById('layerNum');
-  if(el) el.textContent = S.currentLayer;
-}
-
-// ── Height + Layer controls ──
-document.getElementById('heightUp').addEventListener('click', () => {
-  if(S.currentHeight < 5){ S.currentHeight++; updateHeightUI(); draw(); }
-});
-document.getElementById('heightDown').addEventListener('click', () => {
-  if(S.currentHeight > -5){ S.currentHeight--; updateHeightUI(); draw(); }
-});
-document.getElementById('layerUp').addEventListener('click', () => {
-  if(S.currentLayer < 5){ S.currentLayer++; updateLayerUI(); draw(); }
-});
-document.getElementById('layerDown').addEventListener('click', () => {
-  if(S.currentLayer > 0){ S.currentLayer--; updateLayerUI(); draw(); }
-});
 
 // ── Save / Save As / Load ──
 function _buildSaveData(){
@@ -3877,10 +3984,17 @@ document.getElementById('comboPlace').addEventListener('click', () => {
   if(S.activeCombo < 0 || S.activeCombo >= S.combos.length){ showToast('請先選擇一個範本'); return; }
   const combo = S.combos[S.activeCombo];
   saveSnapshot();
-  const spot = findEmptySpot();
+  // Place at canvas center
+  const center = toGrid(camera.W / 2, camera.H / 2);
+  const cx = snap(center.gx), cy = snap(center.gy);
+  // Offset so combo center aligns with view center
+  const maxDx = Math.max(...combo.tiles.map(t => t.dx));
+  const maxDy = Math.max(...combo.tiles.map(t => t.dy));
+  const ox = cx - Math.round(maxDx / 2);
+  const oy = cy - Math.round(maxDy / 2);
   for(const t of combo.tiles){
-    const gx = spot.gx + t.dx;
-    const gy = spot.gy + t.dy;
+    const gx = ox + t.dx;
+    const gy = oy + t.dy;
     if(!hasBlockAt(gx, gy, S.currentHeight, null, S.currentLayer)){
       addBlock({gx, gy, gz:S.currentHeight, layer:S.currentLayer, color:t.color, srcH:t.srcH, yOffset:t.yOffset||0, state:{...(t.state||{})}});
     }
@@ -3959,6 +4073,28 @@ document.getElementById('chkCoord').addEventListener('change', (e) => { S.showCo
 document.getElementById('chkLayerInfo').addEventListener('change', (e) => { S.showLayerInfo = e.target.checked; draw(); });
 document.getElementById('chkAutoSelect').addEventListener('change', (e) => { S.autoSelectMode = e.target.checked; });
 document.getElementById('chkBlockInfo').addEventListener('change', (e) => { S.showBlockInfo = e.target.checked; draw(); });
+
+// ── Height + Layer controls ──
+function updateHeightUI(){
+  const el = document.getElementById('heightNum');
+  if(el) el.textContent = S.currentHeight;
+}
+function updateLayerUI(){
+  const el = document.getElementById('layerNum');
+  if(el) el.textContent = S.currentLayer;
+}
+document.getElementById('heightUp').addEventListener('click', () => {
+  if(S.currentHeight < 5){ S.currentHeight++; updateHeightUI(); draw(); }
+});
+document.getElementById('heightDown').addEventListener('click', () => {
+  if(S.currentHeight > -5){ S.currentHeight--; updateHeightUI(); draw(); }
+});
+document.getElementById('layerUp').addEventListener('click', () => {
+  if(S.currentLayer < 5){ S.currentLayer++; updateLayerUI(); draw(); }
+});
+document.getElementById('layerDown').addEventListener('click', () => {
+  if(S.currentLayer > 0){ S.currentLayer--; updateLayerUI(); draw(); }
+});
 
 // ── Fog of war controls ──
 document.getElementById('fogRadius').addEventListener('change', (e) => {
@@ -4292,6 +4428,10 @@ document.addEventListener('keydown', (e) => {
     case ']':
       if(S.currentHeight < 5){ S.currentHeight++; document.getElementById('heightNum').textContent = S.currentHeight; draw(); }
       break;
+    case 'w': camera.y += 60; draw(); break;
+    case 'a': camera.x += 60; draw(); break;
+    case 's': camera.y -= 60; draw(); break;
+    case 'd': camera.x -= 60; draw(); break;
     case 'escape':
       clearDrawTools();
       S.selectedBlocks = new Set();
@@ -4447,80 +4587,6 @@ bus.on('mode', (mode) => {
 
 // ── characterLib.js ──
 // ── Character Library: browse & preview all character sprites ──
-
-const IMG_BASE = '%E7%B4%A0%E6%9D%90/%E4%BA%BA%E7%89%A9/%E5%88%87%E5%89%B2/';
-const CHAR_LAYER = 6; // above tiles (0-5) but below gz+1 in sort key
-
-// Action English → Chinese label
-const ACTION_LABEL = {
-  idle:'待機', walk:'走路', idle_back:'待機(背面)', walk_back:'走路(背面)',
-  interact:'互動', attack:'攻擊', attack_back:'攻擊(背面)',
-  hurt:'受傷', death:'死亡', block:'防禦', reload:'裝填',
-  cast_1:'施法1', cast_2:'施法2', cast_3:'施法3', cast_4:'施法4',
-  work_1:'工作1', work_2:'工作2', run:'奔跑',
-};
-
-// ── Class base stats ──
-const CLASS_STATS = {
-  '村民': { hp:30, atk:3,  def:1, spd:3, range:1, atkSpeed:1.0, maxMp:0,   mpCost:0  },
-  '步兵': { hp:80, atk:10, def:8, spd:2, range:1, atkSpeed:1.2, maxMp:0,   mpCost:0  },
-  '射手': { hp:50, atk:12, def:3, spd:2, range:4, atkSpeed:1.5, maxMp:0,   mpCost:0  },
-  '法師': { hp:45, atk:15, def:2, spd:1, range:3, atkSpeed:2.0, maxMp:100, mpCost:15 },
-  '騎兵': { hp:70, atk:12, def:5, spd:4, range:1, atkSpeed:1.0, maxMp:0,   mpCost:0  },
-};
-
-// ── Faction system ──
-const FACTIONS = ['正義','反派','邪惡','善良'];
-const FACTION_COLORS = { '正義':'#4A9FDD', '反派':'#E85050', '邪惡':'#9B59B6', '善良':'#5CBF5C' };
-const FACTION_LABELS = { '正義':'Justice', '反派':'Villain', '邪惡':'Evil', '善良':'Gentle' };
-
-// Relation matrix: how factionA reacts to factionB
-// 'hostile' = attack, 'flee' = run away, 'neutral' = ignore
-const RELATIONS = {
-  '正義': { '正義':'neutral', '反派':'hostile', '邪惡':'hostile', '善良':'neutral' },
-  '反派': { '正義':'hostile', '反派':'neutral', '邪惡':'hostile', '善良':'neutral' },
-  '邪惡': { '正義':'hostile', '反派':'hostile', '邪惡':'neutral', '善良':'hostile' },
-  '善良': { '正義':'neutral', '反派':'flee',    '邪惡':'flee',    '善良':'neutral' },
-};
-
-function getRelation(factionA, factionB){
-  if(!RELATIONS[factionA]) return 'neutral';
-  return RELATIONS[factionA][factionB] || 'neutral';
-}
-
-function getClassStats(clsLabel){
-  return CLASS_STATS[clsLabel] || CLASS_STATS['村民'];
-}
-
-// Character database
-const CHARS = [
-  {name:'NobleMan',     label:'貴族男',   cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,walk_back:3,interact:4}},
-  {name:'NobleWoman',   label:'貴族女',   cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,walk_back:3,interact:4}},
-  {name:'OldMan',       label:'老人',     cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,walk_back:3,interact:3}},
-  {name:'OldWoman',     label:'老婦',     cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,walk_back:3,interact:4}},
-  {name:'VillagerMan',  label:'村民男',   cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,walk_back:3,interact:4}},
-  {name:'VillagerWoman',label:'村民女',   cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,walk_back:3,interact:4}},
-  {name:'Princess',     label:'公主',     cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,walk_back:3,interact:5}},
-  {name:'Queen',        label:'皇后',     cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,walk_back:3,interact:5}},
-  {name:'Worker',       label:'工人',     cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,work_1:4,work_2:5,hurt:3,death:4}},
-  {name:'Peasant',      label:'農夫',     cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,attack:6,hurt:3,death:4}},
-
-  {name:'SwordMan',     label:'劍士',     cls:'2_步兵', clsLabel:'步兵', type:'物理', actions:{idle:4,walk:6,idle_back:3,attack:6,hurt:3,death:4}},
-  {name:'HalberdMan',   label:'戟兵',     cls:'2_步兵', clsLabel:'步兵', type:'物理', actions:{idle:4,walk:6,idle_back:3,attack:6,hurt:3,death:5}},
-  {name:'SpearMan',     label:'槍兵',     cls:'2_步兵', clsLabel:'步兵', type:'物理', actions:{idle:4,walk:6,idle_back:3,attack:7,hurt:3,death:5}},
-  {name:'ShieldMan',    label:'盾兵',     cls:'2_步兵', clsLabel:'步兵', type:'物理', actions:{idle:4,walk:6,idle_back:3,attack:6,block:6,hurt:3,death:4}},
-  {name:'PrinceMan',    label:'王子',     cls:'2_步兵', clsLabel:'步兵', type:'物理', actions:{idle:4,walk:6,idle_back:5,attack:6,hurt:3,death:6}},
-  {name:'KingMan',      label:'國王',     cls:'2_步兵', clsLabel:'步兵', type:'物理', actions:{idle:4,walk:5,walk_back:6,idle_back:5,attack:10,hurt:3,death:6}},
-
-  {name:'ArcherMan',    label:'弓箭手',   cls:'3_射手', clsLabel:'射手', type:'物理', actions:{idle:4,walk:6,idle_back:3,attack:11,attack_back:6,hurt:3,death:4}},
-  {name:'CrossBowMan',  label:'弩手',     cls:'3_射手', clsLabel:'射手', type:'物理', actions:{idle:4,walk:6,idle_back:3,attack:10,reload:4,hurt:3,death:4}},
-
-  {name:'Mage',         label:'法師',     cls:'4_法師', clsLabel:'法師', type:'魔法', actions:{idle:4,walk:6,idle_back:3,cast_1:11,cast_2:9,cast_3:9,hurt:2,death:9}},
-  {name:'ArchMage',     label:'大法師',   cls:'4_法師', clsLabel:'法師', type:'魔法', actions:{idle:4,walk:6,idle_back:3,cast_1:11,cast_2:9,cast_3:9,cast_4:10,hurt:2,death:9}},
-
-  {name:'CavalierMan',  label:'騎士',     cls:'5_騎兵', clsLabel:'騎兵', type:'物理', actions:{idle:8,walk:6,run:6,idle_back:3,attack:7,hurt:2,death:6}},
-  {name:'HorseMan',     label:'馬兵',     cls:'5_騎兵', clsLabel:'騎兵', type:'物理', actions:{idle:8,walk:6,run:6,idle_back:3,attack:7,hurt:2,death:6}},
-];
 
 // ── State ──
 let _style = 'outline';
@@ -4773,44 +4839,6 @@ document.getElementById('charPlaceBtn').addEventListener('click', () => {
   _closePlacement();
 });
 
-// ── Query helpers ──
-function getCharAt(gx, gy, gz){
-  const set = shGet(shKey(gx, gy, gz, CHAR_LAYER));
-  if(!set) return null;
-  for(const b of set){
-    if(b.type === 'character') return b;
-  }
-  return null;
-}
-
-function canMoveTo(charBlock, nx, ny){
-  const gz = charBlock.gz;
-  // Check ground: need a tile at (nx, ny, gz, layer 0-5)
-  let hasGround = false;
-  for(let l = 0; l <= 5; l++){
-    const s = shGet(shKey(nx, ny, gz, l));
-    if(s && s.size > 0){
-      // Check if any ground tile is a tall wall (srcH > 32)
-      for(const b of s){
-        const bTd = TILES[b.color];
-        const bH = (bTd && bTd.blockH) || b.srcH || 32;
-        if(b.type === 'tile' && bH > 32) return false; // wall blocks
-      }
-      hasGround = true;
-    }
-  }
-  if(!hasGround) return false;
-  // Check head space: nothing at gz+1 blocking
-  for(let l = 0; l <= 5; l++){
-    const s = shGet(shKey(nx, ny, gz + 1, l));
-    if(s && s.size > 0) return false;
-  }
-  // Check no other character there
-  if(getCharAt(nx, ny, gz)) return false;
-  return true;
-}
-
-// Export CHARS for external use
 
 
 // ── floatingFX.js ──

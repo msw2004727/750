@@ -2,7 +2,7 @@
 
 import { world } from './state.js';
 import { bus } from './eventBus.js';
-import { canMoveTo, CHAR_LAYER } from './characterLib.js';
+import { canMoveTo, CHAR_LAYER } from './charData.js';
 import { findFreeSlot } from './charMove.js';
 
 const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];

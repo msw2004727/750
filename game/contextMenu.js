@@ -7,7 +7,8 @@ import { triggerShake } from './renderer.js';
 import { addToStaging } from './staging.js';
 import { mousePos, hitTest, hitTestAll } from './hitTest.js';
 import { showToast } from './ui.js';
-import { openForPlacement, getCharAt, CHAR_LAYER } from './characterLib.js';
+import { getCharAt, CHAR_LAYER } from './charData.js';
+import { openForPlacement } from './characterLib.js';
 
 let _ctxDismiss = null;
 function _showCtxMenu(x, y, items){

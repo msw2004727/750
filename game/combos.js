@@ -1,8 +1,9 @@
-import { S, draw } from './state.js';
-import { hasBlockAt, findEmptySpot } from './blocks.js';
+import { S, camera, draw } from './state.js';
+import { hasBlockAt } from './blocks.js';
 import { addBlock } from './spatialHash.js';
 import { saveSnapshot } from './history.js';
 import { showToast } from './ui.js';
+import { toGrid, snap } from './coords.js';
 
 function saveCombos(){
   localStorage.setItem('blockBuilder_combos', JSON.stringify(S.combos));
@@ -43,10 +44,17 @@ document.getElementById('comboPlace').addEventListener('click', () => {
   if(S.activeCombo < 0 || S.activeCombo >= S.combos.length){ showToast('請先選擇一個範本'); return; }
   const combo = S.combos[S.activeCombo];
   saveSnapshot();
-  const spot = findEmptySpot();
+  // Place at canvas center
+  const center = toGrid(camera.W / 2, camera.H / 2);
+  const cx = snap(center.gx), cy = snap(center.gy);
+  // Offset so combo center aligns with view center
+  const maxDx = Math.max(...combo.tiles.map(t => t.dx));
+  const maxDy = Math.max(...combo.tiles.map(t => t.dy));
+  const ox = cx - Math.round(maxDx / 2);
+  const oy = cy - Math.round(maxDy / 2);
   for(const t of combo.tiles){
-    const gx = spot.gx + t.dx;
-    const gy = spot.gy + t.dy;
+    const gx = ox + t.dx;
+    const gy = oy + t.dy;
     if(!hasBlockAt(gx, gy, S.currentHeight, null, S.currentLayer)){
       addBlock({gx, gy, gz:S.currentHeight, layer:S.currentLayer, color:t.color, srcH:t.srcH, yOffset:t.yOffset||0, state:{...(t.state||{})}});
     }

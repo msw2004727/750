@@ -22,6 +22,28 @@ document.getElementById('chkLayerInfo').addEventListener('change', (e) => { S.sh
 document.getElementById('chkAutoSelect').addEventListener('change', (e) => { S.autoSelectMode = e.target.checked; });
 document.getElementById('chkBlockInfo').addEventListener('change', (e) => { S.showBlockInfo = e.target.checked; draw(); });
 
+// ── Height + Layer controls ──
+export function updateHeightUI(){
+  const el = document.getElementById('heightNum');
+  if(el) el.textContent = S.currentHeight;
+}
+export function updateLayerUI(){
+  const el = document.getElementById('layerNum');
+  if(el) el.textContent = S.currentLayer;
+}
+document.getElementById('heightUp').addEventListener('click', () => {
+  if(S.currentHeight < 5){ S.currentHeight++; updateHeightUI(); draw(); }
+});
+document.getElementById('heightDown').addEventListener('click', () => {
+  if(S.currentHeight > -5){ S.currentHeight--; updateHeightUI(); draw(); }
+});
+document.getElementById('layerUp').addEventListener('click', () => {
+  if(S.currentLayer < 5){ S.currentLayer++; updateLayerUI(); draw(); }
+});
+document.getElementById('layerDown').addEventListener('click', () => {
+  if(S.currentLayer > 0){ S.currentLayer--; updateLayerUI(); draw(); }
+});
+
 // ── Fog of war controls ──
 document.getElementById('fogRadius').addEventListener('change', (e) => {
   world.fogRadius = parseInt(e.target.value) || 0;
@@ -354,6 +376,10 @@ document.addEventListener('keydown', (e) => {
     case ']':
       if(S.currentHeight < 5){ S.currentHeight++; document.getElementById('heightNum').textContent = S.currentHeight; draw(); }
       break;
+    case 'w': camera.y += 60; draw(); break;
+    case 'a': camera.x += 60; draw(); break;
+    case 's': camera.y -= 60; draw(); break;
+    case 'd': camera.x -= 60; draw(); break;
     case 'escape':
       clearDrawTools();
       S.selectedBlocks = new Set();

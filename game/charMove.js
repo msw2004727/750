@@ -3,7 +3,7 @@
 import { S, world, draw } from './state.js';
 import { bus } from './eventBus.js';
 import { shKey, shGet, shRemove, shAdd } from './spatialHash.js';
-import { CHAR_LAYER, canMoveTo } from './characterLib.js';
+import { CHAR_LAYER, canMoveTo } from './charData.js';
 
 const SUB_STEP = 0.25;  // 4x4 sub-grid
 const MOVE_INTERVAL = 200; // ms per sub-step

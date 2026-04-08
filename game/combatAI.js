@@ -3,9 +3,8 @@
 import { S, world, draw } from './state.js';
 import { bus } from './eventBus.js';
 import { removeBlock } from './spatialHash.js';
-import { getRelation, getClassStats, CHAR_LAYER } from './characterLib.js';
+import { getRelation, getClassStats, CHAR_LAYER, canMoveTo } from './charData.js';
 import { spawnFloat, spawnProjectile } from './floatingFX.js';
-import { canMoveTo } from './characterLib.js';
 import { findFreeSlot } from './charMove.js';
 
 const FLEE_SPEED_MULT = 1.5;

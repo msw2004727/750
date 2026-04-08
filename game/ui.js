@@ -1,7 +1,7 @@
 import { S, camera, canvas, draw } from './state.js';
 import { setBlocks } from './spatialHash.js';
 import { saveSnapshot } from './history.js';
-import { clearDrawTools } from './tools.js';
+import { clearDrawTools, updateBrushIndicator } from './tools.js';
 
 // ── Tool checkboxes (mutually exclusive draw tools) ──
 document.getElementById('chkBrush').addEventListener('change', (e) => { clearDrawTools('chkBrush'); S.brushMode = e.target.checked; canvas.style.cursor = S.brushMode?'crosshair':'grab'; });
@@ -138,4 +138,73 @@ document.getElementById('hintToggle').addEventListener('click', _openHelp);
 document.getElementById('helpClose').addEventListener('click', _closeHelp);
 document.getElementById('helpOverlay').addEventListener('click', (e) => {
   if(e.target === e.currentTarget) _closeHelp();
+});
+
+// ── Toast notification ──
+let _toastTimer = null;
+export function showToast(msg, duration){
+  let el = document.getElementById('_toast');
+  if(!el){
+    el = document.createElement('div');
+    el.id = '_toast';
+    el.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);background:rgba(25,25,45,0.92);color:#eee;padding:8px 18px;border-radius:8px;font-size:12px;z-index:999;pointer-events:none;transition:opacity 0.3s;border:1px solid #555;';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.style.opacity = '0'; }, duration || 2000);
+}
+
+// ── Keyboard shortcuts ──
+function _inputFocused(){
+  const tag = document.activeElement && document.activeElement.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+}
+
+function _toggleTool(chkId, stateKey, except){
+  const chk = document.getElementById(chkId);
+  clearDrawTools(chkId);
+  S[stateKey] = !S[stateKey];
+  chk.checked = S[stateKey];
+  canvas.style.cursor = S[stateKey] ? 'crosshair' : 'grab';
+}
+
+document.addEventListener('keydown', (e) => {
+  if(_inputFocused()) return;
+  if(e.ctrlKey || e.altKey || e.metaKey) return;
+  switch(e.key.toLowerCase()){
+    case 'b': _toggleTool('chkBrush','brushMode'); break;
+    case 'e': _toggleTool('chkEraser','eraserMode'); break;
+    case 'g': _toggleTool('chkFill','fillMode'); break;
+    case 'r': _toggleTool('chkRect','rectMode'); break;
+    case 'l': _toggleTool('chkLine','lineMode'); break;
+    case 'i': {
+      // Eyedropper: pick tile under last mouse position as brush
+      const r = canvas.getBoundingClientRect();
+      const mx = S.lastMouseClientX - r.left, my = S.lastMouseClientY - r.top;
+      const hit = hitTest(mx, my);
+      if(hit){
+        S.brushTile = {color:hit.color, srcH:hit.srcH};
+        updateBrushIndicator();
+        showToast('吸管：' + hit.color, 1500);
+      }
+      break;
+    }
+    case '[':
+      if(S.currentHeight > -5){ S.currentHeight--; document.getElementById('heightNum').textContent = S.currentHeight; draw(); }
+      break;
+    case ']':
+      if(S.currentHeight < 5){ S.currentHeight++; document.getElementById('heightNum').textContent = S.currentHeight; draw(); }
+      break;
+    case 'escape':
+      clearDrawTools();
+      S.selectedBlocks = new Set();
+      S.selectMode = false; document.getElementById('chkSelect').checked = false;
+      S.copyMode = false; document.getElementById('chkCopy').checked = false;
+      S.locateMode = false; document.getElementById('chkLocate').checked = false;
+      S.autoSelectMode = false; document.getElementById('chkAutoSelect').checked = false;
+      draw();
+      break;
+  }
 });

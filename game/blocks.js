@@ -1,4 +1,4 @@
-import { S, world } from './state.js';
+import { S } from './state.js';
 import { shKey, shGet } from './spatialHash.js';
 
 export function hasBlockAt(gx, gy, gz, exclude, layer){
@@ -43,9 +43,10 @@ export function selectConnected(startBlock){
     const cur = queue.shift();
     for(const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
       const nx = cur.gx + dx, ny = cur.gy + dy;
-      for(const b of world.blocks){
-        if(S.selectedBlocks.has(b)) continue;
-        if(b.gx === nx && b.gy === ny && b.gz === cur.gz && b.layer === cur.layer){
+      const set = shGet(shKey(nx, ny, cur.gz, cur.layer));
+      if(!set) continue;
+      for(const b of set){
+        if(!S.selectedBlocks.has(b)){
           S.selectedBlocks.add(b);
           queue.push(b);
         }

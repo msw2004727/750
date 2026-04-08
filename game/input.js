@@ -10,6 +10,7 @@ import { getRectLineCells, computeFillPreview } from './tools.js';
 import { mousePos, hitTest, hitTestAll } from './hitTest.js';
 import { onCtx } from './contextMenu.js';
 import { minimapBounds, minimapToGrid } from './minimap.js';
+import { showToast } from './ui.js';
 
 // ── Canvas drag overlay (private) ──
 function _createDragOverlay(key){
@@ -98,7 +99,7 @@ export function onDown(e){
   const hit = hitTest(pos.x, pos.y);
 
   if(S.brushMode && !S.brushTile && !e.shiftKey && !e.ctrlKey){
-    alert('請先點擊素材面板或暫存區選擇筆刷素材');
+    showToast('請先點擊素材面板或暫存區選擇筆刷素材');
     return;
   }
   if(S.brushMode && S.brushTile && !e.shiftKey && !e.ctrlKey){
@@ -124,7 +125,7 @@ export function onDown(e){
   }
 
   if(S.fillMode && !e.shiftKey){
-    if(!S.brushTile){ alert('請先選擇筆刷素材再使用填充'); return; }
+    if(!S.brushTile){ showToast('請先選擇筆刷素材再使用填充'); return; }
     if(S.fillPreview.length > 0){
       saveSnapshot();
       for(const [fx,fy] of S.fillPreview){
@@ -137,7 +138,7 @@ export function onDown(e){
   }
 
   if((S.rectMode || S.lineMode) && !e.shiftKey){
-    if(!S.brushTile){ alert('請先選擇筆刷素材'); return; }
+    if(!S.brushTile){ showToast('請先選擇筆刷素材'); return; }
     const g = toGrid(pos.x, pos.y);
     S.rectStart = {gx: snap(g.gx), gy: snap(g.gy)};
     S.brushPainting = true;

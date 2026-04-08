@@ -506,9 +506,10 @@ function selectConnected(startBlock){
     const cur = queue.shift();
     for(const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
       const nx = cur.gx + dx, ny = cur.gy + dy;
-      for(const b of world.blocks){
-        if(S.selectedBlocks.has(b)) continue;
-        if(b.gx === nx && b.gy === ny && b.gz === cur.gz && b.layer === cur.layer){
+      const set = shGet(shKey(nx, ny, cur.gz, cur.layer));
+      if(!set) continue;
+      for(const b of set){
+        if(!S.selectedBlocks.has(b)){
           S.selectedBlocks.add(b);
           queue.push(b);
         }
@@ -1991,7 +1992,7 @@ function onDown(e){
   const hit = hitTest(pos.x, pos.y);
 
   if(S.brushMode && !S.brushTile && !e.shiftKey && !e.ctrlKey){
-    alert('請先點擊素材面板或暫存區選擇筆刷素材');
+    showToast('請先點擊素材面板或暫存區選擇筆刷素材');
     return;
   }
   if(S.brushMode && S.brushTile && !e.shiftKey && !e.ctrlKey){
@@ -2017,7 +2018,7 @@ function onDown(e){
   }
 
   if(S.fillMode && !e.shiftKey){
-    if(!S.brushTile){ alert('請先選擇筆刷素材再使用填充'); return; }
+    if(!S.brushTile){ showToast('請先選擇筆刷素材再使用填充'); return; }
     if(S.fillPreview.length > 0){
       saveSnapshot();
       for(const [fx,fy] of S.fillPreview){
@@ -2030,7 +2031,7 @@ function onDown(e){
   }
 
   if((S.rectMode || S.lineMode) && !e.shiftKey){
-    if(!S.brushTile){ alert('請先選擇筆刷素材'); return; }
+    if(!S.brushTile){ showToast('請先選擇筆刷素材'); return; }
     const g = toGrid(pos.x, pos.y);
     S.rectStart = {gx: snap(g.gx), gy: snap(g.gy)};
     S.brushPainting = true;
@@ -2850,7 +2851,7 @@ document.getElementById('loadBtn').addEventListener('click', () => {
         if(data.currentHeight !== undefined){ S.currentHeight = data.currentHeight; updateHeightUI(); }
         if(data.currentLayer !== undefined){ S.currentLayer = data.currentLayer; updateLayerUI(); }
         draw();
-      } catch(err){ alert('載入失敗：' + err.message); }
+      } catch(err){ showToast('載入失敗：' + err.message, 4000); }
     };
     reader.readAsText(input.files[0]);
   });
@@ -2859,7 +2860,7 @@ document.getElementById('loadBtn').addEventListener('click', () => {
 
 // ── Export image ──
 document.getElementById('exportImg').addEventListener('click', () => {
-  if(world.blocks.length === 0){ alert('沒有方塊可匯出'); return; }
+  if(world.blocks.length === 0){ showToast('沒有方塊可匯出'); return; }
   const oldCamX = camera.x, oldCamY = camera.y, oldZoom = camera.zoom;
   const oldHH = new Set(S.hiddenHeights), oldHL = new Set(S.hiddenLayers);
   const oldGrid = S.showGrid, oldVGrid = S.showVGrid, oldCoord = S.showCoords;
@@ -2883,7 +2884,7 @@ document.getElementById('exportImg').addEventListener('click', () => {
     link.href = canvas.toDataURL('image/png');
     link.click();
   } catch(err) {
-    alert('本地開啟無法匯出圖片，請用 GitHub Pages 或本地伺服器開啟');
+    showToast('本地開啟無法匯出圖片，請用 GitHub Pages 或本地伺服器開啟', 4000);
   }
   camera.x = oldCamX; camera.y = oldCamY; camera.zoom = oldZoom;
   S.hiddenHeights = oldHH; S.hiddenLayers = oldHL;
@@ -2972,7 +2973,7 @@ document.getElementById('comboSelect').addEventListener('change', (e) => {
 
 document.getElementById('comboSave').addEventListener('click', () => {
   const sel = [...S.selectedBlocks];
-  if(sel.length < 2){ alert('請先 Shift+點擊 選取 2 個以上相鄰方塊，或是開啟選取開關'); return; }
+  if(sel.length < 2){ showToast('請先 Shift+點擊 選取 2 個以上相鄰方塊，或是開啟選取開關', 3000); return; }
   const name = prompt('範本名稱：', '範本' + (S.combos.length + 1));
   if(!name) return;
   const minGx = Math.min(...sel.map(b => b.gx));
@@ -2986,7 +2987,7 @@ document.getElementById('comboSave').addEventListener('click', () => {
 });
 
 document.getElementById('comboPlace').addEventListener('click', () => {
-  if(S.activeCombo < 0 || S.activeCombo >= S.combos.length){ alert('請先選擇一個範本'); return; }
+  if(S.activeCombo < 0 || S.activeCombo >= S.combos.length){ showToast('請先選擇一個範本'); return; }
   const combo = S.combos[S.activeCombo];
   saveSnapshot();
   const spot = findEmptySpot();
@@ -3001,7 +3002,7 @@ document.getElementById('comboPlace').addEventListener('click', () => {
 });
 
 document.getElementById('comboDel').addEventListener('click', () => {
-  if(S.activeCombo < 0 || S.activeCombo >= S.combos.length){ alert('請先選擇一個範本'); return; }
+  if(S.activeCombo < 0 || S.activeCombo >= S.combos.length){ showToast('請先選擇一個範本'); return; }
   S.combos.splice(S.activeCombo, 1);
   S.activeCombo = -1;
   saveCombos();
@@ -3148,6 +3149,75 @@ document.getElementById('hintToggle').addEventListener('click', _openHelp);
 document.getElementById('helpClose').addEventListener('click', _closeHelp);
 document.getElementById('helpOverlay').addEventListener('click', (e) => {
   if(e.target === e.currentTarget) _closeHelp();
+});
+
+// ── Toast notification ──
+let _toastTimer = null;
+function showToast(msg, duration){
+  let el = document.getElementById('_toast');
+  if(!el){
+    el = document.createElement('div');
+    el.id = '_toast';
+    el.style.cssText = 'position:fixed;bottom:48px;left:50%;transform:translateX(-50%);background:rgba(25,25,45,0.92);color:#eee;padding:8px 18px;border-radius:8px;font-size:12px;z-index:999;pointer-events:none;transition:opacity 0.3s;border:1px solid #555;';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.style.opacity = '0'; }, duration || 2000);
+}
+
+// ── Keyboard shortcuts ──
+function _inputFocused(){
+  const tag = document.activeElement && document.activeElement.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+}
+
+function _toggleTool(chkId, stateKey, except){
+  const chk = document.getElementById(chkId);
+  clearDrawTools(chkId);
+  S[stateKey] = !S[stateKey];
+  chk.checked = S[stateKey];
+  canvas.style.cursor = S[stateKey] ? 'crosshair' : 'grab';
+}
+
+document.addEventListener('keydown', (e) => {
+  if(_inputFocused()) return;
+  if(e.ctrlKey || e.altKey || e.metaKey) return;
+  switch(e.key.toLowerCase()){
+    case 'b': _toggleTool('chkBrush','brushMode'); break;
+    case 'e': _toggleTool('chkEraser','eraserMode'); break;
+    case 'g': _toggleTool('chkFill','fillMode'); break;
+    case 'r': _toggleTool('chkRect','rectMode'); break;
+    case 'l': _toggleTool('chkLine','lineMode'); break;
+    case 'i': {
+      // Eyedropper: pick tile under last mouse position as brush
+      const r = canvas.getBoundingClientRect();
+      const mx = S.lastMouseClientX - r.left, my = S.lastMouseClientY - r.top;
+      const hit = hitTest(mx, my);
+      if(hit){
+        S.brushTile = {color:hit.color, srcH:hit.srcH};
+        updateBrushIndicator();
+        showToast('吸管：' + hit.color, 1500);
+      }
+      break;
+    }
+    case '[':
+      if(S.currentHeight > -5){ S.currentHeight--; document.getElementById('heightNum').textContent = S.currentHeight; draw(); }
+      break;
+    case ']':
+      if(S.currentHeight < 5){ S.currentHeight++; document.getElementById('heightNum').textContent = S.currentHeight; draw(); }
+      break;
+    case 'escape':
+      clearDrawTools();
+      S.selectedBlocks = new Set();
+      S.selectMode = false; document.getElementById('chkSelect').checked = false;
+      S.copyMode = false; document.getElementById('chkCopy').checked = false;
+      S.locateMode = false; document.getElementById('chkLocate').checked = false;
+      S.autoSelectMode = false; document.getElementById('chkAutoSelect').checked = false;
+      draw();
+      break;
+  }
 });
 
 

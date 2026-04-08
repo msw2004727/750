@@ -2,6 +2,7 @@ import { S, camera, world, canvas, draw } from './state.js';
 import { drawNow } from './gameLoop.js';
 import { setBlocks } from './spatialHash.js';
 import { toScreen } from './coords.js';
+import { showToast } from './ui.js';
 
 export function updateHeightUI(){
   const el = document.getElementById('heightNum');
@@ -73,7 +74,7 @@ document.getElementById('loadBtn').addEventListener('click', () => {
         if(data.currentHeight !== undefined){ S.currentHeight = data.currentHeight; updateHeightUI(); }
         if(data.currentLayer !== undefined){ S.currentLayer = data.currentLayer; updateLayerUI(); }
         draw();
-      } catch(err){ alert('載入失敗：' + err.message); }
+      } catch(err){ showToast('載入失敗：' + err.message, 4000); }
     };
     reader.readAsText(input.files[0]);
   });
@@ -82,7 +83,7 @@ document.getElementById('loadBtn').addEventListener('click', () => {
 
 // ── Export image ──
 document.getElementById('exportImg').addEventListener('click', () => {
-  if(world.blocks.length === 0){ alert('沒有方塊可匯出'); return; }
+  if(world.blocks.length === 0){ showToast('沒有方塊可匯出'); return; }
   const oldCamX = camera.x, oldCamY = camera.y, oldZoom = camera.zoom;
   const oldHH = new Set(S.hiddenHeights), oldHL = new Set(S.hiddenLayers);
   const oldGrid = S.showGrid, oldVGrid = S.showVGrid, oldCoord = S.showCoords;
@@ -106,7 +107,7 @@ document.getElementById('exportImg').addEventListener('click', () => {
     link.href = canvas.toDataURL('image/png');
     link.click();
   } catch(err) {
-    alert('本地開啟無法匯出圖片，請用 GitHub Pages 或本地伺服器開啟');
+    showToast('本地開啟無法匯出圖片，請用 GitHub Pages 或本地伺服器開啟', 4000);
   }
   camera.x = oldCamX; camera.y = oldCamY; camera.zoom = oldZoom;
   S.hiddenHeights = oldHH; S.hiddenLayers = oldHL;

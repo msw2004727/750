@@ -2,6 +2,7 @@ import { S, draw } from './state.js';
 import { hasBlockAt, findEmptySpot } from './blocks.js';
 import { addBlock } from './spatialHash.js';
 import { saveSnapshot } from './history.js';
+import { showToast } from './ui.js';
 
 function saveCombos(){
   localStorage.setItem('blockBuilder_combos', JSON.stringify(S.combos));
@@ -25,7 +26,7 @@ document.getElementById('comboSelect').addEventListener('change', (e) => {
 
 document.getElementById('comboSave').addEventListener('click', () => {
   const sel = [...S.selectedBlocks];
-  if(sel.length < 2){ alert('請先 Shift+點擊 選取 2 個以上相鄰方塊，或是開啟選取開關'); return; }
+  if(sel.length < 2){ showToast('請先 Shift+點擊 選取 2 個以上相鄰方塊，或是開啟選取開關', 3000); return; }
   const name = prompt('範本名稱：', '範本' + (S.combos.length + 1));
   if(!name) return;
   const minGx = Math.min(...sel.map(b => b.gx));
@@ -39,7 +40,7 @@ document.getElementById('comboSave').addEventListener('click', () => {
 });
 
 document.getElementById('comboPlace').addEventListener('click', () => {
-  if(S.activeCombo < 0 || S.activeCombo >= S.combos.length){ alert('請先選擇一個範本'); return; }
+  if(S.activeCombo < 0 || S.activeCombo >= S.combos.length){ showToast('請先選擇一個範本'); return; }
   const combo = S.combos[S.activeCombo];
   saveSnapshot();
   const spot = findEmptySpot();
@@ -54,7 +55,7 @@ document.getElementById('comboPlace').addEventListener('click', () => {
 });
 
 document.getElementById('comboDel').addEventListener('click', () => {
-  if(S.activeCombo < 0 || S.activeCombo >= S.combos.length){ alert('請先選擇一個範本'); return; }
+  if(S.activeCombo < 0 || S.activeCombo >= S.combos.length){ showToast('請先選擇一個範本'); return; }
   S.combos.splice(S.activeCombo, 1);
   S.activeCombo = -1;
   saveCombos();

@@ -10,48 +10,77 @@
 ├── style.css               # 樣式
 ├── game.js                 # 打包輸出（由 build.js 產生，勿手動編輯）
 ├── build.js                # 打包腳本：node build.js
+├── package.json            # type:module + npm test 腳本
 ├── CLAUDE.md
-├── game/                   # 源碼模組（開發時編輯這裡）
+├── game/                   # 源碼模組（開發時編輯這裡，25 個模組）
 │   ├── main.js             # 入口：預設方塊 + 初始化
 │   ├── constants.js        # 網格常數 (TILE, TW, TH, CUBE_H)
 │   ├── state.js            # 集中狀態 S 物件 + draw 註冊
 │   ├── tileData.js         # 素材定義 + 圖片預載
-│   ├── spatialHash.js      # 空間雜湊 + 方塊 CRUD
+│   ├── spatialHash.js      # 空間雜湊 + 方塊 CRUD + animBlockCount
 │   ├── coords.js           # 座標轉換 (toScreen/toGrid/snap)
-│   ├── blocks.js           # 碰撞、flood fill、連通選取
-│   ├── tools.js            # 工具輔助 (矩形/線段/填充計算)
-│   ├── history.js          # undo/redo + Ctrl+Z/Y/C/V
+│   ├── blocks.js           # 碰撞、flood fill、連通選取（用 spatial hash）
+│   ├── geometry.js         # 純幾何計算（矩形/線段/flood fill）
+│   ├── tools.js            # 工具輔助（委派 geometry + 狀態讀取）
+│   ├── gridOverlay.js      # 格線 + 立體格線繪製
+│   ├── minimap.js          # 右下角小地圖
+│   ├── history.js          # undo/redo + Ctrl+Z/Y/C/V + 觸發自動存檔
 │   ├── renderer.js         # 所有繪製 + 動畫 + draw()
+│   ├── hitTest.js          # 等距方塊點擊偵測
+│   ├── contextMenu.js      # 右鍵選單 + 屬性面板
 │   ├── staging.js          # 暫存區 + 拖曳系統
-│   ├── input.js            # 滑鼠/鍵盤輸入 + 右鍵選單
+│   ├── inputDrag.js        # 方塊拖曳機制（start/update/end + overlay）
+│   ├── input.js            # 滑鼠/鍵盤事件分派（狀態機）
 │   ├── touch.js            # 手機觸控 + 雙指縮放
-│   ├── palette.js          # 素材面板 + 搜尋
-│   ├── saveLoad.js         # 儲存/載入/匯出 + 高度控制
+│   ├── palette.js          # 素材面板 + 搜尋（共用 _createTileButton）
+│   ├── saveLoad.js         # 儲存/載入/匯出 + 自動存檔 + Ctrl+S
 │   ├── combos.js           # 自訂組合
-│   └── ui.js               # 工具開關 + 面板 + 說明
+│   └── ui.js               # 工具開關 + 面板 + 說明 + toast + 快捷鍵
+├── test/                   # 自動化測試（86 個案例）
+│   ├── helpers/
+│   │   ├── dom-stub.js     # 輕量 DOM/Canvas/localStorage 模擬
+│   │   └── state-factory.js # resetState() 測試隔離
+│   ├── geometry.test.js    # 矩形/線段/flood fill
+│   ├── constants.test.js   # 常數一致性
+│   ├── eventBus.test.js    # 事件匯流排
+│   ├── coords.test.js      # 座標轉換往返
+│   ├── spatialHash.test.js # CRUD + 高方塊雙槽
+│   ├── blocks.test.js      # hasBlockAt/reachable/selectConnected
+│   ├── history.test.js     # undo/redo 狀態機
+│   ├── hitTest.test.js     # 點擊偵測
+│   ├── tools.test.js       # 工具委派
+│   ├── renderer.test.js    # visibleRange
+│   ├── minimap.test.js     # minimapToGrid
+│   └── gameLoop.test.js    # drawNow
 ├── 素材/
 │   ├── isometric tileset/        # A 組（115 張 32x32）
-│   │   └── separated images/
 │   ├── isometric_jumpstart_v230311/  # B 組（132 張，32x32 + 32x48）
-│   │   ├── separated/
-│   │   └── tile_log.txt
 │   ├── 3232iso/                  # C 組（143 張 32x32，具名檔案）
-│   └── Isometric Strategy/      # D 組（94 張 64x100，含動畫）
+│   ├── Isometric Strategy/      # D 組（94 張 64x100，含動畫）
+│   └── medieval/                 # E 組（6 色盤變體，96x96）
 └── 臨時/
 ```
 
 ## 開發工作流
 1. 編輯 `game/*.js` 模組
 2. 執行 `node build.js` 打包成 `game.js`
-3. 直接開 `index.html`（支援 file://）
-4. 或用 HTTP server 開發模式：改 index.html 為 `<script type="module" src="game/main.js">`
+3. 執行 `npm test` 驗證（86 個自動化測試）
+4. 直接開 `index.html`（支援 file://）
+5. 或用 HTTP server 開發模式：改 index.html 為 `<script type="module" src="game/main.js">`
+
+### 測試
+- 框架：Node.js 內建 `node:test`（零依賴）
+- 執行：`npm test`（等同 `node --test --test-concurrency=1 test/**/*.test.js`）
+- 必須循序執行（`--test-concurrency=1`），因模組共享 S/world/camera 單例
+- 新增模組時應同步新增對應測試
 
 ## 架構層次
 ```
 ┌─────────────────────────────────────────────┐
 │  Editor Layer（可開關）                       │
-│  input, touch, tools, palette, staging      │
-│  combos, saveLoad, history, ui              │
+│  input, inputDrag, touch, tools, palette    │
+│  staging, combos, saveLoad, history, ui     │
+│  contextMenu, hitTest                       │
 ├─────────────────────────────────────────────┤
 │  Engine Layer                               │
 │  World (entities + spatialHash)             │
@@ -167,23 +196,27 @@ Data → Engine               ✗ 禁止
 - drawCube 保持原始寬高比
 
 ## 功能清單
-- 四來源分頁（Scrabling / Jumpstart / 3232iso / Strategy），每來源有子分類
+- 五來源分頁（Scrabling / Jumpstart / 3232iso / Strategy / Medieval 6 色盤變體）
 - 素材按鈕顯示編號、關鍵字搜尋
 - 高度 ▲▼ + 圖層 ▲▼ 切換
-- 座標顯示、格線、立體格線、小地圖
+- 座標顯示、格線、立體格線、小地圖、圖層標示
 - 筆刷、橡皮擦、填充、矩形、線段工具（互斥）
+- 鍵盤快捷鍵：B(筆刷) E(橡皮擦) G(填充) R(矩形) L(線段) I(吸管) [ ](高度) Esc(取消)
+- 吸管工具（I 鍵）：點擊已放置方塊設為當前筆刷
 - Flood fill 拖曳限制（被圍牆困住只能在內部移動）
 - Shift 選取 / 框選 / 整組拖曳
 - Ctrl 複製拖曳、Ctrl+C/V 複製貼上
+- Ctrl+S 儲存、自動存檔（5 秒 debounce + 30 秒硬上限 + beforeunload）
 - 儲存/載入場景（JSON）、匯出 PNG
 - 自訂組合（存選取 → 命名 → 一鍵重複放置）
 - 組合存在 localStorage，持久保留
 - 暫存區（9 格），拖曳放入/取出
 - 空白處拖曳平移視角、滾輪縮放
-- 雙擊/右鍵刪除方塊、右鍵選單
+- 雙擊/右鍵刪除方塊、右鍵選單（含屬性面板）
 - 手機觸控、雙指縮放、長按拖曳
 - 動畫素材支援（spritesheet）
 - 隱藏/顯示指定高度層
+- Toast 提示系統（非阻塞，取代 alert）
 
 ## 切割規則（jumpstart 素材）
 - 基礎格子：32x32（16x10 grid）
@@ -198,6 +231,7 @@ Data → Engine               ✗ 禁止
 - `draw()` 只設 `S._dirty = true`，gameLoop 每幀檢查並統一繪製一次
 - `drawNow()` 供匯出圖片等需要立即繪製的場景
 - `setRealDraw(fn)` 讓 renderer 註冊實際繪製函式
+- 動畫偵測：`S.animBlockCount` 計數器（由 addBlock/removeBlock/setBlocks 維護），取代每幀全掃
 - 動畫（shakeBlock、spritesheet）統一由 gameLoop 驅動
 
 ### EventBus（eventBus.js）
@@ -214,3 +248,29 @@ Data → Engine               ✗ 禁止
 - `world`：`{blocks}` — 從 state.js 獨立 export
 - `S`：保留編輯器狀態（工具模式、選取、暫存區、歷史等）
 - 各模組按需 import：`import { S, camera, world } from './state.js'`
+
+### 自動存檔（saveLoad.js）
+- 每次編輯操作（saveSnapshot）觸發 debounce 存檔（5 秒後）
+- 硬上限 30 秒強制存檔
+- `window.beforeunload` 關閉前存檔
+- `Ctrl+S` 攔截瀏覽器存檔，執行遊戲存檔 + 「已存」視覺提示
+
+### 快捷鍵系統（ui.js）
+- 輸入框 focus 時自動跳過，不吃鍵盤輸入
+- 工具切換：B/E/G/R/L，toggle 行為（再按一次關閉）
+- 吸管：I（讀取滑鼠下方方塊為筆刷）
+- 高度：[ ]（-1 / +1）
+- Escape：取消所有工具和選取
+- `showToast(msg, duration)` 取代所有 alert()
+
+### inputDrag.js（從 input.js 拆出）
+- `startDrag(hit, pos, mode)` — 初始化拖曳狀態
+- `updateDrag(pos)` — 單方塊/複製/群組三種模式的位移邏輯
+- `endDrag()` — 結束拖曳，處理手機暫存區放置，回傳 boolean
+- overlay 函式：`createDragOverlay`/`updateDragOverlay`/`removeDragOverlay`
+
+### 渲染排序公式
+- `(gx+gy)*1000 + gz*10 + layer`（renderer.js 和 hitTestAll 統一使用）
+
+### 已知的模組循環（安全）
+- `ui.js → history.js → saveLoad.js → ui.js`（全部是函式呼叫，非頂層取值，執行期安全）

@@ -1307,7 +1307,7 @@ function _drawActual(){
     const grad = ctx.createRadialGradient(cx, cy, innerR, cx, cy, screenR);
     grad.addColorStop(0, 'rgba(0,0,0,0)');
     grad.addColorStop(0.6, 'rgba(0,0,0,0.3)');
-    grad.addColorStop(1, 'rgba(0,0,0,0.85)');
+    grad.addColorStop(1, 'rgba(0,0,0,1)');
     // Draw gradient ring (fog edge)
     ctx.save();
     ctx.beginPath();
@@ -1323,7 +1323,7 @@ function _drawActual(){
     ctx.rect(0, 0, camera.W, camera.H);
     ctx.arc(cx, cy, screenR, 0, Math.PI * 2, true);
     ctx.clip('evenodd');
-    ctx.fillStyle = 'rgba(0,0,0,0.85)';
+    ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, camera.W, camera.H);
     ctx.restore();
   }

@@ -152,12 +152,32 @@ for(const v of MEDIEVAL_VARIANTS){
 // ── Per-tile default yOffset (exported from editor, manually curated) ──
 const DEFAULT_Y_OFFSETS = {
     "s083": 2,
-    "s090": 1,
+    "s090": 1.75,
     "m040": 0.5
   };
 
 // ── Per-tile element overrides (由 build.cjs 自動從 offsets.json 合併) ──
-const ELEM_OVERRIDES = {};
+const ELEM_OVERRIDES = {
+    "o010": "無",
+    "p010": "無",
+    "p044": "土",
+    "p045": "土",
+    "p046": "土",
+    "p047": "土",
+    "p048": "無",
+    "q010": "無",
+    "q044": "土",
+    "q045": "土",
+    "q046": "土",
+    "q047": "土",
+    "q048": "土",
+    "r010": "無",
+    "r044": "土",
+    "r045": "土",
+    "r046": "土",
+    "r047": "土",
+    "r048": "土"
+  };
 
 // ── Build TILES + preload images ──
 export const TILES = {};

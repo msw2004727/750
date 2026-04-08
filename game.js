@@ -48,7 +48,7 @@ const S = {
   currentLayer: 0,
 
   // Display toggles
-  showCoords: false, showGrid: false, showVGrid: false,
+  showCoords: false, showGrid: false, showVGrid: false, showBlockInfo: false,
   showHover: false, showMinimap: false, showLayerInfo: false,
   hoverBlock: null,
 
@@ -283,12 +283,32 @@ for(const v of MEDIEVAL_VARIANTS){
 // ── Per-tile default yOffset (exported from editor, manually curated) ──
 const DEFAULT_Y_OFFSETS = {
     "s083": 2,
-    "s090": 1,
+    "s090": 1.75,
     "m040": 0.5
   };
 
 // ── Per-tile element overrides (由 build.cjs 自動從 offsets.json 合併) ──
-const ELEM_OVERRIDES = {};
+const ELEM_OVERRIDES = {
+    "o010": "無",
+    "p010": "無",
+    "p044": "土",
+    "p045": "土",
+    "p046": "土",
+    "p047": "土",
+    "p048": "無",
+    "q010": "無",
+    "q044": "土",
+    "q045": "土",
+    "q046": "土",
+    "q047": "土",
+    "q048": "土",
+    "r010": "無",
+    "r044": "土",
+    "r045": "土",
+    "r046": "土",
+    "r047": "土",
+    "r048": "土"
+  };
 
 // ── Build TILES + preload images ──
 const TILES = {};
@@ -1155,6 +1175,27 @@ function drawCube(gx, gy, gz, color, hl, block){
     ctx.fillText(label, x + 1, cy2 + 1);
     ctx.fillStyle = '#fff';
     ctx.fillText(label, x, cy2);
+  }
+
+  if(S.showBlockInfo && block){
+    const td2 = TILES[color] || {};
+    const elem = td2.elem || '無';
+    const elemColors = {'金':'#FFD700','木':'#66BB6A','水':'#42A5F5','火':'#EF5350','土':'#FFA726','無':'#888'};
+    const val = block.state && Object.keys(block.state).length > 0
+      ? JSON.stringify(block.state).slice(1,-1) : '-';
+    const infoText = `${elem}(${val})`;
+    const fontSize2 = Math.max(8, 10 * camera.zoom);
+    ctx.font = `bold ${fontSize2}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const ix = x, iy = y + th * 1.2;
+    const tw3 = ctx.measureText(infoText).width;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.beginPath();
+    ctx.roundRect(ix - tw3/2 - 3, iy - fontSize2/2 - 2, tw3 + 6, fontSize2 + 4, 3);
+    ctx.fill();
+    ctx.fillStyle = elemColors[elem] || '#888';
+    ctx.fillText(infoText, ix, iy);
   }
 
   if(S.showLayerInfo && block){
@@ -3380,6 +3421,7 @@ document.getElementById('chkVGrid').addEventListener('change', (e) => { S.showVG
 document.getElementById('chkCoord').addEventListener('change', (e) => { S.showCoords = e.target.checked; draw(); });
 document.getElementById('chkLayerInfo').addEventListener('change', (e) => { S.showLayerInfo = e.target.checked; draw(); });
 document.getElementById('chkAutoSelect').addEventListener('change', (e) => { S.autoSelectMode = e.target.checked; });
+document.getElementById('chkBlockInfo').addEventListener('change', (e) => { S.showBlockInfo = e.target.checked; draw(); });
 
 // ── Fog of war controls ──
 document.getElementById('fogRadius').addEventListener('change', (e) => {
@@ -3625,7 +3667,7 @@ function enterPlay(){
     selectMode: S.selectMode, copyMode: S.copyMode,
     locateMode: S.locateMode, autoSelectMode: S.autoSelectMode,
     showGrid: S.showGrid, showVGrid: S.showVGrid, showCoords: S.showCoords,
-    showLayerInfo: S.showLayerInfo,
+    showLayerInfo: S.showLayerInfo, showBlockInfo: S.showBlockInfo,
   };
 
   // Disable all editor tools

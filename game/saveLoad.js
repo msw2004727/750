@@ -33,22 +33,32 @@ function _buildSaveData(){
   return JSON.stringify({blocks:world.blocks, camX:camera.x, camY:camera.y, zoom:camera.zoom, currentHeight:S.currentHeight, currentLayer:S.currentLayer});
 }
 
-function _doSave(){
+function _doSave(label){
   localStorage.setItem('blockBuilder_save', _buildSaveData());
+  _showCanvasSaveHint(label || '已儲存');
 }
 
-function _showSaveIndicator(){
-  const btn = document.getElementById('saveBtn');
-  const orig = btn.textContent;
-  btn.textContent = '已存';
-  btn.style.color = '#6f6';
-  setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1500);
+// ── Canvas center save hint (fade out) ──
+let _saveHintEl = null;
+let _saveHintTimer = null;
+function _showCanvasSaveHint(text){
+  if(!_saveHintEl){
+    _saveHintEl = document.createElement('div');
+    _saveHintEl.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);' +
+      'background:rgba(20,20,40,0.85);color:#6f6;font-size:14px;font-weight:bold;' +
+      'padding:8px 20px;border-radius:8px;pointer-events:none;z-index:30;' +
+      'transition:opacity 0.8s;border:1px solid #4a4a6a;';
+    document.getElementById('canvasWrap').appendChild(_saveHintEl);
+  }
+  _saveHintEl.textContent = text;
+  _saveHintEl.style.opacity = '1';
+  clearTimeout(_saveHintTimer);
+  _saveHintTimer = setTimeout(() => { _saveHintEl.style.opacity = '0'; }, 1500);
 }
 
 // Save: overwrite localStorage (no file download)
 document.getElementById('saveBtn').addEventListener('click', () => {
-  _doSave();
-  _showSaveIndicator();
+  _doSave('手動儲存');
 });
 
 // Save As: download as new JSON file
@@ -276,33 +286,32 @@ document.getElementById('showAllBtn').addEventListener('click', () => {
   S.hiddenHeights.clear(); S.hiddenLayers.clear(); draw();
 });
 
-// ── Auto-save: debounce 5s after edit, hard cap 30s ──
+// ── Auto-save: debounce 5s after edit + 10 min interval ──
 let _autoSaveTimer = null;
-let _lastAutoSave = Date.now();
 
 export function scheduleAutoSave(){
   clearTimeout(_autoSaveTimer);
   _autoSaveTimer = setTimeout(() => {
-    _doSave();
-    _lastAutoSave = Date.now();
+    _doSave('自動儲存');
   }, 5000);
-  // Hard cap: if 30s since last save, save now
-  if(Date.now() - _lastAutoSave >= 30000){
-    clearTimeout(_autoSaveTimer);
-    _doSave();
-    _lastAutoSave = Date.now();
-  }
 }
 
+// 10-minute interval auto-save
+const _autoInterval = setInterval(() => {
+  if(world.blocks.length > 0){
+    _doSave('自動儲存');
+  }
+}, 10 * 60 * 1000);
+if(typeof _autoInterval === 'object' && _autoInterval.unref) _autoInterval.unref();
+
 window.addEventListener('beforeunload', () => {
-  _doSave();
+  localStorage.setItem('blockBuilder_save', _buildSaveData());
 });
 
 // ── Ctrl+S intercept ──
 document.addEventListener('keydown', (e) => {
   if(e.ctrlKey && e.key === 's'){
     e.preventDefault();
-    _doSave();
-    _showSaveIndicator();
+    _doSave('手動儲存');
   }
 });

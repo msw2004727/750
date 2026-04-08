@@ -15,6 +15,7 @@ body {
   user-select: none;
 }
 /* ── Mode toggle ── */
+#charLibBtn,
 #modeToggle, #modeToggleGame {
   font-size: 10px;
   padding: 3px 8px;
@@ -25,6 +26,7 @@ body {
   color: #888;
   transition: all 0.15s;
 }
+#charLibBtn:hover,
 #modeToggle:hover, #modeToggleGame:hover {
   background: rgba(50,50,70,0.9);
   border-color: #666;
@@ -601,6 +603,44 @@ body {
 }
 .ctx-item:first-child { border-radius: 6px 6px 0 0; }
 .ctx-item:last-child { border-radius: 0 0 6px 6px; }
+
+/* 角色庫 */
+.charlib-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.charlib-row label {
+  font-size: 11px;
+  color: #999;
+  white-space: nowrap;
+}
+.charlib-sel {
+  font-size: 11px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: 1px solid #555;
+  background: #2a2a3e;
+  color: #ccc;
+  cursor: pointer;
+}
+.charlib-canvas-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0;
+}
+#charPreviewCanvas {
+  border: 1px solid #444;
+  border-radius: 8px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+.charlib-slider {
+  flex: 1;
+  accent-color: #6a4a8a;
+  cursor: pointer;
+}
 
 /* 手機適配 */
 @media (max-width: 600px){

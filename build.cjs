@@ -32,6 +32,7 @@ const ORDER = [
   'ui.js',
   'playMode.js',
   'resourceUI.js',
+  'characterLib.js',
   'main.js',
 ];
 

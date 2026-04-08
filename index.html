@@ -23,6 +23,7 @@
         <option value="無">無</option>
       </select>
       <input id="tileSearch" type="text" placeholder="搜尋..." class="tile-search">
+      <button id="charLibBtn">角色庫</button>
       <button id="modeToggle" class="mode-btn">遊戲模式</button>
     </div>
     <div id="tilePalette"></div>
@@ -145,6 +146,55 @@
       </div>
     </div>
     <canvas id="c"></canvas>
+  </div>
+  <div id="charLibOverlay" class="help-overlay" style="display:none;">
+    <div class="help-modal" style="max-width:360px;">
+      <div class="help-header">
+        <span>角色庫</span>
+        <button id="charLibClose" class="help-close">&times;</button>
+      </div>
+      <div class="help-body" style="padding:10px;">
+        <div class="charlib-row">
+          <label>來源</label>
+          <select id="charStyleSelect" class="charlib-sel">
+            <option value="outline">有框線</option>
+            <option value="no_outline">無框線</option>
+          </select>
+        </div>
+        <div class="charlib-row">
+          <label>分類</label>
+          <select id="charClsSelect" class="charlib-sel">
+            <option value="">全部</option>
+            <option value="村民">村民</option>
+            <option value="步兵">步兵</option>
+            <option value="射手">射手</option>
+            <option value="法師">法師</option>
+            <option value="騎兵">騎兵</option>
+          </select>
+          <label>類型</label>
+          <select id="charTypeSelect" class="charlib-sel">
+            <option value="">全部</option>
+            <option value="物理">物理</option>
+            <option value="魔法">魔法</option>
+          </select>
+        </div>
+        <div class="charlib-row">
+          <label>角色</label>
+          <select id="charNameSelect" class="charlib-sel" style="flex:1;"></select>
+        </div>
+        <div class="charlib-canvas-wrap">
+          <canvas id="charPreviewCanvas" width="160" height="160"></canvas>
+        </div>
+        <div class="charlib-row">
+          <label>狀態</label>
+          <select id="charActionSelect" class="charlib-sel" style="flex:1;"></select>
+        </div>
+        <div class="charlib-row">
+          <label>速度</label>
+          <input id="charSpeed" type="range" min="50" max="450" value="250" class="charlib-slider">
+        </div>
+      </div>
+    </div>
   </div>
   <div id="cloudOverlay" class="help-overlay" style="display:none;">
     <div class="help-modal" style="max-width:380px;">

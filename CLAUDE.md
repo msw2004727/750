@@ -176,6 +176,17 @@
 - 私有函式（不 export）加底線前綴：`_drawActual`, `_realDraw`
 - 子物件用語義名詞：`camera`, `world`, `bus`
 
+#### UI 按鈕風格規則
+- 工具列上方按鈕（如 `#modeToggle`、`#charLibBtn`）統一共用同一組 CSS 樣式
+- 不使用 inline style 覆蓋，新按鈕直接加入現有選擇器：
+  ```css
+  #charLibBtn,
+  #modeToggle, #modeToggleGame { /* 共用樣式 */ }
+  ```
+- 按鈕外觀：`font-size:10px` `padding:3px 8px` `border-radius:4px` `border:1px solid #444` `background:rgba(30,30,50,0.85)` `color:#888`
+- hover：`background:rgba(50,50,70,0.9)` `border-color:#666` `color:#ccc`
+- 新增同類按鈕時**必須**加入此選擇器群組，禁止自建獨立樣式
+
 #### 層級依賴規則（只能往下依賴，不能往上）
 ```
 Editor → Engine → Data     ✓ 正確方向

@@ -93,6 +93,20 @@ export function drawCube(gx, gy, gz, color, hl, block){
     }
   }
 
+  // srcH label (top-left of block)
+  if(block && S.showBlockInfo){
+    const srcHVal = block.srcH || 32;
+    const fs3 = Math.max(7, 9 * camera.zoom);
+    ctx.font = `bold ${fs3}px monospace`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    const lx3 = x - tw + 2, ly3 = y - ch + th * 0.3;
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillText(srcHVal, lx3 + 1, ly3 + 1);
+    ctx.fillStyle = '#aaa';
+    ctx.fillText(srcHVal, lx3, ly3);
+  }
+
   if(hl){
     ctx.lineWidth = 2;
     ctx.lineJoin = 'round';

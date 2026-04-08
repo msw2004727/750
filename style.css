@@ -54,6 +54,8 @@ body {
   gap: 4px;
   flex-wrap: wrap;
   min-height: 42px;
+  max-height: 134px;
+  overflow-y: auto;
   align-items: center;
 }
 .tb {

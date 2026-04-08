@@ -8,6 +8,10 @@
 </head>
 <body>
 <div id="app">
+  <div id="modeBar">
+    <button id="modeToggle" class="mode-btn">切換遊戲模式</button>
+  </div>
+  <div id="editor-ui">
   <div id="toolbar">
     <div id="selectorRow">
       <select id="srcSelect"></select>
@@ -72,6 +76,7 @@
       <button id="clearBtn" class="act-btn danger">清除全部</button>
     </div>
   </div>
+  </div><!-- /editor-ui -->
   <div id="helpOverlay" class="help-overlay" style="display:none;">
     <div id="helpModal" class="help-modal">
       <div class="help-header">
@@ -80,6 +85,10 @@
       </div>
       <div id="helpBody" class="help-body"></div>
     </div>
+  </div>
+  <div id="game-ui">
+    <div id="resourceBar"></div>
+    <div id="buildMenu"></div>
   </div>
   <div id="canvasWrap">
     <div id="stagingArea">

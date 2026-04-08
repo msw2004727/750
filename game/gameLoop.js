@@ -1,4 +1,5 @@
-import { S } from './state.js';
+import { S, game } from './state.js';
+import { bus } from './eventBus.js';
 
 // ── Real draw registration (renderer registers its draw function here) ──
 let _realDraw = () => {};
@@ -32,6 +33,12 @@ function loop(now) {
     animAccum -= ANIM_INTERVAL;
     S.animTick++;
     if (S.animBlockCount > 0) S._dirty = true;
+  }
+
+  // Game tick (1 second interval when running)
+  if (game.running && now - game.lastTick >= 1000) {
+    game.lastTick = now;
+    bus.emit('play:tick', now);
   }
 
   // Render once per frame if needed

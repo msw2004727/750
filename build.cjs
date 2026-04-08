@@ -30,6 +30,7 @@ const ORDER = [
   'saveLoad.js',
   'combos.js',
   'ui.js',
+  'playMode.js',
   'main.js',
 ];
 

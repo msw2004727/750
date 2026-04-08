@@ -15,6 +15,7 @@ import './palette.js';
 import './saveLoad.js';
 import './combos.js';
 import './ui.js';
+import { togglePlay } from './playMode.js';
 
 // ── Load saved state or default blocks ──
 import { loadFromData } from './saveLoad.js';
@@ -57,6 +58,9 @@ if(world.blocks.length === 0){
     addBlock({gx, gy, gz:0, layer:0, color:tile, srcH:100});
   }
 }
+
+// ── Mode toggle button ──
+document.getElementById('modeToggle').addEventListener('click', togglePlay);
 
 // ── Initial resize + start game loop ──
 window.addEventListener('resize', resize);

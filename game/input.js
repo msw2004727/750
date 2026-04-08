@@ -1,4 +1,5 @@
-import { S, camera, world, canvas, draw } from './state.js';
+import { S, camera, world, canvas, draw, game } from './state.js';
+import { bus } from './eventBus.js';
 import { toScreen, toGrid, snap } from './coords.js';
 import { hasBlockAt, computeReachable, selectConnected } from './blocks.js';
 import { addBlock, removeBlock } from './spatialHash.js';
@@ -30,6 +31,17 @@ function _inMinimap(px, py){
 export function onDown(e){
   e.preventDefault();
   const pos = mousePos(e);
+
+  // Game mode: delegate to game input via bus
+  if(game.running){
+    bus.emit('play:pointerdown', {pos, event:e});
+    // Allow pan in game mode
+    S.panDrag = true;
+    S.panStartX = pos.x; S.panStartY = pos.y;
+    S.panCamStartX = camera.x; S.panCamStartY = camera.y;
+    canvas.style.cursor = 'grabbing';
+    return;
+  }
 
   // Minimap drag start
   if(_inMinimap(pos.x, pos.y)){

@@ -16,6 +16,7 @@ const ctx = canvas.getContext('2d');
 // ── Separated sub-objects ──
 const world = { blocks: [] };
 const camera = { x: 0, y: 0, zoom: 1, W: 0, H: 0 };
+const game = { running: false, resources: {}, lastTick: 0 };
 
 const S = {
   // Selection
@@ -347,6 +348,12 @@ function loop(now) {
     animAccum -= ANIM_INTERVAL;
     S.animTick++;
     if (S.animBlockCount > 0) S._dirty = true;
+  }
+
+  // Game tick (1 second interval when running)
+  if (game.running && now - game.lastTick >= 1000) {
+    game.lastTick = now;
+    bus.emit('play:tick', now);
   }
 
   // Render once per frame if needed
@@ -2116,6 +2123,17 @@ function onDown(e){
   e.preventDefault();
   const pos = mousePos(e);
 
+  // Game mode: delegate to game input via bus
+  if(game.running){
+    bus.emit('play:pointerdown', {pos, event:e});
+    // Allow pan in game mode
+    S.panDrag = true;
+    S.panStartX = pos.x; S.panStartY = pos.y;
+    S.panCamStartX = camera.x; S.panCamStartY = camera.y;
+    canvas.style.cursor = 'grabbing';
+    return;
+  }
+
   // Minimap drag start
   if(_inMinimap(pos.x, pos.y)){
     const g = minimapToGrid(pos.x, pos.y);
@@ -3463,6 +3481,65 @@ document.addEventListener('keydown', (e) => {
 });
 
 
+// ── playMode.js ──
+// ── Play mode lifecycle (skeleton) ──
+// enterPlay() / exitPlay() toggle between editor and game modes.
+// Game modules listen to bus events; editor modules stay untouched.
+
+
+let _savedEditor = null;
+
+function enterPlay(){
+  // Save editor tool state so we can restore on exit
+  _savedEditor = {
+    brushMode: S.brushMode, eraserMode: S.eraserMode,
+    fillMode: S.fillMode, rectMode: S.rectMode, lineMode: S.lineMode,
+    selectMode: S.selectMode, copyMode: S.copyMode,
+    locateMode: S.locateMode, autoSelectMode: S.autoSelectMode,
+    showGrid: S.showGrid, showVGrid: S.showVGrid, showCoords: S.showCoords,
+    showLayerInfo: S.showLayerInfo,
+  };
+
+  // Disable all editor tools
+  S.brushMode = false; S.eraserMode = false;
+  S.fillMode = false; S.rectMode = false; S.lineMode = false;
+  S.selectMode = false; S.copyMode = false;
+  S.locateMode = false; S.autoSelectMode = false;
+  S.selectedBlocks = new Set();
+
+  // Activate game
+  game.running = true;
+  game.lastTick = performance.now();
+  document.body.classList.remove('mode-editor');
+  document.body.classList.add('mode-game');
+  document.getElementById('modeToggle').textContent = '切換編輯模式';
+  bus.emit('mode', 'game');
+  draw();
+}
+
+function exitPlay(){
+  game.running = false;
+  document.body.classList.remove('mode-game');
+  document.body.classList.add('mode-editor');
+  document.getElementById('modeToggle').textContent = '切換遊戲模式';
+
+  // Restore editor state
+  if(_savedEditor) Object.assign(S, _savedEditor);
+  _savedEditor = null;
+
+  bus.emit('mode', 'editor');
+  draw();
+}
+
+function togglePlay(){
+  if(game.running) exitPlay();
+  else enterPlay();
+}
+
+// ── Init: start in editor mode ──
+document.body.classList.add('mode-editor');
+
+
 // ── main.js ──
 // ── Entry point: imports establish module evaluation order ──
 
@@ -3508,6 +3585,9 @@ if(world.blocks.length === 0){
     addBlock({gx, gy, gz:0, layer:0, color:tile, srcH:100});
   }
 }
+
+// ── Mode toggle button ──
+document.getElementById('modeToggle').addEventListener('click', togglePlay);
 
 // ── Initial resize + start game loop ──
 window.addEventListener('resize', resize);

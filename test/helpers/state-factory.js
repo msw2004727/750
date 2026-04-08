@@ -1,8 +1,13 @@
 // ── Reset shared singleton state between tests ──
-import { S, world, camera } from '../../game/state.js';
+import { S, world, camera, game } from '../../game/state.js';
 import { shRebuild } from '../../game/spatialHash.js';
 
 export function resetState() {
+  // Game
+  game.running = false;
+  game.resources = {};
+  game.lastTick = 0;
+
   // World
   world.blocks = [];
 

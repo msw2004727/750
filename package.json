@@ -2,6 +2,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test --test-concurrency=1 test/**/*.test.js",
-    "build": "node build.cjs"
+    "build": "node build.cjs",
+    "deploy": "node build.cjs && git add -A && git commit -m \"update offsets & build\" && git push origin main"
   }
 }

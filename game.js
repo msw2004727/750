@@ -2976,7 +2976,25 @@ document.getElementById('exportOffsets').addEventListener('click', () => {
   a.download = 'offsets.json';
   a.click();
   URL.revokeObjectURL(a.href);
-  showToast('已下載 offsets.json（' + Object.keys(offsets).length + ' 筆），放到專案資料夾後 build 即生效');
+  const n = Object.keys(offsets).length;
+  _openCloudModal('匯出偏移完成',
+    '<div style="text-align:left;font-size:12px;color:#bbb;line-height:2;">' +
+    '<div style="color:#6f6;font-size:13px;margin-bottom:8px;">已下載 offsets.json（' + n + ' 筆偏移）</div>' +
+    '<div style="color:#FFD700;margin-bottom:4px;">接下來請依序操作：</div>' +
+    '<div><span style="color:#6bf;">步驟 1.</span> 把下載的 <b>offsets.json</b> 放到專案資料夾（750/）</div>' +
+    '<div><span style="color:#6bf;">步驟 2.</span> 開啟終端機，進入專案資料夾</div>' +
+    '<div><span style="color:#6bf;">步驟 3.</span> 執行以下任一指令：</div>' +
+    '<div style="background:#1a1a2e;border:1px solid #444;border-radius:6px;padding:8px 12px;margin:8px 0;font-family:monospace;">' +
+    '<div style="color:#888;font-size:10px;">▸ 一鍵部署（build + commit + push）：</div>' +
+    '<div style="color:#fff;margin:4px 0;">npm run deploy</div>' +
+    '<div style="color:#888;font-size:10px;margin-top:8px;">▸ 或分步執行：</div>' +
+    '<div style="color:#ccc;">node build.cjs</div>' +
+    '<div style="color:#ccc;">git add -A</div>' +
+    '<div style="color:#ccc;">git commit -m "update offsets"</div>' +
+    '<div style="color:#ccc;">git push</div>' +
+    '</div>' +
+    '<div style="color:#888;font-size:11px;margin-top:6px;">build 會自動讀取 offsets.json 並寫入程式碼，<br>部署後所有人放素材都會自動套用你調好的偏移。</div>' +
+    '</div>');
 });
 
 // ── Cloud Save / Load (jsonblob.com) ──

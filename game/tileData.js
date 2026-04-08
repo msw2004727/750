@@ -337,9 +337,7 @@ for(const src of SOURCES){
     const key = src.prefix + String(i).padStart(3,'0');
     const file = src.fileOf(i);
     const cropY = src.cropOf(i);
-    let srcH = src.srcHOf(i);
-    // Apply height override if defined
-    if(HEIGHT_OVERRIDES[key]) srcH = HEIGHT_OVERRIDES[key];
+    const srcH = src.srcHOf(i);
     let stroke = '#555', ghost = '#888', elem = '無';
     for(const cat of src.cats){
       if(cat.tiles.includes(i)){ stroke = cat.stroke; ghost = cat.ghost; elem = cat.elem || '無'; break; }
@@ -349,7 +347,8 @@ for(const src of SOURCES){
     const srcW = src.srcWOf ? src.srcWOf(i) : 32;
     const frames = src.framesOf ? src.framesOf(i) : 1;
     const defaultYOff = DEFAULT_Y_OFFSETS[key] || 0;
-    TILES[key] = {file, cropY, srcH, srcW, frames, stroke, ghost, defaultYOff, elem};
+    const blockH = HEIGHT_OVERRIDES[key] || srcH;
+    TILES[key] = {file, cropY, srcH, srcW, frames, stroke, ghost, defaultYOff, elem, blockH};
     const img = new Image();
     img.onload = () => { tileImages[key] = img; if(++tilesLoaded >= totalImages) draw(); };
     img.src = src.base + file;

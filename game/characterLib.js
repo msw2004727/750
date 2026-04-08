@@ -1,5 +1,6 @@
 // ── Character Library: browse & preview all character sprites ──
 import { S, draw } from './state.js';
+import { TILES } from './tileData.js';
 import { addBlock, removeBlock } from './spatialHash.js';
 import { shKey, shGet } from './spatialHash.js';
 import { saveSnapshot } from './history.js';
@@ -349,7 +350,9 @@ export function canMoveTo(charBlock, nx, ny){
     if(s && s.size > 0){
       // Check if any ground tile is a tall wall (srcH > 32)
       for(const b of s){
-        if(b.type === 'tile' && b.srcH > 32) return false; // wall blocks
+        const bTd = TILES[b.color];
+        const bH = (bTd && bTd.blockH) || b.srcH || 32;
+        if(b.type === 'tile' && bH > 32) return false; // wall blocks
       }
       hasGround = true;
     }

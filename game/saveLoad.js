@@ -138,7 +138,7 @@ document.getElementById('exportOffsets').addEventListener('click', () => {
   // Collect srcH overrides
   const heights = {};
   for(const [key, td] of Object.entries(TILES)){
-    if(td._srcHOverride) heights[key] = td.srcH;
+    if(td._srcHOverride) heights[key] = td.blockH;
   }
   const nOff = Object.keys(offsets).length;
   const nElem = Object.keys(elements).length;

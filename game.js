@@ -468,9 +468,7 @@ for(const src of SOURCES){
     const key = src.prefix + String(i).padStart(3,'0');
     const file = src.fileOf(i);
     const cropY = src.cropOf(i);
-    let srcH = src.srcHOf(i);
-    // Apply height override if defined
-    if(HEIGHT_OVERRIDES[key]) srcH = HEIGHT_OVERRIDES[key];
+    const srcH = src.srcHOf(i);
     let stroke = '#555', ghost = '#888', elem = '無';
     for(const cat of src.cats){
       if(cat.tiles.includes(i)){ stroke = cat.stroke; ghost = cat.ghost; elem = cat.elem || '無'; break; }
@@ -480,7 +478,8 @@ for(const src of SOURCES){
     const srcW = src.srcWOf ? src.srcWOf(i) : 32;
     const frames = src.framesOf ? src.framesOf(i) : 1;
     const defaultYOff = DEFAULT_Y_OFFSETS[key] || 0;
-    TILES[key] = {file, cropY, srcH, srcW, frames, stroke, ghost, defaultYOff, elem};
+    const blockH = HEIGHT_OVERRIDES[key] || srcH;
+    TILES[key] = {file, cropY, srcH, srcW, frames, stroke, ghost, defaultYOff, elem, blockH};
     const img = new Image();
     img.onload = () => { tileImages[key] = img; if(++tilesLoaded >= totalImages) draw(); };
     img.src = src.base + file;
@@ -1282,7 +1281,8 @@ function drawCube(gx, gy, gz, color, hl, block){
 
   // srcH label (top-left of block)
   if(block && S.showBlockInfo){
-    const srcHVal = block.srcH || 32;
+    const td3 = TILES[color] || {};
+    const srcHVal = td3.blockH || block.srcH || 32;
     const fs3 = Math.max(7, 9 * camera.zoom);
     ctx.font = `bold ${fs3}px monospace`;
     ctx.textAlign = 'left';
@@ -1441,16 +1441,18 @@ function _drawCharacter(block){
     S._dirty = true;
   }
   const flipScale = st._flipState || 1;
-  // Find ground tile height at character position to stand on top
-  let groundSrcH = 32;
+  // Find ground block height at character position (use blockH for logical height)
+  let groundBlockH = 32;
   for(const b of world.blocks){
     if(b.type === 'character') continue;
     if(b.gx === block.gx && b.gy === block.gy && b.gz === block.gz && b.layer <= 5){
-      if(b.srcH > groundSrcH) groundSrcH = b.srcH;
+      const td = TILES[b.color];
+      const bh = (td && td.blockH) || b.srcH || 32;
+      if(bh > groundBlockH) groundBlockH = bh;
     }
   }
-  // Scale standing offset proportionally to tile height (32px=1x CUBE_H, 48px=1.5x, etc)
-  const tileTopOffset = Math.round(_stepCH * (groundSrcH / 32));
+  // Scale standing offset proportionally (16=0.5x, 32=1x, 48=1.5x CUBE_H)
+  const tileTopOffset = Math.round(_stepCH * (groundBlockH / 32));
   const scale = (tw * 2) / img.naturalWidth;
   const dw = Math.round(img.naturalWidth * scale);
   const dh = Math.round(img.naturalHeight * scale);
@@ -3113,7 +3115,8 @@ function _createTileButton(container, key, src, i){
   // srcH label (top-left)
   const hLabel = document.createElement('span');
   hLabel.className = 'tb-srch';
-  hLabel.textContent = (TILES[key] && TILES[key].srcH) || 32;
+  const td0 = TILES[key];
+  hLabel.textContent = (td0 && td0.blockH) || (td0 && td0.srcH) || 32;
   btn.appendChild(hLabel);
   const srcH = (TILES[key] && TILES[key].srcH) || 32;
   let dragStarted = false;
@@ -3234,7 +3237,7 @@ function _showHeightPicker(cx, cy, keys){
     item.addEventListener('click', () => {
       for(const k of keys){
         const td = TILES[k];
-        if(td){ td.srcH = h; td._srcHOverride = true; }
+        if(td){ td.blockH = h; td._srcHOverride = true; }
       }
       _hideMenu();
       _clearPaletteSelection();
@@ -3569,7 +3572,7 @@ document.getElementById('exportOffsets').addEventListener('click', () => {
   // Collect srcH overrides
   const heights = {};
   for(const [key, td] of Object.entries(TILES)){
-    if(td._srcHOverride) heights[key] = td.srcH;
+    if(td._srcHOverride) heights[key] = td.blockH;
   }
   const nOff = Object.keys(offsets).length;
   const nElem = Object.keys(elements).length;
@@ -4593,7 +4596,9 @@ function canMoveTo(charBlock, nx, ny){
     if(s && s.size > 0){
       // Check if any ground tile is a tall wall (srcH > 32)
       for(const b of s){
-        if(b.type === 'tile' && b.srcH > 32) return false; // wall blocks
+        const bTd = TILES[b.color];
+        const bH = (bTd && bTd.blockH) || b.srcH || 32;
+        if(b.type === 'tile' && bH > 32) return false; // wall blocks
       }
       hasGround = true;
     }

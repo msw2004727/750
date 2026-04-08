@@ -117,7 +117,8 @@ function _createTileButton(container, key, src, i){
   // srcH label (top-left)
   const hLabel = document.createElement('span');
   hLabel.className = 'tb-srch';
-  hLabel.textContent = (TILES[key] && TILES[key].srcH) || 32;
+  const td0 = TILES[key];
+  hLabel.textContent = (td0 && td0.blockH) || (td0 && td0.srcH) || 32;
   btn.appendChild(hLabel);
   const srcH = (TILES[key] && TILES[key].srcH) || 32;
   let dragStarted = false;
@@ -238,7 +239,7 @@ function _showHeightPicker(cx, cy, keys){
     item.addEventListener('click', () => {
       for(const k of keys){
         const td = TILES[k];
-        if(td){ td.srcH = h; td._srcHOverride = true; }
+        if(td){ td.blockH = h; td._srcHOverride = true; }
       }
       _hideMenu();
       _clearPaletteSelection();

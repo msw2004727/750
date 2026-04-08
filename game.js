@@ -4024,7 +4024,104 @@ const helpHTML = `
 雙指捏合 — 縮放 | 雙擊 — 刪除方塊<br>
 長按素材 — 拖曳到畫布或暫存區<br>
 拖曳方塊到暫存區範圍 — 存入暫存
+
+<h3>素材庫操作</h3>
+<kbd>Ctrl</kbd>+<kbd>左鍵</kbd> — 逐個切換選取素材<br>
+<kbd>Shift</kbd>+<kbd>左鍵拖曳</kbd> — 掃過的素材全部選入<br>
+右鍵素材 → <kbd>修改高度</kbd>（blockH：16/32/48/96）<br>
+右鍵素材 → <kbd>修改屬性</kbd>（五行：金/木/水/火/土/無）<br>
+<kbd>匯出偏移</kbd> — 匯出所有偏移、屬性、高度修改
+
+<hr style="border-color:#333;margin:16px 0;">
+
+<h3 style="color:#FFD700;">角色手冊</h3>
+
+<h3>陣營系統</h3>
+四個陣營，放置角色時選擇：<br>
+<span style="color:#4A9FDD;">正義（藍）</span> — 攻擊反派和邪惡，不打善良<br>
+<span style="color:#E85050;">反派（紅）</span> — 攻擊正義和邪惡，不打善良<br>
+<span style="color:#9B59B6;">邪惡（紫）</span> — 攻擊所有人（包括善良）<br>
+<span style="color:#5CBF5C;">善良（綠）</span> — 永不攻擊，被攻擊時逃跑<br>
+角色腳底的彩色圓環 = 陣營顏色
+
+<h3>角色職業</h3>
+<b>村民</b>（HP:30 ATK:3 DEF:1 SPD:3）<br>
+— 弱小，適合做平民/NPC。無攻擊動畫時以 idle 替代<br>
+<b>步兵</b>（HP:80 ATK:10 DEF:8 SPD:2 近戰）<br>
+— 高血高防，近身肉搏。劍士、戟兵、槍兵、盾兵、王子、國王<br>
+<b>射手</b>（HP:50 ATK:12 DEF:3 SPD:2 射程:4）<br>
+— 遠程物理攻擊，發射箭矢（250ms 飛行），防禦低<br>
+<b>法師</b>（HP:45 ATK:15 DEF:2 SPD:1 射程:3 MP:100）<br>
+— 遠程魔法攻擊，發射法球（400ms 飛行），穿透 50% 防禦<br>
+— 每次攻擊消耗 15 MP，MP 歸零時逃跑，回到 30 MP 重新參戰<br>
+<b>騎兵</b>（HP:70 ATK:12 DEF:5 SPD:4 近戰）<br>
+— 高速近戰，騎士和馬兵
+
+<h3>戰鬥機制</h3>
+自動戰鬥：偵測到敵對角色 → 自動接近 → 攻擊<br>
+<kbd>近戰</kbd> — 鄰格直接扣血，傷害 = ATK - DEF（最少 1）<br>
+<kbd>遠程</kbd> — 發射箭矢/法球，到達目標後扣血<br>
+<kbd>魔法</kbd> — 法球穿透 50% 防禦，消耗 MP，-MP 顯示藍字<br>
+死亡 → 播放倒地動畫 → 消失
+
+<h3>飄字顏色</h3>
+<span style="color:#ff3333;">-12 物理傷害（紅）</span><br>
+<span style="color:#cc44ff;">-15 魔法傷害（紫）</span><br>
+<span style="color:#33ff66;">+4 治療回血（綠）</span><br>
+<span style="color:#4488ff;">-15 MP 消耗（藍）</span><br>
+<span style="color:#44ddff;">+8 MP 恢復（青）</span>
+
+<h3>逃跑與休息</h3>
+<kbd>逃跑觸發</kbd> — 善良陣營永遠逃、HP &lt; 20%、法師 MP &lt; 15<br>
+逃跑速度 1.5 倍，往威脅反方向移動<br>
+<kbd>休息</kbd> — 脫離戰鬥 5 秒後開始回復<br>
+HP 回復 5%/秒 | MP 回復 8/秒
+
+<h3>角色 AI</h3>
+自主探索：優先前往沒去過的格子<br>
+群聚行為：同職業角色互相吸引<br>
+子格移動：每格 4×4 站位，移動速度 200ms/步<br>
+朝向：面朝移動方向，左右翻轉有轉身動畫
+
+<hr style="border-color:#333;margin:16px 0;">
+
+<h3 style="color:#FFD700;">地圖手冊</h3>
+
+<h3>五行屬性</h3>
+每個素材有五行屬性：<span style="color:#FFD700;">金</span> <span style="color:#66BB6A;">木</span> <span style="color:#42A5F5;">水</span> <span style="color:#EF5350;">火</span> <span style="color:#FFA726;">土</span> 或 無<br>
+天然素材有屬性，人造物為「無」<br>
+屬性篩選：工具列「全屬性」下拉選單<br>
+修改屬性：素材庫右鍵 → 修改屬性
+
+<h3>方格高度（blockH）</h3>
+每個素材有邏輯高度，影響角色站立位置和碰撞：<br>
+<kbd>16</kbd> — 矮（四分之一格），角色站低一點<br>
+<kbd>32</kbd> — 標準（半格），大部分地面素材<br>
+<kbd>48</kbd> — 高（一格），角色站高一點<br>
+<kbd>96</kbd> — 牆壁（高物件），阻擋角色通行<br>
+素材庫左上角顯示 blockH 數值，右鍵 → 修改高度可更改<br>
+<b>注意</b>：blockH 不影響素材圖片外觀，只影響遊戲邏輯
+
+<h3>高度差與角色</h3>
+角色自動適應腳下方塊的 blockH：<br>
+— 從 blockH:32 走到 blockH:48 → 角色跳上<br>
+— 從 blockH:48 走到 blockH:32 → 角色跳下<br>
+— blockH:96 以上 → 阻擋角色，無法通行
+
+<h3>偏移微調</h3>
+<kbd>左鍵拖曳</kbd>+<kbd>滾輪</kbd> — 上下偏移（yOffset）<br>
+<kbd>右鍵按住</kbd>+<kbd>滾輪</kbd> — gx 軸偏移（↗↙）<br>
+<kbd>右鍵按住</kbd>+<kbd>Shift</kbd>+<kbd>滾輪</kbd> — gy 軸偏移（↘↖）<br>
+步進 ±0.25，範圍 -5~+5<br>
+右鍵方塊 → <kbd>設為預設偏移</kbd> → 記住該素材的偏移值
+
+<h3>迷霧系統</h3>
+收折面板「迷霧」→ 設定半徑和中心座標<br>
+圓形迷霧：中心清晰 → 邊緣漸層黑霧 → 外部全黑<br>
+迷霧外方塊不渲染（節省效能）<br>
+迷霧數據隨地圖存檔保留
 `;
+
 document.getElementById('helpBody').innerHTML = helpHTML;
 
 function _openHelp(){

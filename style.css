@@ -26,7 +26,16 @@ body {
   transition: all 0.15s;
 }
 #modeToggle:hover { background: rgba(100,180,255,0.15); border-color: #6bf; color: #fff; }
-.mode-game #modeToggle { background: #2a4a2a; border-color: #6b6; color: #6f6; }
+.mode-game #modeToggle { background: rgba(30,30,50,0.85); border-color: #444; color: #888; font-size: 10px; }
+.mode-game #modeToggle:hover { background: rgba(50,50,70,0.9); border-color: #666; color: #ccc; }
+#modeToggleGame {
+  background: rgba(30,30,50,0.85);
+  border-color: #444;
+  color: #888;
+  font-size: 10px;
+  padding: 3px 8px;
+}
+#modeToggleGame:hover { background: rgba(50,50,70,0.9); border-color: #666; color: #ccc; }
 /* ── Mode visibility ── */
 .mode-game #editor-ui { display: none; }
 .mode-game #stagingArea { display: none; }
@@ -61,13 +70,13 @@ body {
 .res-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  height: 18px;
+  gap: 4px;
+  height: 14px;
 }
 .res-icon {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: bold;
-  width: 16px;
+  width: 14px;
   text-align: center;
   flex-shrink: 0;
 }
@@ -78,8 +87,8 @@ body {
 .res-row[data-res="土"] .res-icon { color: #C8A256; }
 .res-bar-wrap {
   flex: 1;
-  max-width: 120px;
-  height: 8px;
+  max-width: 60px;
+  height: 6px;
   background: #1a1a2e;
   border: 1px solid #333;
   border-radius: 4px;
@@ -97,15 +106,15 @@ body {
 .res-row[data-res="火"] .res-bar-fill { background: #E8553A; }
 .res-row[data-res="土"] .res-bar-fill { background: #C8A256; }
 .res-val {
-  font-size: 11px;
+  font-size: 9px;
   color: #ddd;
-  min-width: 32px;
+  min-width: 28px;
   text-align: right;
   font-family: monospace;
 }
 .res-rate {
-  font-size: 10px;
-  min-width: 42px;
+  font-size: 9px;
+  min-width: 36px;
   text-align: right;
   font-family: monospace;
 }

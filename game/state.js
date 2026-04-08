@@ -70,7 +70,7 @@ export const S = {
   mobileDragKey: null, mobileDragEl: null,
 
   // Staging
-  staging: new Array(9).fill(null),
+  staging: new Array(3).fill(null),
 
   // Palette
   selectedSrc: -1, selectedCat: 0,

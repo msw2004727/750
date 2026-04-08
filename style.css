@@ -328,7 +328,7 @@ body {
 #stagingGrid {
   display: grid;
   grid-template-columns: repeat(3, 42px);
-  grid-template-rows: repeat(3, 42px);
+  grid-template-rows: 42px;
   gap: 2px;
 }
 .staging-cell {
@@ -481,6 +481,6 @@ body {
 @media (max-width: 600px){
   .help-modal { width: 95%; max-height: 85vh; }
   .tb { width: 36px; height: 36px; }
-  #stagingGrid { grid-template-columns: repeat(3, 36px); grid-template-rows: repeat(3, 36px); }
+  #stagingGrid { grid-template-columns: repeat(3, 36px); grid-template-rows: 36px; }
   .staging-cell { width: 36px; height: 36px; }
 }

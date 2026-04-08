@@ -79,7 +79,7 @@ export function resetState() {
   S.mobileDragKey = null;
   S.mobileDragEl = null;
 
-  S.staging = new Array(9).fill(null);
+  S.staging = new Array(3).fill(null);
   S.selectedSrc = -1;
   S.selectedCat = 0;
 

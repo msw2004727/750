@@ -82,7 +82,7 @@ const S = {
   mobileDragKey: null, mobileDragEl: null,
 
   // Staging
-  staging: new Array(9).fill(null),
+  staging: new Array(3).fill(null),
 
   // Palette
   selectedSrc: -1, selectedCat: 0,
@@ -1632,13 +1632,13 @@ function addToStaging(color, srcH, combo){
   if(combo){
     // Combos always take a new slot
     let slot = S.staging.indexOf(null);
-    if(slot === -1) slot = 8;
+    if(slot === -1) slot = 2;
     S.staging[slot] = {combo};
     renderStagingCell(slot);
     return;
   }
   // Find existing slot with same tile — stack count
-  for(let i = 0; i < 9; i++){
+  for(let i = 0; i < 3; i++){
     const s = S.staging[i];
     if(s && !s.combo && s.color === color){
       s.count = (s.count || 1) + 1;
@@ -1648,7 +1648,7 @@ function addToStaging(color, srcH, combo){
   }
   // No match — use empty slot
   let slot = S.staging.indexOf(null);
-  if(slot === -1) slot = 8;
+  if(slot === -1) slot = 2;
   S.staging[slot] = {color, srcH, count: 1};
   renderStagingCell(slot);
 }
@@ -1764,7 +1764,7 @@ document.addEventListener('mouseup', (e) => {
 // ── Init staging grid ──
 function initStagingGrid(){
   const grid = document.getElementById('stagingGrid');
-  for(let i = 0; i < 9; i++){
+  for(let i = 0; i < 3; i++){
     const cell = document.createElement('div');
     cell.className = 'staging-cell';
     cell.dataset.idx = i;

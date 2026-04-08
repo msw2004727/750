@@ -39,7 +39,7 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault();
       const sel = [...S.selectedBlocks];
       const minGx = Math.min(...sel.map(b=>b.gx)), minGy = Math.min(...sel.map(b=>b.gy));
-      S.clipboard = sel.map(b => ({dx:b.gx-minGx, dy:b.gy-minGy, color:b.color, srcH:b.srcH, yOffset:b.yOffset||0}));
+      S.clipboard = sel.map(b => ({dx:b.gx-minGx, dy:b.gy-minGy, color:b.color, srcH:b.srcH, yOffset:b.yOffset||0, state:{...(b.state||{})}}));
     }
   }
   if(e.ctrlKey && e.key === 'v'){
@@ -52,7 +52,7 @@ document.addEventListener('keydown', (e) => {
       for(const t of S.clipboard){
         const nx = gx+t.dx, ny = gy+t.dy;
         if(!hasBlockAt(nx, ny, S.currentHeight, null, S.currentLayer)){
-          const b = {gx:nx, gy:ny, gz:S.currentHeight, layer:S.currentLayer, color:t.color, srcH:t.srcH, yOffset:t.yOffset};
+          const b = {gx:nx, gy:ny, gz:S.currentHeight, layer:S.currentLayer, color:t.color, srcH:t.srcH, yOffset:t.yOffset, state:{...(t.state||{})}};
           addBlock(b);
           pasted.push(b);
         }

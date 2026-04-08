@@ -156,6 +156,9 @@ const DEFAULT_Y_OFFSETS = {
     "m040": 0.5
   };
 
+// ── Per-tile element overrides (由 build.cjs 自動從 offsets.json 合併) ──
+const ELEM_OVERRIDES = {};
+
 // ── Build TILES + preload images ──
 export const TILES = {};
 export const tileImages = {};
@@ -173,6 +176,8 @@ for(const src of SOURCES){
     for(const cat of src.cats){
       if(cat.tiles.includes(i)){ stroke = cat.stroke; ghost = cat.ghost; elem = cat.elem || '無'; break; }
     }
+    // Apply element override if defined
+    if(ELEM_OVERRIDES[key]) elem = ELEM_OVERRIDES[key];
     const srcW = src.srcWOf ? src.srcWOf(i) : 32;
     const frames = src.framesOf ? src.framesOf(i) : 1;
     const defaultYOff = DEFAULT_Y_OFFSETS[key] || 0;

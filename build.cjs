@@ -76,24 +76,56 @@ function strip(filename, src) {
   return text;
 }
 
-// ── Auto-merge offsets.json into DEFAULT_Y_OFFSETS ──
+// ── Auto-merge offsets.json into tileData.js ──
 const OFFSETS_FILE = path.join(__dirname, 'offsets.json');
 if (fs.existsSync(OFFSETS_FILE)) {
   try {
-    const offsets = JSON.parse(fs.readFileSync(OFFSETS_FILE, 'utf8'));
-    const count = Object.keys(offsets).length;
-    if (count > 0) {
-      // Read tileData.js and replace DEFAULT_Y_OFFSETS content
-      const tdPath = path.join(DIR, 'tileData.js');
-      let td = fs.readFileSync(tdPath, 'utf8');
+    const raw = JSON.parse(fs.readFileSync(OFFSETS_FILE, 'utf8'));
+    // Support new format {offsets:{}, elements:{}} and old flat format {key:val}
+    const offsets = raw.offsets || (raw.elements ? {} : raw);
+    const elements = raw.elements || {};
+    const tdPath = path.join(DIR, 'tileData.js');
+    let td = fs.readFileSync(tdPath, 'utf8');
+    let merged = 0;
+    // Merge yOffset defaults
+    if (Object.keys(offsets).length > 0) {
       const formatted = JSON.stringify(offsets, null, 2).replace(/^/gm, '  ').trim();
       td = td.replace(
         /const DEFAULT_Y_OFFSETS = \{[^}]*\};/s,
         'const DEFAULT_Y_OFFSETS = ' + formatted + ';'
       );
-      fs.writeFileSync(tdPath, td, 'utf8');
-      console.log(`Merged ${count} offsets from offsets.json into tileData.js`);
+      merged += Object.keys(offsets).length;
+      console.log(`Merged ${Object.keys(offsets).length} offsets`);
     }
+    // Merge element overrides into cat definitions
+    if (Object.keys(elements).length > 0) {
+      for (const [key, elem] of Object.entries(elements)) {
+        // Find the tile's prefix and index
+        const prefix = key.charAt(0);
+        const idx = parseInt(key.slice(1));
+        // Update the elem in the cat that contains this tile index
+        const catRegex = new RegExp(`(\\{label:'[^']*',\\s*tiles:\\[[^\\]]*\\b${idx}\\b[^\\]]*\\],[^}]*?)elem:'[^']*'`, 'g');
+        // Simpler: just add an ELEM_OVERRIDES map like DEFAULT_Y_OFFSETS
+        // This is cleaner than regex-patching cat definitions
+      }
+      // Use a simpler approach: add ELEM_OVERRIDES map
+      const elemFormatted = JSON.stringify(elements, null, 2).replace(/^/gm, '  ').trim();
+      if (td.includes('const ELEM_OVERRIDES')) {
+        td = td.replace(
+          /const ELEM_OVERRIDES = \{[^}]*\};/s,
+          'const ELEM_OVERRIDES = ' + elemFormatted + ';'
+        );
+      } else {
+        // Insert after DEFAULT_Y_OFFSETS
+        td = td.replace(
+          /(const DEFAULT_Y_OFFSETS = \{[^}]*\};)/s,
+          '$1\n\nconst ELEM_OVERRIDES = ' + elemFormatted + ';'
+        );
+      }
+      merged += Object.keys(elements).length;
+      console.log(`Merged ${Object.keys(elements).length} element overrides`);
+    }
+    if (merged > 0) fs.writeFileSync(tdPath, td, 'utf8');
   } catch (e) {
     console.warn('Warning: failed to read offsets.json:', e.message);
   }

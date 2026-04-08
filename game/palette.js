@@ -8,6 +8,7 @@ import { toGrid, snap } from './coords.js';
 import { hasBlockAt } from './blocks.js';
 import { addBlock } from './spatialHash.js';
 import { saveSnapshot } from './history.js';
+import { showToast } from './ui.js';
 
 // ── Place tile on canvas (spiral search for free cell) ──
 function placeOnCanvas(color, srcH){
@@ -113,8 +114,46 @@ function _createTileButton(container, key, src, i){
     document.addEventListener('mouseup', onUp2);
   });
   btn.addEventListener('click', (e) => { e.preventDefault(); });
+  btn.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    _showElemPicker(e.clientX, e.clientY, key);
+  });
   setupMobileTileDrag(btn, key);
   container.appendChild(btn);
+}
+
+// ── Element picker (right-click on palette tile) ──
+let _elemPickerEl = null;
+function _showElemPicker(cx, cy, key){
+  _hideElemPicker();
+  const td = TILES[key];
+  if(!td) return;
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
+  menu.style.left = cx + 'px';
+  menu.style.top = cy + 'px';
+  const title = document.createElement('div');
+  title.style.cssText = 'padding:4px 14px;font-size:10px;color:#888;';
+  title.textContent = key + ' 屬性：' + (td.elem || '無');
+  menu.appendChild(title);
+  for(const el of ['金','木','水','火','土','無']){
+    const item = document.createElement('div');
+    item.className = 'ctx-item';
+    item.textContent = el + (td.elem === el ? ' ✓' : '');
+    item.addEventListener('click', () => {
+      td.elem = el;
+      td._elemOverride = true;
+      _hideElemPicker();
+      showToast(key + ' → ' + el);
+    });
+    menu.appendChild(item);
+  }
+  document.body.appendChild(menu);
+  _elemPickerEl = menu;
+  setTimeout(() => document.addEventListener('click', _hideElemPicker, {once:true}), 10);
+}
+function _hideElemPicker(){
+  if(_elemPickerEl){ _elemPickerEl.remove(); _elemPickerEl = null; }
 }
 
 // ── Palette population ──

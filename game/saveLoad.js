@@ -1,6 +1,6 @@
 import { S, camera, world, canvas, draw } from './state.js';
 import { drawNow } from './gameLoop.js';
-import { TILES } from './tileData.js';
+import { TILES, SOURCES } from './tileData.js';
 import { setBlocks } from './spatialHash.js';
 import { toScreen } from './coords.js';
 import { showToast } from './ui.js';
@@ -120,8 +120,9 @@ document.getElementById('exportImg').addEventListener('click', () => {
   draw();
 });
 
-// ── Export yOffset adjustments as offsets.json ──
+// ── Export offsets + element overrides as offsets.json ──
 document.getElementById('exportOffsets').addEventListener('click', () => {
+  // Collect yOffset changes
   const offsets = {};
   for(const b of world.blocks){
     if(b.yOffset && b.yOffset !== 0) offsets[b.color] = b.yOffset;
@@ -129,17 +130,25 @@ document.getElementById('exportOffsets').addEventListener('click', () => {
   for(const [key, td] of Object.entries(TILES)){
     if(td.defaultYOff && !offsets[key]) offsets[key] = td.defaultYOff;
   }
-  if(Object.keys(offsets).length === 0){ showToast('沒有任何偏移調整'); return; }
-  const blob = new Blob([JSON.stringify(offsets, null, 2)], {type:'application/json'});
+  // Collect element overrides (compare TILES[key].elem against original cat.elem)
+  const elements = {};
+  for(const [key, td] of Object.entries(TILES)){
+    if(td._elemOverride) elements[key] = td.elem;
+  }
+  const nOff = Object.keys(offsets).length;
+  const nElem = Object.keys(elements).length;
+  if(nOff === 0 && nElem === 0){ showToast('沒有任何修改'); return; }
+  const data = { offsets, elements };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'offsets.json';
   a.click();
   URL.revokeObjectURL(a.href);
-  const n = Object.keys(offsets).length;
+  const n = nOff + nElem;
   _openCloudModal('匯出偏移完成',
     '<div style="text-align:left;font-size:12px;color:#bbb;line-height:2;">' +
-    '<div style="color:#6f6;font-size:13px;margin-bottom:8px;">已下載 offsets.json（' + n + ' 筆偏移）</div>' +
+    '<div style="color:#6f6;font-size:13px;margin-bottom:8px;">已下載 offsets.json（' + nOff + ' 筆偏移 + ' + nElem + ' 筆屬性）</div>' +
     '<div style="color:#FFD700;margin-bottom:4px;">接下來請依序操作：</div>' +
     '<div><span style="color:#6bf;">步驟 1.</span> 把下載的 <b>offsets.json</b> 放到專案資料夾（750/）</div>' +
     '<div><span style="color:#6bf;">步驟 2.</span> 開啟終端機，進入專案資料夾</div>' +

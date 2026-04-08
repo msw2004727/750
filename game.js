@@ -287,6 +287,9 @@ const DEFAULT_Y_OFFSETS = {
     "m040": 0.5
   };
 
+// ── Per-tile element overrides (由 build.cjs 自動從 offsets.json 合併) ──
+const ELEM_OVERRIDES = {};
+
 // ── Build TILES + preload images ──
 const TILES = {};
 const tileImages = {};
@@ -304,6 +307,8 @@ for(const src of SOURCES){
     for(const cat of src.cats){
       if(cat.tiles.includes(i)){ stroke = cat.stroke; ghost = cat.ghost; elem = cat.elem || '無'; break; }
     }
+    // Apply element override if defined
+    if(ELEM_OVERRIDES[key]) elem = ELEM_OVERRIDES[key];
     const srcW = src.srcWOf ? src.srcWOf(i) : 32;
     const frames = src.framesOf ? src.framesOf(i) : 1;
     const defaultYOff = DEFAULT_Y_OFFSETS[key] || 0;
@@ -2768,8 +2773,46 @@ function _createTileButton(container, key, src, i){
     document.addEventListener('mouseup', onUp2);
   });
   btn.addEventListener('click', (e) => { e.preventDefault(); });
+  btn.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    _showElemPicker(e.clientX, e.clientY, key);
+  });
   setupMobileTileDrag(btn, key);
   container.appendChild(btn);
+}
+
+// ── Element picker (right-click on palette tile) ──
+let _elemPickerEl = null;
+function _showElemPicker(cx, cy, key){
+  _hideElemPicker();
+  const td = TILES[key];
+  if(!td) return;
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
+  menu.style.left = cx + 'px';
+  menu.style.top = cy + 'px';
+  const title = document.createElement('div');
+  title.style.cssText = 'padding:4px 14px;font-size:10px;color:#888;';
+  title.textContent = key + ' 屬性：' + (td.elem || '無');
+  menu.appendChild(title);
+  for(const el of ['金','木','水','火','土','無']){
+    const item = document.createElement('div');
+    item.className = 'ctx-item';
+    item.textContent = el + (td.elem === el ? ' ✓' : '');
+    item.addEventListener('click', () => {
+      td.elem = el;
+      td._elemOverride = true;
+      _hideElemPicker();
+      showToast(key + ' → ' + el);
+    });
+    menu.appendChild(item);
+  }
+  document.body.appendChild(menu);
+  _elemPickerEl = menu;
+  setTimeout(() => document.addEventListener('click', _hideElemPicker, {once:true}), 10);
+}
+function _hideElemPicker(){
+  if(_elemPickerEl){ _elemPickerEl.remove(); _elemPickerEl = null; }
 }
 
 // ── Palette population ──
@@ -3038,8 +3081,9 @@ document.getElementById('exportImg').addEventListener('click', () => {
   draw();
 });
 
-// ── Export yOffset adjustments as offsets.json ──
+// ── Export offsets + element overrides as offsets.json ──
 document.getElementById('exportOffsets').addEventListener('click', () => {
+  // Collect yOffset changes
   const offsets = {};
   for(const b of world.blocks){
     if(b.yOffset && b.yOffset !== 0) offsets[b.color] = b.yOffset;
@@ -3047,17 +3091,25 @@ document.getElementById('exportOffsets').addEventListener('click', () => {
   for(const [key, td] of Object.entries(TILES)){
     if(td.defaultYOff && !offsets[key]) offsets[key] = td.defaultYOff;
   }
-  if(Object.keys(offsets).length === 0){ showToast('沒有任何偏移調整'); return; }
-  const blob = new Blob([JSON.stringify(offsets, null, 2)], {type:'application/json'});
+  // Collect element overrides (compare TILES[key].elem against original cat.elem)
+  const elements = {};
+  for(const [key, td] of Object.entries(TILES)){
+    if(td._elemOverride) elements[key] = td.elem;
+  }
+  const nOff = Object.keys(offsets).length;
+  const nElem = Object.keys(elements).length;
+  if(nOff === 0 && nElem === 0){ showToast('沒有任何修改'); return; }
+  const data = { offsets, elements };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'offsets.json';
   a.click();
   URL.revokeObjectURL(a.href);
-  const n = Object.keys(offsets).length;
+  const n = nOff + nElem;
   _openCloudModal('匯出偏移完成',
     '<div style="text-align:left;font-size:12px;color:#bbb;line-height:2;">' +
-    '<div style="color:#6f6;font-size:13px;margin-bottom:8px;">已下載 offsets.json（' + n + ' 筆偏移）</div>' +
+    '<div style="color:#6f6;font-size:13px;margin-bottom:8px;">已下載 offsets.json（' + nOff + ' 筆偏移 + ' + nElem + ' 筆屬性）</div>' +
     '<div style="color:#FFD700;margin-bottom:4px;">接下來請依序操作：</div>' +
     '<div><span style="color:#6bf;">步驟 1.</span> 把下載的 <b>offsets.json</b> 放到專案資料夾（750/）</div>' +
     '<div><span style="color:#6bf;">步驟 2.</span> 開啟終端機，進入專案資料夾</div>' +

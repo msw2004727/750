@@ -87,43 +87,46 @@ if (fs.existsSync(OFFSETS_FILE)) {
     const tdPath = path.join(DIR, 'tileData.js');
     let td = fs.readFileSync(tdPath, 'utf8');
     let merged = 0;
-    // Merge yOffset defaults
+
+    // Helper: parse existing JS object literal from source
+    function _parseExisting(src, varName) {
+      const re = new RegExp('const ' + varName + ' = (\\{[^}]*\\});', 's');
+      const m = src.match(re);
+      if (m) try { return JSON.parse(m[1].replace(/'/g, '"').replace(/,\s*}/g, '}')); } catch(e) {}
+      return {};
+    }
+
+    // Merge yOffset defaults (additive)
     if (Object.keys(offsets).length > 0) {
-      const formatted = JSON.stringify(offsets, null, 2).replace(/^/gm, '  ').trim();
+      const existing = _parseExisting(td, 'DEFAULT_Y_OFFSETS');
+      const combined = Object.assign(existing, offsets);
+      const formatted = JSON.stringify(combined, null, 2).replace(/^/gm, '  ').trim();
       td = td.replace(
         /const DEFAULT_Y_OFFSETS = \{[^}]*\};/s,
         'const DEFAULT_Y_OFFSETS = ' + formatted + ';'
       );
       merged += Object.keys(offsets).length;
-      console.log(`Merged ${Object.keys(offsets).length} offsets`);
+      console.log(`Merged ${Object.keys(offsets).length} offsets (total: ${Object.keys(combined).length})`);
     }
-    // Merge element overrides into cat definitions
+
+    // Merge element overrides (additive)
     if (Object.keys(elements).length > 0) {
-      for (const [key, elem] of Object.entries(elements)) {
-        // Find the tile's prefix and index
-        const prefix = key.charAt(0);
-        const idx = parseInt(key.slice(1));
-        // Update the elem in the cat that contains this tile index
-        const catRegex = new RegExp(`(\\{label:'[^']*',\\s*tiles:\\[[^\\]]*\\b${idx}\\b[^\\]]*\\],[^}]*?)elem:'[^']*'`, 'g');
-        // Simpler: just add an ELEM_OVERRIDES map like DEFAULT_Y_OFFSETS
-        // This is cleaner than regex-patching cat definitions
-      }
-      // Use a simpler approach: add ELEM_OVERRIDES map
-      const elemFormatted = JSON.stringify(elements, null, 2).replace(/^/gm, '  ').trim();
+      const existing = _parseExisting(td, 'ELEM_OVERRIDES');
+      const combined = Object.assign(existing, elements);
+      const elemFormatted = JSON.stringify(combined, null, 2).replace(/^/gm, '  ').trim();
       if (td.includes('const ELEM_OVERRIDES')) {
         td = td.replace(
           /const ELEM_OVERRIDES = \{[^}]*\};/s,
           'const ELEM_OVERRIDES = ' + elemFormatted + ';'
         );
       } else {
-        // Insert after DEFAULT_Y_OFFSETS
         td = td.replace(
           /(const DEFAULT_Y_OFFSETS = \{[^}]*\};)/s,
           '$1\n\nconst ELEM_OVERRIDES = ' + elemFormatted + ';'
         );
       }
       merged += Object.keys(elements).length;
-      console.log(`Merged ${Object.keys(elements).length} element overrides`);
+      console.log(`Merged ${Object.keys(elements).length} element overrides (total: ${Object.keys(combined).length})`);
     }
     if (merged > 0) fs.writeFileSync(tdPath, td, 'utf8');
   } catch (e) {

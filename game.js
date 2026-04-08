@@ -289,10 +289,13 @@ const DEFAULT_Y_OFFSETS = {
 
 // ── Per-tile element overrides (由 build.cjs 自動從 offsets.json 合併) ──
 const ELEM_OVERRIDES = {
-    "o010": "土",
-    "p010": "土",
-    "q010": "土",
-    "r010": "土"
+    "o010": "無",
+    "p010": "無",
+    "q010": "無",
+    "r010": "無",
+    "m010": "無",
+    "n010": "無",
+    "r001": "無"
   };
 
 // ── Build TILES + preload images ──

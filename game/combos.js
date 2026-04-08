@@ -30,7 +30,7 @@ document.getElementById('comboSave').addEventListener('click', () => {
   if(!name) return;
   const minGx = Math.min(...sel.map(b => b.gx));
   const minGy = Math.min(...sel.map(b => b.gy));
-  const tiles = sel.map(b => ({dx:b.gx - minGx, dy:b.gy - minGy, color:b.color, srcH:b.srcH}));
+  const tiles = sel.map(b => ({dx:b.gx - minGx, dy:b.gy - minGy, color:b.color, srcH:b.srcH, yOffset:b.yOffset||0}));
   S.combos.push({name, tiles});
   saveCombos();
   S.selectedBlocks = new Set();

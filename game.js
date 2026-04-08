@@ -1170,7 +1170,7 @@ function _drawActual(){
 
   const visible = world.blocks.filter(b => isVisible(b, vr) && !S.hiddenHeights.has(b.gz) && !S.hiddenLayers.has(b.layer));
   const sorted = visible.sort((a,b) => {
-    return (a.gx+a.gy)*100+a.gz - ((b.gx+b.gy)*100+b.gz);
+    return (a.gx+a.gy)*1000+a.gz*10+a.layer - ((b.gx+b.gy)*1000+b.gz*10+b.layer);
   });
 
   for(const b of sorted){
@@ -2954,7 +2954,7 @@ document.getElementById('comboSave').addEventListener('click', () => {
   if(!name) return;
   const minGx = Math.min(...sel.map(b => b.gx));
   const minGy = Math.min(...sel.map(b => b.gy));
-  const tiles = sel.map(b => ({dx:b.gx - minGx, dy:b.gy - minGy, color:b.color, srcH:b.srcH}));
+  const tiles = sel.map(b => ({dx:b.gx - minGx, dy:b.gy - minGy, color:b.color, srcH:b.srcH, yOffset:b.yOffset||0}));
   S.combos.push({name, tiles});
   saveCombos();
   S.selectedBlocks = new Set();

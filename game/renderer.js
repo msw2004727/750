@@ -195,6 +195,8 @@ const _charImgCache = new Map();
 function _getCharImg(charName, style, action, frameIdx){
   const charDef = CHARS.find(c => c.name === charName);
   if(!charDef) return null;
+  // Fallback: if this action doesn't exist for the character, use idle
+  if(!charDef.actions[action]) action = 'idle';
   const cls = charDef.cls;
   const path = IMG_BASE +
     encodeURIComponent(cls) + '/' +

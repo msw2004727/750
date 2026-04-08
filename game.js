@@ -1377,6 +1377,8 @@ const _charImgCache = new Map();
 function _getCharImg(charName, style, action, frameIdx){
   const charDef = CHARS.find(c => c.name === charName);
   if(!charDef) return null;
+  // Fallback: if this action doesn't exist for the character, use idle
+  if(!charDef.actions[action]) action = 'idle';
   const cls = charDef.cls;
   const path = IMG_BASE +
     encodeURIComponent(cls) + '/' +
@@ -4900,13 +4902,13 @@ function _applyDamage(attacker, target, damage, isMagic){
   const st = target.state;
   const actualDmg = Math.max(1, damage);
   st.curHp = Math.max(0, st.curHp - actualDmg);
-  st.action = 'hurt';
+  st.action = (st.actions && st.actions.hurt) ? 'hurt' : 'idle';
   st.outOfCombatTicks = 0;
   spawnFloat(target.gx, target.gy, target.gz,
     '-' + actualDmg, isMagic ? 'dmgMagic' : 'dmgPhys');
   if(st.curHp <= 0){
     st.aiState = 'dead';
-    st.action = st.actions && st.actions.death ? 'death' : 'hurt';
+    st.action = (st.actions && st.actions.death) ? 'death' : 'idle';
     // Remove after delay
     setTimeout(() => {
       if(world.blocks.includes(target)) removeBlock(target);
@@ -5017,12 +5019,12 @@ function _tickCombat(){
           spawnFloat(ch.gx, ch.gy, ch.gz, '-' + stats.mpCost, 'mpCost');
         }
 
-        // Choose attack animation
+        // Choose attack animation (fallback to idle if no attack anim)
         if(isMagic && st.actions){
           const casts = ['cast_1','cast_2','cast_3','cast_4'].filter(a => st.actions[a]);
-          st.action = casts.length > 0 ? casts[Math.floor(Math.random() * casts.length)] : 'attack';
+          st.action = casts.length > 0 ? casts[Math.floor(Math.random() * casts.length)] : (st.actions.attack ? 'attack' : 'idle');
         } else {
-          st.action = 'attack';
+          st.action = (st.actions && st.actions.attack) ? 'attack' : 'idle';
         }
 
         // Melee or ranged?

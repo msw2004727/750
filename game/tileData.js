@@ -155,7 +155,8 @@ const DEFAULT_Y_OFFSETS = {
     "s090": 1.75,
     "m040": 0.5,
     "s086": 0.5,
-    "s085": 1
+    "s085": 1,
+    "c020": 0.5
   };
 
 // ── Per-tile element overrides (由 build.cjs 自動從 offsets.json 合併) ──

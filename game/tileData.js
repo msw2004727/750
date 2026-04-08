@@ -322,6 +322,9 @@ const ELEM_OVERRIDES = {
     "r019": "金"
   };
 
+// ── Per-tile height overrides (由 build.cjs 自動從 offsets.json 合併) ──
+const HEIGHT_OVERRIDES = {};
+
 // ── Build TILES + preload images ──
 export const TILES = {};
 export const tileImages = {};
@@ -334,7 +337,9 @@ for(const src of SOURCES){
     const key = src.prefix + String(i).padStart(3,'0');
     const file = src.fileOf(i);
     const cropY = src.cropOf(i);
-    const srcH = src.srcHOf(i);
+    let srcH = src.srcHOf(i);
+    // Apply height override if defined
+    if(HEIGHT_OVERRIDES[key]) srcH = HEIGHT_OVERRIDES[key];
     let stroke = '#555', ghost = '#888', elem = '無';
     for(const cat of src.cats){
       if(cat.tiles.includes(i)){ stroke = cat.stroke; ghost = cat.ghost; elem = cat.elem || '無'; break; }

@@ -190,6 +190,15 @@ body {
   color: rgba(255,255,255,0.7);
   text-shadow: 0 0 2px #000, 0 0 2px #000;
   pointer-events: none;
+}
+.tb-srch {
+  position: absolute;
+  top: 1px;
+  left: 2px;
+  font-size: 7px;
+  color: rgba(255,200,100,0.8);
+  text-shadow: 0 0 2px #000;
+  pointer-events: none;
   line-height: 1;
 }
 .tb:hover { transform: scale(1.15); border-color: #888; }

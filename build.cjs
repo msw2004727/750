@@ -87,8 +87,9 @@ if (fs.existsSync(OFFSETS_FILE)) {
   try {
     const raw = JSON.parse(fs.readFileSync(OFFSETS_FILE, 'utf8'));
     // Support new format {offsets:{}, elements:{}} and old flat format {key:val}
-    const offsets = raw.offsets || (raw.elements ? {} : raw);
+    const offsets = raw.offsets || (raw.elements || raw.heights ? {} : raw);
     const elements = raw.elements || {};
+    const heights = raw.heights || {};
     const tdPath = path.join(DIR, 'tileData.js');
     let td = fs.readFileSync(tdPath, 'utf8');
     let merged = 0;
@@ -132,6 +133,26 @@ if (fs.existsSync(OFFSETS_FILE)) {
       }
       merged += Object.keys(elements).length;
       console.log(`Merged ${Object.keys(elements).length} element overrides (total: ${Object.keys(combined).length})`);
+    }
+
+    // Merge height overrides (additive)
+    if (Object.keys(heights).length > 0) {
+      const existing = _parseExisting(td, 'HEIGHT_OVERRIDES');
+      const combined = Object.assign(existing, heights);
+      const hFormatted = JSON.stringify(combined, null, 2).replace(/^/gm, '  ').trim();
+      if (td.includes('const HEIGHT_OVERRIDES')) {
+        td = td.replace(
+          /const HEIGHT_OVERRIDES = \{[^}]*\};/s,
+          'const HEIGHT_OVERRIDES = ' + hFormatted + ';'
+        );
+      } else {
+        td = td.replace(
+          /(const ELEM_OVERRIDES = \{[^}]*\};)/s,
+          '$1\n\nconst HEIGHT_OVERRIDES = ' + hFormatted + ';'
+        );
+      }
+      merged += Object.keys(heights).length;
+      console.log(`Merged ${Object.keys(heights).length} height overrides (total: ${Object.keys(combined).length})`);
     }
     if (merged > 0) fs.writeFileSync(tdPath, td, 'utf8');
   } catch (e) {

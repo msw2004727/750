@@ -453,6 +453,9 @@ const ELEM_OVERRIDES = {
     "r019": "金"
   };
 
+// ── Per-tile height overrides (由 build.cjs 自動從 offsets.json 合併) ──
+const HEIGHT_OVERRIDES = {};
+
 // ── Build TILES + preload images ──
 const TILES = {};
 const tileImages = {};
@@ -465,7 +468,9 @@ for(const src of SOURCES){
     const key = src.prefix + String(i).padStart(3,'0');
     const file = src.fileOf(i);
     const cropY = src.cropOf(i);
-    const srcH = src.srcHOf(i);
+    let srcH = src.srcHOf(i);
+    // Apply height override if defined
+    if(HEIGHT_OVERRIDES[key]) srcH = HEIGHT_OVERRIDES[key];
     let stroke = '#555', ghost = '#888', elem = '無';
     for(const cat of src.cats){
       if(cat.tiles.includes(i)){ stroke = cat.stroke; ghost = cat.ghost; elem = cat.elem || '無'; break; }
@@ -3097,6 +3102,11 @@ function _createTileButton(container, key, src, i){
   num.className = 'tb-num';
   num.textContent = src.prefix + i;
   btn.appendChild(num);
+  // srcH label (top-left)
+  const hLabel = document.createElement('span');
+  hLabel.className = 'tb-srch';
+  hLabel.textContent = (TILES[key] && TILES[key].srcH) || 32;
+  btn.appendChild(hLabel);
   const srcH = (TILES[key] && TILES[key].srcH) || 32;
   let dragStarted = false;
   btn.addEventListener('mousedown', (e) => {
@@ -3130,31 +3140,103 @@ function _createTileButton(container, key, src, i){
   btn.addEventListener('click', (e) => { e.preventDefault(); });
   btn.addEventListener('contextmenu', (e) => {
     e.preventDefault();
-    // If this tile is in the multi-selection, or selection is non-empty, show batch picker
     const targets = _paletteSelected.size > 0 ? [..._paletteSelected] : [key];
-    _showElemPicker(e.clientX, e.clientY, targets);
+    _showPropertyMenu(e.clientX, e.clientY, targets);
   });
   setupMobileTileDrag(btn, key);
   container.appendChild(btn);
 }
 
-// ── Element picker (right-click on palette tile, supports batch) ──
-let _elemPickerEl = null;
-function _showElemPicker(cx, cy, keys){
-  _hideElemPicker();
+// ── Right-click property menu (height / element, supports batch) ──
+let _propMenuEl = null;
+function _hideMenu(){
+  if(_propMenuEl){ _propMenuEl.remove(); _propMenuEl = null; }
+}
+
+function _showPropertyMenu(cx, cy, keys){
+  _hideMenu();
   if(!Array.isArray(keys)) keys = [keys];
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
+  menu.style.left = cx + 'px';
+  menu.style.top = cy + 'px';
+  // Title
+  const title = document.createElement('div');
+  title.style.cssText = 'padding:4px 14px;font-size:10px;color:#888;';
+  if(keys.length === 1){
+    const td = TILES[keys[0]];
+    title.textContent = keys[0] + ' H:' + (td && td.srcH || 32) + ' ' + (td && td.elem || '無');
+  } else {
+    title.textContent = '批次修改 ' + keys.length + ' 個素材';
+  }
+  menu.appendChild(title);
+  // Option 1: Height
+  const hItem = document.createElement('div');
+  hItem.className = 'ctx-item';
+  hItem.textContent = '修改高度';
+  hItem.addEventListener('click', (e) => {
+    e.stopPropagation();
+    _hideMenu();
+    _showHeightPicker(cx, cy, keys);
+  });
+  menu.appendChild(hItem);
+  // Option 2: Element
+  const eItem = document.createElement('div');
+  eItem.className = 'ctx-item';
+  eItem.textContent = '修改屬性';
+  eItem.addEventListener('click', (e) => {
+    e.stopPropagation();
+    _hideMenu();
+    _showElemPicker(cx, cy, keys);
+  });
+  menu.appendChild(eItem);
+  document.body.appendChild(menu);
+  _propMenuEl = menu;
+  setTimeout(() => document.addEventListener('click', _hideMenu, {once:true}), 10);
+}
+
+// ── Height picker ──
+function _showHeightPicker(cx, cy, keys){
+  _hideMenu();
   const menu = document.createElement('div');
   menu.className = 'ctx-menu';
   menu.style.left = cx + 'px';
   menu.style.top = cy + 'px';
   const title = document.createElement('div');
   title.style.cssText = 'padding:4px 14px;font-size:10px;color:#888;';
-  if(keys.length === 1){
-    const td = TILES[keys[0]];
-    title.textContent = keys[0] + ' 屬性：' + (td && td.elem || '無');
-  } else {
-    title.textContent = '批次修改 ' + keys.length + ' 個素材';
+  title.textContent = '選擇高度（srcH）';
+  menu.appendChild(title);
+  for(const h of [16, 32, 48, 96]){
+    const item = document.createElement('div');
+    item.className = 'ctx-item';
+    item.textContent = h + 'px';
+    item.addEventListener('click', () => {
+      for(const k of keys){
+        const td = TILES[k];
+        if(td){ td.srcH = h; td._srcHOverride = true; }
+      }
+      _hideMenu();
+      _clearPaletteSelection();
+      populatePalette(); // refresh to update labels
+      showToast(keys.length + ' 個素材高度 → ' + h);
+    });
+    menu.appendChild(item);
   }
+  document.body.appendChild(menu);
+  _propMenuEl = menu;
+  setTimeout(() => document.addEventListener('click', _hideMenu, {once:true}), 10);
+}
+
+// ── Element picker ──
+function _showElemPicker(cx, cy, keys){
+  _hideMenu();
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
+  menu.style.left = cx + 'px';
+  menu.style.top = cy + 'px';
+  const title = document.createElement('div');
+  title.style.cssText = 'padding:4px 14px;font-size:10px;color:#888;';
+  title.textContent = '選擇屬性';
   menu.appendChild(title);
   for(const el of ['金','木','水','火','土','無']){
     const item = document.createElement('div');
@@ -3165,18 +3247,15 @@ function _showElemPicker(cx, cy, keys){
         const td = TILES[k];
         if(td){ td.elem = el; td._elemOverride = true; }
       }
-      _hideElemPicker();
+      _hideMenu();
       _clearPaletteSelection();
       showToast(keys.length + ' 個素材 → ' + el);
     });
     menu.appendChild(item);
   }
   document.body.appendChild(menu);
-  _elemPickerEl = menu;
-  setTimeout(() => document.addEventListener('click', _hideElemPicker, {once:true}), 10);
-}
-function _hideElemPicker(){
-  if(_elemPickerEl){ _elemPickerEl.remove(); _elemPickerEl = null; }
+  _propMenuEl = menu;
+  setTimeout(() => document.addEventListener('click', _hideMenu, {once:true}), 10);
 }
 
 // ── Palette population ──
@@ -3461,15 +3540,21 @@ document.getElementById('exportOffsets').addEventListener('click', () => {
   for(const [key, td] of Object.entries(TILES)){
     if(td.defaultYOff && !offsets[key]) offsets[key] = td.defaultYOff;
   }
-  // Collect element overrides (compare TILES[key].elem against original cat.elem)
+  // Collect element overrides
   const elements = {};
   for(const [key, td] of Object.entries(TILES)){
     if(td._elemOverride) elements[key] = td.elem;
   }
+  // Collect srcH overrides
+  const heights = {};
+  for(const [key, td] of Object.entries(TILES)){
+    if(td._srcHOverride) heights[key] = td.srcH;
+  }
   const nOff = Object.keys(offsets).length;
   const nElem = Object.keys(elements).length;
-  if(nOff === 0 && nElem === 0){ showToast('沒有任何修改'); return; }
-  const data = { offsets, elements };
+  const nH = Object.keys(heights).length;
+  if(nOff === 0 && nElem === 0 && nH === 0){ showToast('沒有任何修改'); return; }
+  const data = { offsets, elements, heights };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -3479,7 +3564,7 @@ document.getElementById('exportOffsets').addEventListener('click', () => {
   const n = nOff + nElem;
   _openCloudModal('匯出偏移完成',
     '<div style="text-align:left;font-size:12px;color:#bbb;line-height:2;">' +
-    '<div style="color:#6f6;font-size:13px;margin-bottom:8px;">已下載 offsets.json（' + nOff + ' 筆偏移 + ' + nElem + ' 筆屬性）</div>' +
+    '<div style="color:#6f6;font-size:13px;margin-bottom:8px;">已下載 offsets.json（' + nOff + ' 偏移 + ' + nElem + ' 屬性 + ' + nH + ' 高度）</div>' +
     '<div style="color:#FFD700;margin-bottom:4px;">接下來請依序操作：</div>' +
     '<div><span style="color:#6bf;">步驟 1.</span> 把下載的 <b>offsets.json</b> 放到專案資料夾（750/）</div>' +
     '<div><span style="color:#6bf;">步驟 2.</span> 開啟終端機，進入專案資料夾</div>' +

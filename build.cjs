@@ -87,9 +87,10 @@ if (fs.existsSync(OFFSETS_FILE)) {
   try {
     const raw = JSON.parse(fs.readFileSync(OFFSETS_FILE, 'utf8'));
     // Support new format {offsets:{}, elements:{}} and old flat format {key:val}
-    const offsets = raw.offsets || (raw.elements || raw.heights ? {} : raw);
+    const offsets = raw.offsets || (raw.elements || raw.heights || raw.cropBs ? {} : raw);
     const elements = raw.elements || {};
     const heights = raw.heights || {};
+    const cropBs = raw.cropBs || {};
     const tdPath = path.join(DIR, 'tileData.js');
     let td = fs.readFileSync(tdPath, 'utf8');
     let merged = 0;
@@ -153,6 +154,26 @@ if (fs.existsSync(OFFSETS_FILE)) {
       }
       merged += Object.keys(heights).length;
       console.log(`Merged ${Object.keys(heights).length} height overrides (total: ${Object.keys(combined).length})`);
+    }
+
+    // Merge cropB overrides (additive)
+    if (Object.keys(cropBs).length > 0) {
+      const existing = _parseExisting(td, 'CROPB_OVERRIDES');
+      const combined = Object.assign(existing, cropBs);
+      const cbFormatted = JSON.stringify(combined, null, 2).replace(/^/gm, '  ').trim();
+      if (td.includes('const CROPB_OVERRIDES')) {
+        td = td.replace(
+          /const CROPB_OVERRIDES = \{[^}]*\};/s,
+          'const CROPB_OVERRIDES = ' + cbFormatted + ';'
+        );
+      } else {
+        td = td.replace(
+          /(const HEIGHT_OVERRIDES = \{[^}]*\};)/s,
+          '$1\n\nconst CROPB_OVERRIDES = ' + cbFormatted + ';'
+        );
+      }
+      merged += Object.keys(cropBs).length;
+      console.log(`Merged ${Object.keys(cropBs).length} cropB overrides (total: ${Object.keys(combined).length})`);
     }
     if (merged > 0) fs.writeFileSync(tdPath, td, 'utf8');
   } catch (e) {

@@ -79,8 +79,9 @@ export function drawCube(gx, gy, gz, color, hl, block){
     const srcW = td.srcW || 32;
     const srcH = td.srcH || 32;
     const cropY = td.cropY || 0;
+    const cropB = td.cropB || 0;
     const frames = td.frames || 1;
-    const contentH = srcH - cropY;
+    const contentH = srcH - cropY - cropB;
     const dw = 2 * tw;
     const dh = Math.round(contentH * dw / srcW);
     const dx = x - tw;

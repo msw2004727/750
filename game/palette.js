@@ -216,6 +216,16 @@ function _showPropertyMenu(cx, cy, keys){
     _showElemPicker(cx, cy, keys);
   });
   menu.appendChild(eItem);
+  // Option 3: CropB
+  const cItem = document.createElement('div');
+  cItem.className = 'ctx-item';
+  cItem.textContent = '修改裁切';
+  cItem.addEventListener('click', (e2) => {
+    e2.stopPropagation();
+    _hideMenu();
+    _showCropBPicker(cx, cy, keys);
+  });
+  menu.appendChild(cItem);
   document.body.appendChild(menu);
   _propMenuEl = menu;
   setTimeout(() => document.addEventListener('click', _hideMenu, {once:true}), 10);
@@ -245,6 +255,37 @@ function _showHeightPicker(cx, cy, keys){
       _clearPaletteSelection();
       populatePalette(); // refresh to update labels
       showToast(keys.length + ' 個素材高度 → ' + h);
+    });
+    menu.appendChild(item);
+  }
+  document.body.appendChild(menu);
+  _propMenuEl = menu;
+  setTimeout(() => document.addEventListener('click', _hideMenu, {once:true}), 10);
+}
+
+// ── CropB picker (bottom crop) ──
+function _showCropBPicker(cx, cy, keys){
+  _hideMenu();
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
+  menu.style.left = cx + 'px';
+  menu.style.top = cy + 'px';
+  const title = document.createElement('div');
+  title.style.cssText = 'padding:4px 14px;font-size:10px;color:#888;';
+  title.textContent = '底部裁切（cropB）';
+  menu.appendChild(title);
+  for(const v of [0, 2, 4, 6, 8, 10, 12, 14, 16]){
+    const item = document.createElement('div');
+    item.className = 'ctx-item';
+    item.textContent = v + 'px' + (v === 0 ? '（不裁）' : '');
+    item.addEventListener('click', () => {
+      for(const k of keys){
+        const td = TILES[k];
+        if(td){ td.cropB = v; td._cropBOverride = true; }
+      }
+      _hideMenu();
+      _clearPaletteSelection();
+      showToast(keys.length + ' 個素材底部裁切 → ' + v + 'px');
     });
     menu.appendChild(item);
   }

@@ -326,6 +326,9 @@ const ELEM_OVERRIDES = {
 // ── Per-tile height overrides (由 build.cjs 自動從 offsets.json 合併) ──
 const HEIGHT_OVERRIDES = {};
 
+// ── Per-tile bottom crop overrides (由 build.cjs 自動從 offsets.json 合併) ──
+const CROPB_OVERRIDES = {};
+
 // ── Build TILES + preload images ──
 export const TILES = {};
 export const tileImages = {};
@@ -349,7 +352,8 @@ for(const src of SOURCES){
     const frames = src.framesOf ? src.framesOf(i) : 1;
     const defaultYOff = DEFAULT_Y_OFFSETS[key] || 0;
     const blockH = HEIGHT_OVERRIDES[key] || srcH;
-    TILES[key] = {file, cropY, srcH, srcW, frames, stroke, ghost, defaultYOff, elem, blockH};
+    const cropB = CROPB_OVERRIDES[key] || 0;
+    TILES[key] = {file, cropY, srcH, srcW, frames, stroke, ghost, defaultYOff, elem, blockH, cropB};
     const img = new Image();
     img.onload = () => { tileImages[key] = img; if(++tilesLoaded >= totalImages) draw(); };
     img.src = src.base + file;

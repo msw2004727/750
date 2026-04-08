@@ -140,11 +140,17 @@ document.getElementById('exportOffsets').addEventListener('click', () => {
   for(const [key, td] of Object.entries(TILES)){
     if(td._srcHOverride) heights[key] = td.blockH;
   }
+  // Collect cropB overrides
+  const cropBs = {};
+  for(const [key, td] of Object.entries(TILES)){
+    if(td._cropBOverride) cropBs[key] = td.cropB;
+  }
   const nOff = Object.keys(offsets).length;
   const nElem = Object.keys(elements).length;
   const nH = Object.keys(heights).length;
-  if(nOff === 0 && nElem === 0 && nH === 0){ showToast('沒有任何修改'); return; }
-  const data = { offsets, elements, heights };
+  const nCB = Object.keys(cropBs).length;
+  if(nOff === 0 && nElem === 0 && nH === 0 && nCB === 0){ showToast('沒有任何修改'); return; }
+  const data = { offsets, elements, heights, cropBs };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -154,7 +160,7 @@ document.getElementById('exportOffsets').addEventListener('click', () => {
   const n = nOff + nElem;
   _openCloudModal('匯出偏移完成',
     '<div style="text-align:left;font-size:12px;color:#bbb;line-height:2;">' +
-    '<div style="color:#6f6;font-size:13px;margin-bottom:8px;">已下載 offsets.json（' + nOff + ' 偏移 + ' + nElem + ' 屬性 + ' + nH + ' 高度）</div>' +
+    '<div style="color:#6f6;font-size:13px;margin-bottom:8px;">已下載 offsets.json（' + nOff + ' 偏移 + ' + nElem + ' 屬性 + ' + nH + ' 高度 + ' + nCB + ' 裁切）</div>' +
     '<div style="color:#FFD700;margin-bottom:4px;">接下來請依序操作：</div>' +
     '<div><span style="color:#6bf;">步驟 1.</span> 把下載的 <b>offsets.json</b> 放到專案資料夾（750/）</div>' +
     '<div><span style="color:#6bf;">步驟 2.</span> 開啟終端機，進入專案資料夾</div>' +

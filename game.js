@@ -457,6 +457,9 @@ const ELEM_OVERRIDES = {
 // ── Per-tile height overrides (由 build.cjs 自動從 offsets.json 合併) ──
 const HEIGHT_OVERRIDES = {};
 
+// ── Per-tile bottom crop overrides (由 build.cjs 自動從 offsets.json 合併) ──
+const CROPB_OVERRIDES = {};
+
 // ── Build TILES + preload images ──
 const TILES = {};
 const tileImages = {};
@@ -480,7 +483,8 @@ for(const src of SOURCES){
     const frames = src.framesOf ? src.framesOf(i) : 1;
     const defaultYOff = DEFAULT_Y_OFFSETS[key] || 0;
     const blockH = HEIGHT_OVERRIDES[key] || srcH;
-    TILES[key] = {file, cropY, srcH, srcW, frames, stroke, ghost, defaultYOff, elem, blockH};
+    const cropB = CROPB_OVERRIDES[key] || 0;
+    TILES[key] = {file, cropY, srcH, srcW, frames, stroke, ghost, defaultYOff, elem, blockH, cropB};
     const img = new Image();
     img.onload = () => { tileImages[key] = img; if(++tilesLoaded >= totalImages) draw(); };
     img.src = src.base + file;
@@ -1266,8 +1270,9 @@ function drawCube(gx, gy, gz, color, hl, block){
     const srcW = td.srcW || 32;
     const srcH = td.srcH || 32;
     const cropY = td.cropY || 0;
+    const cropB = td.cropB || 0;
     const frames = td.frames || 1;
-    const contentH = srcH - cropY;
+    const contentH = srcH - cropY - cropB;
     const dw = 2 * tw;
     const dh = Math.round(contentH * dw / srcW);
     const dx = x - tw;
@@ -3217,6 +3222,16 @@ function _showPropertyMenu(cx, cy, keys){
     _showElemPicker(cx, cy, keys);
   });
   menu.appendChild(eItem);
+  // Option 3: CropB
+  const cItem = document.createElement('div');
+  cItem.className = 'ctx-item';
+  cItem.textContent = '修改裁切';
+  cItem.addEventListener('click', (e2) => {
+    e2.stopPropagation();
+    _hideMenu();
+    _showCropBPicker(cx, cy, keys);
+  });
+  menu.appendChild(cItem);
   document.body.appendChild(menu);
   _propMenuEl = menu;
   setTimeout(() => document.addEventListener('click', _hideMenu, {once:true}), 10);
@@ -3246,6 +3261,37 @@ function _showHeightPicker(cx, cy, keys){
       _clearPaletteSelection();
       populatePalette(); // refresh to update labels
       showToast(keys.length + ' 個素材高度 → ' + h);
+    });
+    menu.appendChild(item);
+  }
+  document.body.appendChild(menu);
+  _propMenuEl = menu;
+  setTimeout(() => document.addEventListener('click', _hideMenu, {once:true}), 10);
+}
+
+// ── CropB picker (bottom crop) ──
+function _showCropBPicker(cx, cy, keys){
+  _hideMenu();
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
+  menu.style.left = cx + 'px';
+  menu.style.top = cy + 'px';
+  const title = document.createElement('div');
+  title.style.cssText = 'padding:4px 14px;font-size:10px;color:#888;';
+  title.textContent = '底部裁切（cropB）';
+  menu.appendChild(title);
+  for(const v of [0, 2, 4, 6, 8, 10, 12, 14, 16]){
+    const item = document.createElement('div');
+    item.className = 'ctx-item';
+    item.textContent = v + 'px' + (v === 0 ? '（不裁）' : '');
+    item.addEventListener('click', () => {
+      for(const k of keys){
+        const td = TILES[k];
+        if(td){ td.cropB = v; td._cropBOverride = true; }
+      }
+      _hideMenu();
+      _clearPaletteSelection();
+      showToast(keys.length + ' 個素材底部裁切 → ' + v + 'px');
     });
     menu.appendChild(item);
   }
@@ -3577,11 +3623,17 @@ document.getElementById('exportOffsets').addEventListener('click', () => {
   for(const [key, td] of Object.entries(TILES)){
     if(td._srcHOverride) heights[key] = td.blockH;
   }
+  // Collect cropB overrides
+  const cropBs = {};
+  for(const [key, td] of Object.entries(TILES)){
+    if(td._cropBOverride) cropBs[key] = td.cropB;
+  }
   const nOff = Object.keys(offsets).length;
   const nElem = Object.keys(elements).length;
   const nH = Object.keys(heights).length;
-  if(nOff === 0 && nElem === 0 && nH === 0){ showToast('沒有任何修改'); return; }
-  const data = { offsets, elements, heights };
+  const nCB = Object.keys(cropBs).length;
+  if(nOff === 0 && nElem === 0 && nH === 0 && nCB === 0){ showToast('沒有任何修改'); return; }
+  const data = { offsets, elements, heights, cropBs };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -3591,7 +3643,7 @@ document.getElementById('exportOffsets').addEventListener('click', () => {
   const n = nOff + nElem;
   _openCloudModal('匯出偏移完成',
     '<div style="text-align:left;font-size:12px;color:#bbb;line-height:2;">' +
-    '<div style="color:#6f6;font-size:13px;margin-bottom:8px;">已下載 offsets.json（' + nOff + ' 偏移 + ' + nElem + ' 屬性 + ' + nH + ' 高度）</div>' +
+    '<div style="color:#6f6;font-size:13px;margin-bottom:8px;">已下載 offsets.json（' + nOff + ' 偏移 + ' + nElem + ' 屬性 + ' + nH + ' 高度 + ' + nCB + ' 裁切）</div>' +
     '<div style="color:#FFD700;margin-bottom:4px;">接下來請依序操作：</div>' +
     '<div><span style="color:#6bf;">步驟 1.</span> 把下載的 <b>offsets.json</b> 放到專案資料夾（750/）</div>' +
     '<div><span style="color:#6bf;">步驟 2.</span> 開啟終端機，進入專案資料夾</div>' +

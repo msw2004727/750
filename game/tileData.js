@@ -151,8 +151,10 @@ for(const v of MEDIEVAL_VARIANTS){
 
 // ── Per-tile default yOffset (exported from editor, manually curated) ──
 const DEFAULT_Y_OFFSETS = {
-  // 由 build.cjs 自動從 offsets.json 合併，不需手動編輯
-};
+    "s083": 2,
+    "s090": 1,
+    "m040": 0.5
+  };
 
 // ── Build TILES + preload images ──
 export const TILES = {};

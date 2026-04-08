@@ -135,7 +135,7 @@ export function onDown(e){
   if((e.ctrlKey || S.copyMode) && hit){
     if(hit.gz !== S.currentHeight || hit.layer !== S.currentLayer) return;
     saveSnapshot();
-    const clone = {gx:hit.gx, gy:hit.gy, gz:hit.gz, layer:hit.layer, color:hit.color, srcH:hit.srcH};
+    const clone = {gx:hit.gx, gy:hit.gy, gz:hit.gz, layer:hit.layer, color:hit.color, srcH:hit.srcH, yOffset:hit.yOffset||0, state:{...(hit.state||{})}};
     addBlock(clone);
     S.reachableSet = null;
     S.groupOffsets = null;
@@ -353,9 +353,32 @@ export function onUp(){
   draw();
 }
 
+// ── Right-click held state (for iso offset scroll) ──
+let _rightHeld = false;
+canvas.addEventListener('mousedown', (e) => { if(e.button === 2) _rightHeld = true; });
+document.addEventListener('mouseup', (e) => { if(e.button === 2) _rightHeld = false; });
+
 // ── onWheel ──
 function _onWheel(e){
   e.preventDefault();
+  // Right-click held + scroll = iso axis offset on hovered block
+  if(_rightHeld){
+    const pos = mousePos(e);
+    const hit = hitTest(pos.x, pos.y);
+    if(hit && hit.gz === S.currentHeight && hit.layer === S.currentLayer){
+      const dir = e.deltaY < 0 ? 0.25 : -0.25;
+      if(e.shiftKey){
+        const cur = hit.isoGy || 0;
+        hit.isoGy = Math.round(Math.max(-5, Math.min(5, cur + dir)) * 100) / 100;
+      } else {
+        const cur = hit.isoGx || 0;
+        hit.isoGx = Math.round(Math.max(-5, Math.min(5, cur + dir)) * 100) / 100;
+      }
+      draw();
+    }
+    return;
+  }
+  // Left-drag + scroll = yOffset
   if(S.dragBlock && !S.dragBlock._copyMode){
     const dir = e.deltaY < 0 ? 0.25 : -0.25;
     const cur = S.dragBlock.yOffset || 0;

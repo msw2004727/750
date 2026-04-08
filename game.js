@@ -1067,7 +1067,10 @@ function drawCube(gx, gy, gz, color, hl, block){
   const p = _pixelPos(gx, gy, gz);
   const sh = getShakeOff(block);
   const yOff = Math.round((block && block.yOffset || 0) * (_stepCH / 5));
-  const x = p.x + Math.round(sh.sx), y = p.y + Math.round(sh.sy) - yOff;
+  const iGx = (block && block.isoGx || 0) / 5;
+  const iGy = (block && block.isoGy || 0) / 5;
+  const x = p.x + Math.round(sh.sx) + Math.round((iGx - iGy) * _stepTW);
+  const y = p.y + Math.round(sh.sy) - yOff + Math.round((iGx + iGy) * _stepTH);
   const tw = _stepTW, th = _stepTH, ch = _stepCH;
 
   const tileImg = tileImages[color];
@@ -1492,7 +1495,6 @@ function _showPropertyPanel(block, cx, cy){
   function _updateBlock(){
     document.getElementById('_prop_高度').textContent = block.gz;
     document.getElementById('_prop_圖層').textContent = block.layer;
-    document.getElementById('_prop_偏移').textContent = block.yOffset || 0;
     S.currentHeight = block.gz;
     S.currentLayer = block.layer;
     document.getElementById('heightNum').textContent = S.currentHeight;
@@ -1506,10 +1508,6 @@ function _showPropertyPanel(block, cx, cy){
   _makeRow('圖層', block.layer,
     () => { if(block.layer < 5){ saveSnapshot(); shRemove(block); block.layer++; shAdd(block); _updateBlock(); draw(); }},
     () => { if(block.layer > 0){ saveSnapshot(); shRemove(block); block.layer--; shAdd(block); _updateBlock(); draw(); }}
-  );
-  _makeRow('偏移', block.yOffset || 0,
-    () => { if((block.yOffset||0) < 5){ saveSnapshot(); block.yOffset = Math.round(((block.yOffset||0) + 0.25) * 100) / 100; _updateBlock(); draw(); }},
-    () => { if((block.yOffset||0) > 0){ saveSnapshot(); block.yOffset = Math.round(((block.yOffset||0) - 0.25) * 100) / 100; _updateBlock(); draw(); }}
   );
 
   // Close button
@@ -2466,9 +2464,32 @@ function onUp(){
   draw();
 }
 
+// ── Right-click held state (for iso offset scroll) ──
+let _rightHeld = false;
+canvas.addEventListener('mousedown', (e) => { if(e.button === 2) _rightHeld = true; });
+document.addEventListener('mouseup', (e) => { if(e.button === 2) _rightHeld = false; });
+
 // ── onWheel ──
 function _onWheel(e){
   e.preventDefault();
+  // Right-click held + scroll = iso axis offset on hovered block
+  if(_rightHeld){
+    const pos = mousePos(e);
+    const hit = hitTest(pos.x, pos.y);
+    if(hit && hit.gz === S.currentHeight && hit.layer === S.currentLayer){
+      const dir = e.deltaY < 0 ? 0.25 : -0.25;
+      if(e.shiftKey){
+        const cur = hit.isoGy || 0;
+        hit.isoGy = Math.round(Math.max(-5, Math.min(5, cur + dir)) * 100) / 100;
+      } else {
+        const cur = hit.isoGx || 0;
+        hit.isoGx = Math.round(Math.max(-5, Math.min(5, cur + dir)) * 100) / 100;
+      }
+      draw();
+    }
+    return;
+  }
+  // Left-drag + scroll = yOffset
   if(S.dragBlock && !S.dragBlock._copyMode){
     const dir = e.deltaY < 0 ? 0.25 : -0.25;
     const cur = S.dragBlock.yOffset || 0;

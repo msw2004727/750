@@ -64,7 +64,10 @@ export function drawCube(gx, gy, gz, color, hl, block){
   const p = _pixelPos(gx, gy, gz);
   const sh = getShakeOff(block);
   const yOff = Math.round((block && block.yOffset || 0) * (_stepCH / 5));
-  const x = p.x + Math.round(sh.sx), y = p.y + Math.round(sh.sy) - yOff;
+  const iGx = (block && block.isoGx || 0) / 5;
+  const iGy = (block && block.isoGy || 0) / 5;
+  const x = p.x + Math.round(sh.sx) + Math.round((iGx - iGy) * _stepTW);
+  const y = p.y + Math.round(sh.sy) - yOff + Math.round((iGx + iGy) * _stepTH);
   const tw = _stepTW, th = _stepTH, ch = _stepCH;
 
   const tileImg = tileImages[color];

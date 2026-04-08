@@ -1,5 +1,5 @@
 import { S, camera, canvas, draw, world } from './state.js';
-import { setBlocks } from './spatialHash.js';
+import { setBlocks, removeBlock } from './spatialHash.js';
 import { saveSnapshot } from './history.js';
 import { clearDrawTools, updateBrushIndicator } from './tools.js';
 import { hitTest } from './hitTest.js';
@@ -56,6 +56,26 @@ document.getElementById('clearBtn').addEventListener('click', () => {
     overlay.style.display = 'none';
     saveSnapshot();
     setBlocks([]); draw();
+  });
+});
+
+// ── Clear characters only ──
+document.getElementById('clearCharsBtn').addEventListener('click', () => {
+  const overlay = document.getElementById('cloudOverlay');
+  document.getElementById('cloudTitle').textContent = '確認清除角色';
+  document.getElementById('cloudBody').innerHTML =
+    '<div style="color:#f66;font-size:14px;margin:12px 0;">確定要刪除所有角色？</div>' +
+    '<div style="color:#888;font-size:12px;margin-bottom:12px;">素材方塊不受影響，此操作可用 Ctrl+Z 復原</div>' +
+    '<button class="cloud-action" id="_clearChCancel">取消</button>' +
+    '<button class="cloud-action" id="_clearChConfirm" style="color:#f66;border-color:#633;">確認清除</button>';
+  overlay.style.display = 'flex';
+  document.getElementById('_clearChCancel').addEventListener('click', () => { overlay.style.display = 'none'; });
+  document.getElementById('_clearChConfirm').addEventListener('click', () => {
+    overlay.style.display = 'none';
+    saveSnapshot();
+    const chars = world.blocks.filter(b => b.type === 'character');
+    for(const c of chars) removeBlock(c);
+    draw();
   });
 });
 

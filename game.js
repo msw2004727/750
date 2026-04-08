@@ -2935,7 +2935,6 @@ document.getElementById('loadBtn').addEventListener('click', () => {
 });
 
 // ── Export image ──
-let _previewFileHandle = null;
 document.getElementById('exportImg').addEventListener('click', () => {
   if(world.blocks.length === 0){ showToast('沒有方塊可匯出'); return; }
   const oldCamX = camera.x, oldCamY = camera.y, oldZoom = camera.zoom;
@@ -2956,40 +2955,10 @@ document.getElementById('exportImg').addEventListener('click', () => {
   camera.y = camera.H/2 - cp.y;
   drawNow();
   try {
-    canvas.toBlob(async (blob) => {
-      if(!blob) return;
-      // Try File System Access API (Chrome/Edge): write directly to project folder
-      if(window.showSaveFilePicker && _previewFileHandle){
-        try {
-          const writable = await _previewFileHandle.createWritable();
-          await writable.write(blob);
-          await writable.close();
-          showToast('已覆寫 preview.png');
-          return;
-        } catch(e){ /* handle revoked — fall through to picker */ }
-      }
-      if(window.showSaveFilePicker){
-        try {
-          _previewFileHandle = await window.showSaveFilePicker({
-            suggestedName: 'preview.png',
-            types: [{ description: 'PNG', accept: {'image/png': ['.png']} }]
-          });
-          const writable = await _previewFileHandle.createWritable();
-          await writable.write(blob);
-          await writable.close();
-          showToast('已存 preview.png（下次匯出自動覆寫）');
-          return;
-        } catch(e){
-          if(e.name === 'AbortError') return; // user cancelled
-        }
-      }
-      // Fallback: regular download
-      const link = document.createElement('a');
-      link.download = 'preview.png';
-      link.href = URL.createObjectURL(blob);
-      link.click();
-      URL.revokeObjectURL(link.href);
-    }, 'image/png');
+    const link = document.createElement('a');
+    link.download = 'map_' + new Date().toISOString().slice(0,10) + '.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
   } catch(err) {
     showToast('本地開啟無法匯出圖片，請用 GitHub Pages 或本地伺服器開啟', 4000);
   }

@@ -96,13 +96,16 @@ export function updateDrag(pos){
   } else {
     const k = tgx + ',' + tgy;
     // reachableSet === null means free movement (editor mode, no restriction)
+    // But still check collision: can't drop on occupied cell
     if(!S.reachableSet || S.reachableSet.has(k)){
-      shRemove(S.dragBlock);
-      S.dragBlock.gx = tgx;
-      S.dragBlock.gy = tgy;
-      shAdd(S.dragBlock);
-      S.lastValidGx = tgx;
-      S.lastValidGy = tgy;
+      if(!hasBlockAt(tgx, tgy, S.dragBlock.gz, S.dragBlock)){
+        shRemove(S.dragBlock);
+        S.dragBlock.gx = tgx;
+        S.dragBlock.gy = tgy;
+        shAdd(S.dragBlock);
+        S.lastValidGx = tgx;
+        S.lastValidGy = tgy;
+      }
     }
   }
   draw();

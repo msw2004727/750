@@ -2411,7 +2411,8 @@ function updateDrag(pos){
     }
   } else {
     const k = tgx + ',' + tgy;
-    if(S.reachableSet && S.reachableSet.has(k)){
+    // reachableSet === null means free movement (editor mode, no restriction)
+    if(!S.reachableSet || S.reachableSet.has(k)){
       shRemove(S.dragBlock);
       S.dragBlock.gx = tgx;
       S.dragBlock.gy = tgy;

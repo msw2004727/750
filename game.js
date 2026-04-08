@@ -329,7 +329,7 @@ function drawNow() {
 // ── Main loop ──
 let lastTime = 0;
 let animAccum = 0;
-const ANIM_INTERVAL = 200;
+const ANIM_INTERVAL = 600;
 
 function loop(now) {
   requestAnimationFrame(loop);

@@ -222,7 +222,6 @@ export function onCtx(e){
   }
 
   items.push({label:'刪除', action:() => {
-    if(computeReachable(hit.gx, hit.gy, hit.gz, hit).size <= 1){ triggerShake(hit); return; }
     saveSnapshot(); removeBlock(hit); draw();
   }});
 

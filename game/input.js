@@ -184,8 +184,7 @@ export function onDown(e){
   // ── Single block drag ──
   if(hit){
     if(hit.gz !== S.currentHeight || hit.layer !== S.currentLayer) return;
-    S.reachableSet = computeReachable(hit.gx, hit.gy, hit.gz, hit);
-    if(S.reachableSet.size <= 1){ triggerShake(hit); S.reachableSet = null; return; }
+    S.reachableSet = null;
     saveSnapshot();
     S.groupOffsets = null;
     startDrag(hit, pos, 'grab');
@@ -404,7 +403,6 @@ export function onDbl(e){
   const hit = hitTest(pos.x, pos.y);
   if(hit){
     if(hit.gz !== S.currentHeight || hit.layer !== S.currentLayer) return;
-    if(computeReachable(hit.gx, hit.gy, hit.gz, hit).size <= 1){ triggerShake(hit); return; }
     saveSnapshot(); removeBlock(hit); draw();
   }
 }

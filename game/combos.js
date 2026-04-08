@@ -62,4 +62,45 @@ document.getElementById('comboDel').addEventListener('click', () => {
   renderComboSelect();
 });
 
+// ── Export combos ──
+document.getElementById('comboExport').addEventListener('click', () => {
+  if(S.combos.length === 0){ showToast('沒有範本可匯出'); return; }
+  const blob = new Blob([JSON.stringify(S.combos, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'combos_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('已匯出 ' + S.combos.length + ' 個範本');
+});
+
+// ── Import combos ──
+document.getElementById('comboImport').addEventListener('click', () => {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.json';
+  input.addEventListener('change', () => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if(!Array.isArray(data)) throw new Error('格式錯誤');
+        let added = 0;
+        for(const combo of data){
+          if(combo.name && Array.isArray(combo.tiles)){
+            if(!S.combos.some(c => c.name === combo.name)){
+              S.combos.push(combo);
+              added++;
+            }
+          }
+        }
+        saveCombos();
+        renderComboSelect();
+        showToast('已匯入 ' + added + ' 個範本' + (data.length - added > 0 ? '（跳過 ' + (data.length - added) + ' 個重複）' : ''));
+      } catch(err){ showToast('匯入失敗：' + err.message, 4000); }
+    };
+    reader.readAsText(input.files[0]);
+  });
+  input.click();
+});
+
 renderComboSelect();

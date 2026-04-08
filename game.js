@@ -4916,7 +4916,7 @@ function _applyDamage(attacker, target, damage, isMagic){
 }
 
 // ── Projectile hit callback ──
-function _onProjectileHit(proj){
+function onProjectileHit(proj){
   const target = world.blocks.find(b => b.id === proj.targetId);
   if(!target || target.state.aiState === 'dead') return;
   const stats = getClassStats(target.state.clsLabel);

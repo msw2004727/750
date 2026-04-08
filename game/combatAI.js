@@ -82,7 +82,7 @@ function _applyDamage(attacker, target, damage, isMagic){
 }
 
 // ── Projectile hit callback ──
-function _onProjectileHit(proj){
+export function onProjectileHit(proj){
   const target = world.blocks.find(b => b.id === proj.targetId);
   if(!target || target.state.aiState === 'dead') return;
   const stats = getClassStats(target.state.clsLabel);
@@ -91,7 +91,6 @@ function _onProjectileHit(proj){
   const effectiveDef = isMagic ? Math.floor(def * 0.5) : def;
   _applyDamage(null, target, proj.damage - effectiveDef, isMagic);
 }
-export { _onProjectileHit as onProjectileHit };
 
 // ── Combat tick (called from play:tick) ──
 function _tickCombat(){

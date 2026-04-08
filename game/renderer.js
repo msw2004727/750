@@ -73,16 +73,18 @@ export function drawCube(gx, gy, gz, color, hl, block){
     const td = TILES[color] || {};
     const srcW = td.srcW || 32;
     const srcH = td.srcH || 32;
+    const cropY = td.cropY || 0;
     const frames = td.frames || 1;
+    const contentH = srcH - cropY;
     const dw = 2 * tw;
-    const dh = Math.round(srcH * dw / srcW);
+    const dh = Math.round(contentH * dw / srcW);
     const dx = x - tw;
     const dy = y + 2 * th - dh;
     if(frames > 1){
       const frame = S.animTick % frames;
-      ctx.drawImage(tileImg, frame * srcW, 0, srcW, srcH, dx, dy, dw, dh);
+      ctx.drawImage(tileImg, frame * srcW, cropY, srcW, contentH, dx, dy, dw, dh);
     } else {
-      ctx.drawImage(tileImg, dx, dy, dw, dh);
+      ctx.drawImage(tileImg, 0, cropY, srcW, contentH, dx, dy, dw, dh);
     }
   }
 

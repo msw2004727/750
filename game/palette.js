@@ -247,7 +247,7 @@ export function buildCatOptions(){
     opt.value = idx;
     opt.textContent = label + (S.selectedSrc === -1 && count > 1 ? ' ('+count+')' : '');
     opt.dataset.label = label;
-    if(label === '草皮') defaultIdx = idx;
+    // defaultIdx stays 0 = '全部'
     catSel.appendChild(opt);
     idx++;
   }

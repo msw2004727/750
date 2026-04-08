@@ -3073,8 +3073,10 @@ function jumpToTile(tileKey){
   }
 }
 
-// ── Palette multi-select (Ctrl+click) ──
+// ── Palette multi-select (Ctrl+click, Shift+drag) ──
 const _paletteSelected = new Set();
+let _shiftDragging = false;
+
 function _clearPaletteSelection(){
   _paletteSelected.clear();
   document.querySelectorAll('#tilePalette .tb.palette-sel').forEach(b => b.classList.remove('palette-sel'));
@@ -3084,6 +3086,12 @@ function _togglePaletteSelect(btn, key){
     _paletteSelected.delete(key);
     btn.classList.remove('palette-sel');
   } else {
+    _paletteSelected.add(key);
+    btn.classList.add('palette-sel');
+  }
+}
+function _addPaletteSelect(btn, key){
+  if(!_paletteSelected.has(key)){
     _paletteSelected.add(key);
     btn.classList.add('palette-sel');
   }
@@ -3109,8 +3117,21 @@ function _createTileButton(container, key, src, i){
   btn.appendChild(hLabel);
   const srcH = (TILES[key] && TILES[key].srcH) || 32;
   let dragStarted = false;
+  // Shift+drag: sweep-select
+  btn.addEventListener('mouseenter', () => {
+    if(_shiftDragging) _addPaletteSelect(btn, key);
+  });
   btn.addEventListener('mousedown', (e) => {
     if(e.button !== 0) return;
+    // Shift+drag: start sweep selection
+    if(e.shiftKey){
+      e.preventDefault();
+      _shiftDragging = true;
+      _addPaletteSelect(btn, key);
+      const onUp = () => { _shiftDragging = false; document.removeEventListener('mouseup', onUp); };
+      document.addEventListener('mouseup', onUp);
+      return;
+    }
     // Ctrl+click: toggle palette selection
     if(e.ctrlKey){
       e.preventDefault();

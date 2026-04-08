@@ -23,6 +23,7 @@ const ORDER = [
   'contextMenu.js',
   'history.js',
   'staging.js',
+  'inputDrag.js',
   'input.js',
   'touch.js',
   'palette.js',

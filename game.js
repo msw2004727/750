@@ -1904,10 +1904,13 @@ function initStagingGrid(){
 initStagingGrid();
 
 
-// ── input.js ──
+// ── inputDrag.js ──
+// ── Drag mechanics extracted from input.js ──
+// Handles: drag overlay, block movement (single/copy/group), staging drop on end
 
-// ── Canvas drag overlay (private) ──
-function _createDragOverlay(key){
+
+// ── Canvas drag overlay (for mobile staging proximity) ──
+function createDragOverlay(key){
   if(S.canvasDragOverlay) S.canvasDragOverlay.remove();
   const td = TILES[key];
   if(!td) return;
@@ -1921,15 +1924,139 @@ function _createDragOverlay(key){
   document.body.appendChild(el);
   S.canvasDragOverlay = el;
 }
-function _updateDragOverlay(){
+
+function updateDragOverlay(){
   if(S.canvasDragOverlay){
     S.canvasDragOverlay.style.left = (S.lastMouseClientX - 24) + 'px';
     S.canvasDragOverlay.style.top = (S.lastMouseClientY - 24) + 'px';
   }
 }
-function _removeDragOverlay(){
+
+function removeDragOverlay(){
   if(S.canvasDragOverlay){ S.canvasDragOverlay.remove(); S.canvasDragOverlay = null; }
 }
+
+// ── Start drag: initialise common drag state on a hit block ──
+function startDrag(hit, pos, mode){
+  S.dragBlock = hit;
+  document.getElementById('stagingArea').style.pointerEvents = 'none';
+  const sp = toScreen(hit.gx, hit.gy, hit.gz);
+  S.dragOffX = pos.x - sp.x;
+  S.dragOffY = pos.y - sp.y;
+  S.lastValidGx = hit.gx;
+  S.lastValidGy = hit.gy;
+  hit._dragGx = hit.gx;
+  hit._dragGy = hit.gy;
+  canvas.style.cursor = mode === 'copy' ? 'copy' : 'grabbing';
+}
+
+// ── Update drag: move block(s) based on new mouse position ──
+function updateDrag(pos){
+  const sx = pos.x - S.dragOffX;
+  const sy = pos.y - S.dragOffY;
+  const g = toGrid(sx, sy);
+  const tgx = snap(g.gx), tgy = snap(g.gy);
+  S.dragBlock._dragGx = g.gx;
+  S.dragBlock._dragGy = g.gy;
+
+  if(S.dragBlock._copyMode){
+    if(!hasBlockAt(tgx, tgy, S.dragBlock.gz, S.dragBlock, S.dragBlock.layer)){
+      shRemove(S.dragBlock);
+      S.dragBlock.gx = tgx;
+      S.dragBlock.gy = tgy;
+      shAdd(S.dragBlock);
+      S.lastValidGx = tgx;
+      S.lastValidGy = tgy;
+    }
+  } else if(S.groupOffsets){
+    const ddx = tgx - S.lastValidGx, ddy = tgy - S.lastValidGy;
+    if(ddx !== 0 || ddy !== 0){
+      let canMove = true;
+      for(const go of S.groupOffsets){
+        const nx = go.block.gx + ddx, ny = go.block.gy + ddy;
+        if(hasBlockAt(nx, ny, S.dragBlock.gz, null, S.dragBlock.layer)){
+          let inGroup = false;
+          for(const go2 of S.groupOffsets){
+            if(go2.block.gx === nx && go2.block.gy === ny){ inGroup = true; break; }
+          }
+          if(!inGroup){ canMove = false; break; }
+        }
+      }
+      if(canMove){
+        for(const go of S.groupOffsets) shRemove(go.block);
+        for(const go of S.groupOffsets){
+          go.block.gx += ddx;
+          go.block.gy += ddy;
+        }
+        for(const go of S.groupOffsets) shAdd(go.block);
+        S.lastValidGx = tgx;
+        S.lastValidGy = tgy;
+      }
+    }
+  } else {
+    const k = tgx + ',' + tgy;
+    if(S.reachableSet && S.reachableSet.has(k)){
+      shRemove(S.dragBlock);
+      S.dragBlock.gx = tgx;
+      S.dragBlock.gy = tgy;
+      shAdd(S.dragBlock);
+      S.lastValidGx = tgx;
+      S.lastValidGy = tgy;
+    }
+  }
+  draw();
+}
+
+// ── End drag: finalise position, handle staging drop on mobile ──
+function endDrag(){
+  removeDragOverlay();
+  document.getElementById('stagingArea').style.pointerEvents = 'auto';
+  stagingHighlight(false);
+
+  // Mobile: check if dropped onto staging area
+  if('ontouchstart' in window){
+    const slot = findStagingSlotAt(S.lastMouseClientX, S.lastMouseClientY);
+    if(slot >= 0){
+      saveSnapshot();
+      if(S.groupOffsets && S.groupOffsets.length > 1){
+        const minGx = Math.min(...S.groupOffsets.map(g=>g.block.gx));
+        const minGy = Math.min(...S.groupOffsets.map(g=>g.block.gy));
+        const combo = S.groupOffsets.map(g => ({
+          dx:g.block.gx-minGx, dy:g.block.gy-minGy, color:g.block.color, srcH:g.block.srcH, yOffset:g.block.yOffset||0
+        }));
+        addToStaging(null, 0, combo);
+        for(const g of S.groupOffsets) removeBlock(g.block);
+        S.selectedBlocks = new Set();
+      } else {
+        addToStaging(S.dragBlock.color, S.dragBlock.srcH);
+        removeBlock(S.dragBlock);
+      }
+      _cleanupDrag();
+      S.reachableSet = null;
+      S.panDrag = false;
+      draw();
+      return true; // signals staging drop handled
+    }
+  }
+
+  if(!S.groupOffsets){
+    S.dragBlock.gx = S.lastValidGx;
+    S.dragBlock.gy = S.lastValidGy;
+  }
+  _cleanupDrag();
+  return false;
+}
+
+function _cleanupDrag(){
+  delete S.dragBlock._dragGx;
+  delete S.dragBlock._dragGy;
+  delete S.dragBlock._copyMode;
+  S.dragBlock = null;
+  S.groupOffsets = null;
+}
+
+
+// ── input.js ──
 
 // jumpToTile callback registration (set by palette.js)
 
@@ -1949,7 +2076,7 @@ function onDown(e){
   e.preventDefault();
   const pos = mousePos(e);
 
-  // Minimap drag start: click centers view, then drag pans
+  // Minimap drag start
   if(_inMinimap(pos.x, pos.y)){
     const g = minimapToGrid(pos.x, pos.y);
     if(g){
@@ -1979,7 +2106,7 @@ function onDown(e){
     }
   }
 
-  // Locate mode: find tile in palette (search all layers)
+  // Locate mode
   if(S.locateMode){
     const locHit = hitTestAll(pos.x, pos.y);
     if(locHit){
@@ -1991,6 +2118,7 @@ function onDown(e){
 
   const hit = hitTest(pos.x, pos.y);
 
+  // ── Tool modes ──
   if(S.brushMode && !S.brushTile && !e.shiftKey && !e.ctrlKey){
     showToast('請先點擊素材面板或暫存區選擇筆刷素材');
     return;
@@ -2006,7 +2134,6 @@ function onDown(e){
     S.brushPainting = true;
     return;
   }
-
   if(S.eraserMode && hit && !e.shiftKey){
     if(hit.gz === S.currentHeight && hit.layer === S.currentLayer){
       saveSnapshot();
@@ -2016,7 +2143,6 @@ function onDown(e){
     S.brushPainting = true;
     return;
   }
-
   if(S.fillMode && !e.shiftKey){
     if(!S.brushTile){ showToast('請先選擇筆刷素材再使用填充'); return; }
     if(S.fillPreview.length > 0){
@@ -2029,7 +2155,6 @@ function onDown(e){
     }
     return;
   }
-
   if((S.rectMode || S.lineMode) && !e.shiftKey){
     if(!S.brushTile){ showToast('請先選擇筆刷素材'); return; }
     const g = toGrid(pos.x, pos.y);
@@ -2039,29 +2164,21 @@ function onDown(e){
     return;
   }
 
+  // ── Copy drag ──
   if((e.ctrlKey || S.copyMode) && hit){
     if(hit.gz !== S.currentHeight || hit.layer !== S.currentLayer) return;
     saveSnapshot();
     const clone = {gx:hit.gx, gy:hit.gy, gz:hit.gz, layer:hit.layer, color:hit.color, srcH:hit.srcH};
     addBlock(clone);
     S.reachableSet = null;
-    S.dragBlock = hit;
-    S.dragBlock._copyMode = true;
-    // PC: no drag overlay (mobile shows it near staging only)
-    document.getElementById('stagingArea').style.pointerEvents = 'none';
     S.groupOffsets = null;
-    const sp = toScreen(hit.gx, hit.gy, hit.gz);
-    S.dragOffX = pos.x - sp.x;
-    S.dragOffY = pos.y - sp.y;
-    S.lastValidGx = hit.gx;
-    S.lastValidGy = hit.gy;
-    hit._dragGx = hit.gx;
-    hit._dragGy = hit.gy;
-    canvas.style.cursor = 'copy';
+    startDrag(hit, pos, 'copy');
+    hit._copyMode = true;
     draw();
     return;
   }
 
+  // ── Shift / select mode ──
   if(e.shiftKey || S.selectMode){
     if(hit){
       if(hit.gz !== S.currentHeight || hit.layer !== S.currentLayer) return;
@@ -2073,24 +2190,15 @@ function onDown(e){
     return;
   }
 
+  // ── Group drag (selected blocks) ──
   if(S.selectedBlocks.size > 0 && !e.shiftKey){
     if(hit && S.selectedBlocks.has(hit)){
       saveSnapshot();
-      S.dragBlock = hit;
-      // PC: no drag overlay (mobile shows it near staging only)
-      document.getElementById('stagingArea').style.pointerEvents = 'none';
       S.groupOffsets = [];
       for(const b of S.selectedBlocks){
         S.groupOffsets.push({block:b, dx:b.gx - hit.gx, dy:b.gy - hit.gy, origGx:b.gx, origGy:b.gy});
       }
-      const sp = toScreen(hit.gx, hit.gy, hit.gz);
-      S.dragOffX = pos.x - sp.x;
-      S.dragOffY = pos.y - sp.y;
-      S.lastValidGx = hit.gx;
-      S.lastValidGy = hit.gy;
-      hit._dragGx = hit.gx;
-      hit._dragGy = hit.gy;
-      canvas.style.cursor = 'grabbing';
+      startDrag(hit, pos, 'grab');
       draw();
       return;
     }
@@ -2106,23 +2214,14 @@ function onDown(e){
     return;
   }
 
+  // ── Single block drag ──
   if(hit){
     if(hit.gz !== S.currentHeight || hit.layer !== S.currentLayer) return;
     S.reachableSet = computeReachable(hit.gx, hit.gy, hit.gz, hit);
     if(S.reachableSet.size <= 1){ triggerShake(hit); S.reachableSet = null; return; }
     saveSnapshot();
-    S.dragBlock = hit;
     S.groupOffsets = null;
-    // PC: no drag overlay (mobile shows it near staging only)
-    document.getElementById('stagingArea').style.pointerEvents = 'none';
-    const sp = toScreen(hit.gx, hit.gy, hit.gz);
-    S.dragOffX = pos.x - sp.x;
-    S.dragOffY = pos.y - sp.y;
-    S.lastValidGx = hit.gx;
-    S.lastValidGy = hit.gy;
-    hit._dragGx = hit.gx;
-    hit._dragGy = hit.gy;
-    canvas.style.cursor = 'grabbing';
+    startDrag(hit, pos, 'grab');
     draw();
   } else {
     S.panDrag = true;
@@ -2134,7 +2233,7 @@ function onDown(e){
 
 // ── onMove ──
 function onMove(e){
-  // Minimap drag: pan camera by dragging within minimap
+  // Minimap drag
   if(_mmDrag){
     e.preventDefault();
     const pos = mousePos(e);
@@ -2151,15 +2250,19 @@ function onMove(e){
     _mmLastY = pos.y;
     return;
   }
+
+  // Mobile: drag overlay near staging
   if(S.dragBlock){
     if('ontouchstart' in window){
       const nearStaging = findStagingSlotAt(S.lastMouseClientX, S.lastMouseClientY) >= 0;
       stagingHighlight(nearStaging);
-      if(nearStaging && !S.canvasDragOverlay) _createDragOverlay(S.dragBlock.color);
-      if(!nearStaging && S.canvasDragOverlay) _removeDragOverlay();
+      if(nearStaging && !S.canvasDragOverlay) createDragOverlay(S.dragBlock.color);
+      if(!nearStaging && S.canvasDragOverlay) removeDragOverlay();
     }
-    _updateDragOverlay();
+    updateDragOverlay();
   }
+
+  // Brush / eraser painting
   if(S.brushPainting){
     e.preventDefault();
     const pos = mousePos(e);
@@ -2179,75 +2282,37 @@ function onMove(e){
     draw();
     return;
   }
+
+  // Block drag
   if(S.dragBlock){
     e.preventDefault();
     const pos = mousePos(e);
-    const sx = pos.x - S.dragOffX;
-    const sy = pos.y - S.dragOffY;
-    const g = toGrid(sx, sy);
-    const tgx = snap(g.gx), tgy = snap(g.gy);
-    S.dragBlock._dragGx = g.gx;
-    S.dragBlock._dragGy = g.gy;
+    updateDrag(pos);
+    return;
+  }
 
-    if(S.dragBlock._copyMode){
-      if(!hasBlockAt(tgx, tgy, S.dragBlock.gz, S.dragBlock, S.dragBlock.layer)){
-        shRemove(S.dragBlock);
-        S.dragBlock.gx = tgx;
-        S.dragBlock.gy = tgy;
-        shAdd(S.dragBlock);
-        S.lastValidGx = tgx;
-        S.lastValidGy = tgy;
-      }
-    } else if(S.groupOffsets){
-      const ddx = tgx - S.lastValidGx, ddy = tgy - S.lastValidGy;
-      if(ddx !== 0 || ddy !== 0){
-        let canMove = true;
-        for(const go of S.groupOffsets){
-          const nx = go.block.gx + ddx, ny = go.block.gy + ddy;
-          if(hasBlockAt(nx, ny, S.dragBlock.gz, null, S.dragBlock.layer)){
-            let inGroup = false;
-            for(const go2 of S.groupOffsets){
-              if(go2.block.gx === nx && go2.block.gy === ny){ inGroup = true; break; }
-            }
-            if(!inGroup){ canMove = false; break; }
-          }
-        }
-        if(canMove){
-          for(const go of S.groupOffsets) shRemove(go.block);
-          for(const go of S.groupOffsets){
-            go.block.gx += ddx;
-            go.block.gy += ddy;
-          }
-          for(const go of S.groupOffsets) shAdd(go.block);
-          S.lastValidGx = tgx;
-          S.lastValidGy = tgy;
-        }
-      }
-    } else {
-      const k = tgx + ',' + tgy;
-      if(S.reachableSet && S.reachableSet.has(k)){
-        shRemove(S.dragBlock);
-        S.dragBlock.gx = tgx;
-        S.dragBlock.gy = tgy;
-        shAdd(S.dragBlock);
-        S.lastValidGx = tgx;
-        S.lastValidGy = tgy;
-      }
-    }
-    draw();
-  } else if(S.boxSelect){
+  // Box select
+  if(S.boxSelect){
     e.preventDefault();
     const pos = mousePos(e);
     S.boxSelect.ex = pos.x;
     S.boxSelect.ey = pos.y;
     draw();
-  } else if(S.panDrag){
+    return;
+  }
+
+  // Pan
+  if(S.panDrag){
     e.preventDefault();
     const pos = mousePos(e);
     camera.x = S.panCamStartX + (pos.x - S.panStartX);
     camera.y = S.panCamStartY + (pos.y - S.panStartY);
     draw();
-  } else if(S.showHover || S.brushMode || S.eraserMode || S.fillMode || S.rectMode || S.lineMode){
+    return;
+  }
+
+  // Hover / cursor preview
+  if(S.showHover || S.brushMode || S.eraserMode || S.fillMode || S.rectMode || S.lineMode){
     const pos = mousePos(e);
     let needDraw = false;
     const g = toGrid(pos.x, pos.y);
@@ -2271,6 +2336,8 @@ function onMove(e){
 // ── onUp ──
 function onUp(){
   if(_mmDrag){ _mmDrag = false; return; }
+
+  // Brush/rect/line commit
   if(S.brushPainting){
     S.brushPainting = false;
     if((S.rectMode || S.lineMode) && S.rectStart && S.brushTile){
@@ -2287,6 +2354,8 @@ function onUp(){
     }
     return;
   }
+
+  // Box select commit
   if(S.boxSelect){
     const x1 = Math.min(S.boxSelect.sx, S.boxSelect.ex);
     const y1 = Math.min(S.boxSelect.sy, S.boxSelect.ey);
@@ -2304,48 +2373,13 @@ function onUp(){
     draw();
     return;
   }
+
+  // Drag end
   if(S.dragBlock){
-    _removeDragOverlay();
-    document.getElementById('stagingArea').style.pointerEvents = 'auto';
-    stagingHighlight(false);
-    if('ontouchstart' in window){
-      const slot = findStagingSlotAt(S.lastMouseClientX, S.lastMouseClientY);
-      if(slot >= 0){
-        saveSnapshot();
-        if(S.groupOffsets && S.groupOffsets.length > 1){
-          const minGx = Math.min(...S.groupOffsets.map(g=>g.block.gx));
-          const minGy = Math.min(...S.groupOffsets.map(g=>g.block.gy));
-          const combo = S.groupOffsets.map(g => ({
-            dx:g.block.gx-minGx, dy:g.block.gy-minGy, color:g.block.color, srcH:g.block.srcH, yOffset:g.block.yOffset||0
-          }));
-          addToStaging(null, 0, combo);
-          for(const g of S.groupOffsets) removeBlock(g.block);
-          S.selectedBlocks = new Set();
-        } else {
-          addToStaging(S.dragBlock.color, S.dragBlock.srcH);
-          removeBlock(S.dragBlock);
-        }
-        delete S.dragBlock._dragGx;
-        delete S.dragBlock._dragGy;
-        delete S.dragBlock._copyMode;
-        S.dragBlock = null;
-        S.groupOffsets = null;
-        S.reachableSet = null;
-        S.panDrag = false;
-        draw();
-        return;
-      }
-    }
-    if(!S.groupOffsets){
-      S.dragBlock.gx = S.lastValidGx;
-      S.dragBlock.gy = S.lastValidGy;
-    }
-    delete S.dragBlock._dragGx;
-    delete S.dragBlock._dragGy;
-    delete S.dragBlock._copyMode;
-    S.dragBlock = null;
-    S.groupOffsets = null;
+    const handled = endDrag();
+    if(handled) return;
   }
+
   S.reachableSet = null;
   S.panDrag = false;
   canvas.style.cursor = (S.brushMode||S.eraserMode||S.fillMode||S.rectMode||S.lineMode) ? 'crosshair' : 'grab';
@@ -2406,7 +2440,7 @@ document.addEventListener('touchmove', (e) => {
 window.addEventListener('blur', () => {
   if(S.tileDrag){ S.tileDrag.el.remove(); S.tileDrag = null; stagingHighlight(false); }
   if(S.mobileDragEl){ S.mobileDragEl.remove(); S.mobileDragEl = null; S.mobileDragKey = null; stagingHighlight(false); }
-  _removeDragOverlay();
+  removeDragOverlay();
 });
 
 

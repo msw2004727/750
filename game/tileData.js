@@ -149,6 +149,12 @@ for(const v of MEDIEVAL_VARIANTS){
   });
 }
 
+// ── Per-tile default yOffset (exported from editor, manually curated) ──
+const DEFAULT_Y_OFFSETS = {
+  // 格式：'tileKey': yOffset   例如 't042': 0.5
+  // 由編輯器「匯出偏移」功能產生，貼到這裡即可
+};
+
 // ── Build TILES + preload images ──
 export const TILES = {};
 export const tileImages = {};
@@ -168,7 +174,8 @@ for(const src of SOURCES){
     }
     const srcW = src.srcWOf ? src.srcWOf(i) : 32;
     const frames = src.framesOf ? src.framesOf(i) : 1;
-    TILES[key] = {file, cropY, srcH, srcW, frames, stroke, ghost};
+    const defaultYOff = DEFAULT_Y_OFFSETS[key] || 0;
+    TILES[key] = {file, cropY, srcH, srcW, frames, stroke, ghost, defaultYOff};
     const img = new Image();
     img.onload = () => { tileImages[key] = img; if(++tilesLoaded >= totalImages) draw(); };
     img.src = src.base + file;

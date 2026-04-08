@@ -43,6 +43,11 @@ function _isAnimated(b){
 export function addBlock(b){
   if(!b.type) b.type = 'tile';
   if(!b.state) b.state = {};
+  // Apply per-tile default yOffset if not explicitly set
+  if(!b.yOffset){
+    const td = TILES[b.color];
+    if(td && td.defaultYOff) b.yOffset = td.defaultYOff;
+  }
   world.blocks.push(b);
   shAdd(b);
   if(_isAnimated(b)) S.animBlockCount++;

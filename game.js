@@ -279,6 +279,12 @@ for(const v of MEDIEVAL_VARIANTS){
   });
 }
 
+// ── Per-tile default yOffset (exported from editor, manually curated) ──
+const DEFAULT_Y_OFFSETS = {
+  // 格式：'tileKey': yOffset   例如 't042': 0.5
+  // 由編輯器「匯出偏移」功能產生，貼到這裡即可
+};
+
 // ── Build TILES + preload images ──
 const TILES = {};
 const tileImages = {};
@@ -298,7 +304,8 @@ for(const src of SOURCES){
     }
     const srcW = src.srcWOf ? src.srcWOf(i) : 32;
     const frames = src.framesOf ? src.framesOf(i) : 1;
-    TILES[key] = {file, cropY, srcH, srcW, frames, stroke, ghost};
+    const defaultYOff = DEFAULT_Y_OFFSETS[key] || 0;
+    TILES[key] = {file, cropY, srcH, srcW, frames, stroke, ghost, defaultYOff};
     const img = new Image();
     img.onload = () => { tileImages[key] = img; if(++tilesLoaded >= totalImages) draw(); };
     img.src = src.base + file;
@@ -399,6 +406,11 @@ function _isAnimated(b){
 function addBlock(b){
   if(!b.type) b.type = 'tile';
   if(!b.state) b.state = {};
+  // Apply per-tile default yOffset if not explicitly set
+  if(!b.yOffset){
+    const td = TILES[b.color];
+    if(td && td.defaultYOff) b.yOffset = td.defaultYOff;
+  }
   world.blocks.push(b);
   shAdd(b);
   if(_isAnimated(b)) S.animBlockCount++;
@@ -1526,6 +1538,40 @@ function onCtx(e){
 
   items.push({label:'更改層級', keepPanel: true, action:() => {
     _showPropertyPanel(hit, e.clientX, e.clientY);
+  }});
+
+  // Show yOffset if non-zero
+  if(hit.yOffset){
+    items.push({label:'設為預設偏移 (' + hit.yOffset + ')', action:() => {
+      const td = TILES[hit.color];
+      if(td) td.defaultYOff = hit.yOffset;
+      showToast(hit.color + ' 預設偏移 = ' + hit.yOffset);
+    }});
+  }
+
+  items.push({label:'匯出全部偏移', action:() => {
+    const offsets = {};
+    for(const b of world.blocks){
+      if(b.yOffset && b.yOffset !== 0){
+        // Keep the latest adjustment per tile key
+        offsets[b.color] = b.yOffset;
+      }
+    }
+    // Also include currently set defaults from TILES
+    for(const [key, td] of Object.entries(TILES)){
+      if(td.defaultYOff && !offsets[key]) offsets[key] = td.defaultYOff;
+    }
+    if(Object.keys(offsets).length === 0){
+      showToast('沒有任何偏移調整');
+      return;
+    }
+    const text = JSON.stringify(offsets, null, 2);
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('已複製 ' + Object.keys(offsets).length + ' 筆偏移到剪貼簿');
+    }).catch(() => {
+      // Fallback: show in prompt for manual copy
+      prompt('複製以下內容貼到 tileData.js 的 DEFAULT_Y_OFFSETS：', text);
+    });
   }});
 
   items.push({label:'刪除', action:() => {

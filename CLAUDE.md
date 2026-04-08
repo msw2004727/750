@@ -135,11 +135,20 @@
 3. **新增的狀態放哪裡？**
    - 引擎狀態 → `world` 或 `camera`
    - 編輯器狀態 → `S`
+   - 遊戲狀態 → `game`
    - 禁止在模組內用 `let` 自建全域狀態（除非是純粹的模組內部私有變數）
 4. **會不會造成循環依賴？**
    - 畫依賴圖：A → B → C → A？用 callback 註冊模式解開
-5. **build.js 有沒有更新？**
+5. **build.cjs 有沒有更新？**
    - 新增模組必須加入 ORDER 陣列，否則打包遺漏
+6. **跨平台相容性有沒有確認？**
+   - 每次 UI / CSS / 互動設計都**必須**同時考慮：
+     - 瀏覽器：**LINE 內建瀏覽器**、**Safari**（iOS）、**Chrome**（Android / PC）
+     - 裝置：**PC**（滑鼠 + 鍵盤）、**手機**（觸控 + 小螢幕）
+   - 不能使用僅限特定瀏覽器的 API（如 File System Access API）而沒有 fallback
+   - 觸控操作不能依賴 hover 狀態（手機沒有 hover）
+   - 按鈕/面板在手機上不能獨佔過多垂直空間
+   - CSS 不使用 `-webkit-` 以外的 vendor prefix（LINE/Safari 需要）
 
 ### 拆分規則
 

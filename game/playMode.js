@@ -30,7 +30,7 @@ export function enterPlay(){
   game.lastTick = performance.now();
   document.body.classList.remove('mode-editor');
   document.body.classList.add('mode-game');
-  document.getElementById('modeToggle').textContent = '切換編輯模式';
+  document.getElementById('modeToggle').textContent = '編輯模式';
   bus.emit('mode', 'game');
   draw();
 }
@@ -39,7 +39,7 @@ export function exitPlay(){
   game.running = false;
   document.body.classList.remove('mode-game');
   document.body.classList.add('mode-editor');
-  document.getElementById('modeToggle').textContent = '切換遊戲模式';
+  document.getElementById('modeToggle').textContent = '遊戲模式';
 
   // Restore editor state
   if(_savedEditor) Object.assign(S, _savedEditor);

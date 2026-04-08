@@ -2,6 +2,7 @@ import { S, camera, canvas, draw } from './state.js';
 import { setBlocks } from './spatialHash.js';
 import { saveSnapshot } from './history.js';
 import { clearDrawTools, updateBrushIndicator } from './tools.js';
+import { hitTest } from './hitTest.js';
 
 // ── Tool checkboxes (mutually exclusive draw tools) ──
 document.getElementById('chkBrush').addEventListener('change', (e) => { clearDrawTools('chkBrush'); S.brushMode = e.target.checked; canvas.style.cursor = S.brushMode?'crosshair':'grab'; });
@@ -162,7 +163,7 @@ function _inputFocused(){
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
 }
 
-function _toggleTool(chkId, stateKey, except){
+function _toggleTool(chkId, stateKey){
   const chk = document.getElementById(chkId);
   clearDrawTools(chkId);
   S[stateKey] = !S[stateKey];

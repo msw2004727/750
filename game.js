@@ -3207,7 +3207,7 @@ function _inputFocused(){
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
 }
 
-function _toggleTool(chkId, stateKey, except){
+function _toggleTool(chkId, stateKey){
   const chk = document.getElementById(chkId);
   clearDrawTools(chkId);
   S[stateKey] = !S[stateKey];

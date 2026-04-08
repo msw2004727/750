@@ -8,8 +8,8 @@
 750/
 ├── index.html              # 主頁面（載入 game.js）
 ├── style.css               # 樣式
-├── game.js                 # 打包輸出（由 build.js 產生，勿手動編輯）
-├── build.js                # 打包腳本：node build.js
+├── game.js                 # 打包輸出（由 build.cjs 產生，勿手動編輯）
+├── build.cjs               # 打包腳本：node build.cjs（CommonJS）
 ├── package.json            # type:module + npm test 腳本
 ├── CLAUDE.md
 ├── game/                   # 源碼模組（開發時編輯這裡，25 個模組）
@@ -63,7 +63,7 @@
 
 ## 開發工作流
 1. 編輯 `game/*.js` 模組
-2. 執行 `node build.js` 打包成 `game.js`
+2. 執行 `node build.cjs` 打包成 `game.js`
 3. 執行 `npm test` 驗證（86 個自動化測試）
 4. 直接開 `index.html`（支援 file://）
 5. 或用 HTTP server 開發模式：改 index.html 為 `<script type="module" src="game/main.js">`
@@ -122,7 +122,7 @@
 3. export 公開 API
 4. 在 `game/main.js` 加 `import './newModule.js'`
 5. 在 `build.js` 的 ORDER 陣列加入檔名（依賴順序）
-6. 執行 `node build.js` 驗證
+6. 執行 `node build.cjs` 驗證
 
 ### 檔案變更前必讀（強制規則）
 **每次建立或修改任何 game/ 下的 .js 檔案之前，必須先思考以下問題：**

@@ -207,6 +207,41 @@ body {
 .act-btn:hover { background: rgba(255,255,255,0.1); }
 .act-btn.danger { color: #c66; border-color: #633; }
 .act-btn.danger:hover { background: rgba(200,50,50,0.15); }
+.act-btn.cloud-btn { color: #6bf; border-color: #369; }
+.act-btn.cloud-btn:hover { background: rgba(100,180,255,0.15); }
+/* 雲端彈窗輸入框 */
+.cloud-input {
+  width: 100%;
+  font-size: 14px;
+  font-family: monospace;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #555;
+  background: #2a2a3e;
+  color: #fff;
+  text-align: center;
+  outline: none;
+  margin: 8px 0;
+}
+.cloud-input:focus { border-color: #6bf; }
+.cloud-input::selection { background: #369; }
+.cloud-action {
+  display: inline-block;
+  font-size: 12px;
+  padding: 6px 18px;
+  cursor: pointer;
+  border-radius: 6px;
+  border: 1px solid #555;
+  background: #2a2a3e;
+  color: #ccc;
+  transition: all 0.15s;
+  margin: 4px;
+}
+.cloud-action:hover { background: rgba(100,180,255,0.2); border-color: #6bf; color: #fff; }
+.cloud-action.primary { background: #2a4a6e; border-color: #6bf; color: #fff; }
+.cloud-action.primary:hover { background: #3a5a8e; }
+.cloud-status { font-size: 11px; color: #888; margin-top: 6px; }
+.cloud-id { font-size: 18px; font-family: monospace; color: #6bf; letter-spacing: 1px; user-select: all; margin: 8px 0; word-break: break-all; }
 /* 說明彈窗 */
 .help-overlay {
   position: fixed;

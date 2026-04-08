@@ -64,6 +64,8 @@
       <button id="saveBtn" class="act-btn">儲存</button>
       <button id="saveAsBtn" class="act-btn">另存</button>
       <button id="loadBtn" class="act-btn">載入</button>
+      <button id="cloudSaveBtn" class="act-btn cloud-btn">☁ 上傳</button>
+      <button id="cloudLoadBtn" class="act-btn cloud-btn">☁ 下載</button>
       <button id="homeBtn" class="act-btn">原點</button>
       <button id="exportImg" class="act-btn">匯出圖</button>
       <button id="clearBtn" class="act-btn danger">清除全部</button>
@@ -98,6 +100,15 @@
       </div>
     </div>
     <canvas id="c"></canvas>
+  </div>
+  <div id="cloudOverlay" class="help-overlay" style="display:none;">
+    <div class="help-modal" style="max-width:380px;">
+      <div class="help-header">
+        <span id="cloudTitle">雲端存檔</span>
+        <button id="cloudClose" class="help-close">&times;</button>
+      </div>
+      <div class="help-body" id="cloudBody" style="text-align:center;"></div>
+    </div>
   </div>
 </div>
 <script src="game.js"></script>

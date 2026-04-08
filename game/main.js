@@ -17,19 +17,11 @@ import './combos.js';
 import './ui.js';
 
 // ── Load saved state or default blocks ──
-import { updateHeightUI, updateLayerUI } from './saveLoad.js';
+import { loadFromData } from './saveLoad.js';
 
 const saved = localStorage.getItem('blockBuilder_save');
 if(saved){
-  try {
-    const data = JSON.parse(saved);
-    if(data.blocks) setBlocks(data.blocks);
-    if(data.camX !== undefined) camera.x = data.camX;
-    if(data.camY !== undefined) camera.y = data.camY;
-    if(data.zoom !== undefined) camera.zoom = data.zoom;
-    if(data.currentHeight !== undefined){ S.currentHeight = data.currentHeight; updateHeightUI(); }
-    if(data.currentLayer !== undefined){ S.currentLayer = data.currentLayer; updateLayerUI(); }
-  } catch(e){}
+  try { loadFromData(JSON.parse(saved)); } catch(e){}
 }
 if(world.blocks.length === 0){
   // ── Auto-tiled village path layout ──

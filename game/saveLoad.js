@@ -67,13 +67,7 @@ document.getElementById('loadBtn').addEventListener('click', () => {
     reader.onload = () => {
       try {
         const data = JSON.parse(reader.result);
-        if(data.blocks) setBlocks(data.blocks);
-        if(data.camX !== undefined) camera.x = data.camX;
-        if(data.camY !== undefined) camera.y = data.camY;
-        if(data.zoom !== undefined) camera.zoom = data.zoom;
-        if(data.currentHeight !== undefined){ S.currentHeight = data.currentHeight; updateHeightUI(); }
-        if(data.currentLayer !== undefined){ S.currentLayer = data.currentLayer; updateLayerUI(); }
-        draw();
+        loadFromData(data);
       } catch(err){ showToast('載入失敗：' + err.message, 4000); }
     };
     reader.readAsText(input.files[0]);
@@ -113,6 +107,110 @@ document.getElementById('exportImg').addEventListener('click', () => {
   S.hiddenHeights = oldHH; S.hiddenLayers = oldHL;
   S.showGrid = oldGrid; S.showVGrid = oldVGrid; S.showCoords = oldCoord;
   draw();
+});
+
+// ── Cloud Save / Load (jsonblob.com) ──
+const CLOUD_API = 'https://jsonblob.com/api/jsonBlob';
+
+function _openCloudModal(title, bodyHTML){
+  document.getElementById('cloudTitle').textContent = title;
+  document.getElementById('cloudBody').innerHTML = bodyHTML;
+  document.getElementById('cloudOverlay').style.display = 'flex';
+}
+function _closeCloudModal(){
+  document.getElementById('cloudOverlay').style.display = 'none';
+}
+document.getElementById('cloudClose').addEventListener('click', _closeCloudModal);
+document.getElementById('cloudOverlay').addEventListener('click', (e) => {
+  if(e.target === e.currentTarget) _closeCloudModal();
+});
+
+export function loadFromData(data){
+  if(data.blocks) setBlocks(data.blocks);
+  if(data.camX !== undefined) camera.x = data.camX;
+  if(data.camY !== undefined) camera.y = data.camY;
+  if(data.zoom !== undefined) camera.zoom = data.zoom;
+  if(data.currentHeight !== undefined){ S.currentHeight = data.currentHeight; updateHeightUI(); }
+  if(data.currentLayer !== undefined){ S.currentLayer = data.currentLayer; updateLayerUI(); }
+  draw();
+}
+
+document.getElementById('cloudSaveBtn').addEventListener('click', async () => {
+  if(world.blocks.length === 0){ showToast('沒有方塊可上傳'); return; }
+  _openCloudModal('雲端上傳',
+    '<div class="cloud-status">上傳中...</div>');
+  try {
+    const res = await fetch(CLOUD_API, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: _buildSaveData()
+    });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const blobId = res.headers.get('X-jsonblob') || res.headers.get('x-jsonblob') || '';
+    // Fallback: extract ID from Location header
+    const loc = res.headers.get('Location') || '';
+    const id = blobId || loc.split('/').pop() || '';
+    if(!id) throw new Error('無法取得存檔 ID');
+    // Save the ID locally for convenience
+    localStorage.setItem('blockBuilder_cloudId', id);
+    _openCloudModal('上傳成功',
+      '<div style="font-size:12px;color:#aaa;margin-bottom:6px;">你的存檔代碼：</div>' +
+      '<div class="cloud-id" id="_cloudIdDisplay"></div>' +
+      '<button class="cloud-action primary" id="_cloudCopy">複製代碼</button>' +
+      '<div class="cloud-status">把代碼分享給朋友，對方用「☁ 下載」貼上即可載入</div>');
+    document.getElementById('_cloudIdDisplay').textContent = id;
+    document.getElementById('_cloudCopy').addEventListener('click', () => {
+      navigator.clipboard.writeText(id).then(() => {
+        showToast('已複製到剪貼簿');
+      }).catch(() => {
+        // Fallback: select text
+        const el = document.querySelector('.cloud-id');
+        if(el){ const r = document.createRange(); r.selectNodeContents(el); const s = window.getSelection(); s.removeAllRanges(); s.addRange(r); }
+        showToast('請手動複製上方代碼');
+      });
+    });
+  } catch(err){
+    _openCloudModal('上傳失敗',
+      '<div style="color:#f66;margin:12px 0;" id="_cloudErr"></div>' +
+      '<div class="cloud-status">請檢查網路連線後重試</div>');
+    document.getElementById('_cloudErr').textContent = err.message;
+  }
+});
+
+document.getElementById('cloudLoadBtn').addEventListener('click', () => {
+  const lastId = localStorage.getItem('blockBuilder_cloudId') || '';
+  _openCloudModal('雲端下載',
+    '<div style="font-size:12px;color:#aaa;margin-bottom:4px;">輸入存檔代碼：</div>' +
+    '<input class="cloud-input" id="_cloudIdInput" placeholder="貼上代碼...">' +
+    '<div><button class="cloud-action primary" id="_cloudLoadGo">載入</button></div>' +
+    '<div class="cloud-status">向朋友索取代碼，或貼上你之前上傳的代碼</div>');
+  const inp = document.getElementById('_cloudIdInput');
+  inp.value = lastId;
+  inp.focus();
+  inp.select();
+  const goBtn = document.getElementById('_cloudLoadGo');
+  async function _doCloudLoad(){
+    const id = inp.value.trim();
+    if(!id){ showToast('請輸入存檔代碼'); return; }
+    goBtn.textContent = '載入中...';
+    goBtn.style.pointerEvents = 'none';
+    try {
+      const res = await fetch(CLOUD_API + '/' + id);
+      if(!res.ok) throw new Error(res.status === 404 ? '找不到此存檔代碼' : 'HTTP ' + res.status);
+      const data = await res.json();
+      if(!data.blocks) throw new Error('無效的存檔格式');
+      loadFromData(data);
+      localStorage.setItem('blockBuilder_cloudId', id);
+      _closeCloudModal();
+      showToast('雲端載入成功');
+    } catch(err){
+      goBtn.textContent = '載入';
+      goBtn.style.pointerEvents = '';
+      showToast('載入失敗：' + err.message, 4000);
+    }
+  }
+  goBtn.addEventListener('click', _doCloudLoad);
+  inp.addEventListener('keydown', (e) => { if(e.key === 'Enter') _doCloudLoad(); });
 });
 
 // ── Height visibility ──

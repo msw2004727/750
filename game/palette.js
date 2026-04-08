@@ -124,12 +124,14 @@ export function populatePalette(){
   const catSel = document.getElementById('catSelect');
   const catLabel = catSel.options[catSel.selectedIndex]?.dataset?.label || '';
 
+  const elemFilter = document.getElementById('elemSelect').value;
   const items = [];
   const srcList = S.selectedSrc === -1 ? SOURCES : [SOURCES[S.selectedSrc]];
   const showAll = catLabel === '__all__';
   for(const src of srcList){
     for(const cat of src.cats){
       if(!showAll && cat.label !== catLabel) continue;
+      if(elemFilter && (cat.elem || '無') !== elemFilter) continue;
       for(const i of cat.tiles){
         const key = src.prefix + String(i).padStart(3,'0');
         items.push({key, src, i});
@@ -234,6 +236,10 @@ function initSelectors(){
 
   const catSel = document.getElementById('catSelect');
   catSel.addEventListener('change', () => {
+    populatePalette();
+  });
+
+  document.getElementById('elemSelect').addEventListener('change', () => {
     populatePalette();
   });
 

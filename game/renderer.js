@@ -240,31 +240,34 @@ function _drawCharacter(block){
     S._dirty = true;
   }
   const flipScale = st._flipState || 1;
+  const ch = _stepCH;
   const scale = (tw * 2) / img.naturalWidth;
   const dw = Math.round(img.naturalWidth * scale);
   const dh = Math.round(img.naturalHeight * scale);
-  const dy = y + th - dh;
+  // Feet on top face of the cube (raised by CUBE_H)
+  const feetY = y + th - ch;
+  const dy = feetY - dh;
   ctx.save();
   ctx.translate(x, 0);
   ctx.scale(flipScale, 1);
   ctx.drawImage(img, -dw / 2, dy, dw, dh);
   ctx.restore();
-  // Faction color ring
+  // Faction color ring (on top face)
   const factionColor = FACTION_COLORS[st.faction];
   if(factionColor){
     ctx.globalAlpha = 0.5;
     ctx.strokeStyle = factionColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.ellipse(x, y + th * 1.5, tw * 0.45, th * 0.3, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, feetY, tw * 0.45, th * 0.3, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
-  // Shadow ellipse
+  // Shadow ellipse (on top face)
   ctx.globalAlpha = 0.15;
   ctx.fillStyle = '#000';
   ctx.beginPath();
-  ctx.ellipse(x, y + th * 1.5, tw * 0.35, th * 0.25, 0, 0, Math.PI * 2);
+  ctx.ellipse(x, feetY, tw * 0.35, th * 0.25, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 1;
   // Selection highlight
@@ -272,7 +275,7 @@ function _drawCharacter(block){
     ctx.strokeStyle = '#FFD700';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.ellipse(x, y + th * 1.5, tw * 0.5, th * 0.35, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, feetY, tw * 0.5, th * 0.35, 0, 0, Math.PI * 2);
     ctx.stroke();
   }
 }

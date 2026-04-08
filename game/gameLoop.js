@@ -1,5 +1,4 @@
-import { S, world } from './state.js';
-import { TILES } from './tileData.js';
+import { S } from './state.js';
 
 // ── Real draw registration (renderer registers its draw function here) ──
 let _realDraw = () => {};
@@ -32,11 +31,7 @@ function loop(now) {
   if (animAccum >= ANIM_INTERVAL) {
     animAccum -= ANIM_INTERVAL;
     S.animTick++;
-    const hasAnim = world.blocks.some(b => {
-      const td = TILES[b.color];
-      return td && td.frames > 1;
-    });
-    if (hasAnim) S._dirty = true;
+    if (S.animBlockCount > 0) S._dirty = true;
   }
 
   // Render once per frame if needed

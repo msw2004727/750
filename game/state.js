@@ -87,6 +87,7 @@ export const S = {
 
   // Render flag
   _dirty: true,
+  animBlockCount: 0,
 };
 
 // ── draw() sets dirty flag — gameLoop does the actual render ──

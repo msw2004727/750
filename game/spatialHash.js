@@ -1,4 +1,5 @@
-import { world } from './state.js';
+import { S, world } from './state.js';
+import { TILES } from './tileData.js';
 
 // ── Spatial hash index ──
 const spatialHash = new Map();
@@ -34,22 +35,32 @@ export function shRebuild(){
 
 export function shGet(k){ return spatialHash.get(k); }
 
+function _isAnimated(b){
+  const td = TILES[b.color];
+  return td && td.frames > 1;
+}
+
 export function addBlock(b){
   if(!b.type) b.type = 'tile';
   if(!b.state) b.state = {};
   world.blocks.push(b);
   shAdd(b);
+  if(_isAnimated(b)) S.animBlockCount++;
 }
 
 export function removeBlock(b){
   const idx = world.blocks.indexOf(b);
   if(idx >= 0) world.blocks.splice(idx, 1);
   shRemove(b);
+  if(_isAnimated(b)) S.animBlockCount--;
 }
 
 export function removeBlocksWhere(fn){
   const removing = world.blocks.filter(fn);
-  for(const b of removing) shRemove(b);
+  for(const b of removing){
+    shRemove(b);
+    if(_isAnimated(b)) S.animBlockCount--;
+  }
   world.blocks = world.blocks.filter(b => !fn(b));
 }
 
@@ -57,4 +68,5 @@ export function setBlocks(newBlocks){
   for(const b of newBlocks){ if(!b.type) b.type = 'tile'; if(!b.state) b.state = {}; }
   world.blocks = newBlocks;
   shRebuild();
+  S.animBlockCount = newBlocks.filter(_isAnimated).length;
 }

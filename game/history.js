@@ -2,11 +2,13 @@ import { S, camera, world, draw } from './state.js';
 import { setBlocks, addBlock, removeBlock } from './spatialHash.js';
 import { toGrid, snap } from './coords.js';
 import { hasBlockAt } from './blocks.js';
+import { scheduleAutoSave } from './saveLoad.js';
 
 export function saveSnapshot(){
   S.history.push(JSON.stringify(world.blocks));
   if(S.history.length > 50) S.history.shift();
   S.redoStack = [];
+  scheduleAutoSave();
 }
 
 export function doUndo(){

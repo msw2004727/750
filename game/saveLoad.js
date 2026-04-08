@@ -31,9 +31,22 @@ function _buildSaveData(){
   return JSON.stringify({blocks:world.blocks, camX:camera.x, camY:camera.y, zoom:camera.zoom, currentHeight:S.currentHeight, currentLayer:S.currentLayer});
 }
 
+function _doSave(){
+  localStorage.setItem('blockBuilder_save', _buildSaveData());
+}
+
+function _showSaveIndicator(){
+  const btn = document.getElementById('saveBtn');
+  const orig = btn.textContent;
+  btn.textContent = '已存';
+  btn.style.color = '#6f6';
+  setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1500);
+}
+
 // Save: overwrite localStorage (no file download)
 document.getElementById('saveBtn').addEventListener('click', () => {
-  localStorage.setItem('blockBuilder_save', _buildSaveData());
+  _doSave();
+  _showSaveIndicator();
 });
 
 // Save As: download as new JSON file
@@ -124,4 +137,35 @@ document.getElementById('hideHeight').addEventListener('change', () => {
 });
 document.getElementById('showAllBtn').addEventListener('click', () => {
   S.hiddenHeights.clear(); S.hiddenLayers.clear(); draw();
+});
+
+// ── Auto-save: debounce 5s after edit, hard cap 30s ──
+let _autoSaveTimer = null;
+let _lastAutoSave = Date.now();
+
+export function scheduleAutoSave(){
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(() => {
+    _doSave();
+    _lastAutoSave = Date.now();
+  }, 5000);
+  // Hard cap: if 30s since last save, save now
+  if(Date.now() - _lastAutoSave >= 30000){
+    clearTimeout(_autoSaveTimer);
+    _doSave();
+    _lastAutoSave = Date.now();
+  }
+}
+
+window.addEventListener('beforeunload', () => {
+  _doSave();
+});
+
+// ── Ctrl+S intercept ──
+document.addEventListener('keydown', (e) => {
+  if(e.ctrlKey && e.key === 's'){
+    e.preventDefault();
+    _doSave();
+    _showSaveIndicator();
+  }
 });

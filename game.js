@@ -99,6 +99,7 @@ const S = {
 
   // Render flag
   _dirty: true,
+  animBlockCount: 0,
 };
 
 // ── draw() sets dirty flag — gameLoop does the actual render ──
@@ -339,11 +340,7 @@ function loop(now) {
   if (animAccum >= ANIM_INTERVAL) {
     animAccum -= ANIM_INTERVAL;
     S.animTick++;
-    const hasAnim = world.blocks.some(b => {
-      const td = TILES[b.color];
-      return td && td.frames > 1;
-    });
-    if (hasAnim) S._dirty = true;
+    if (S.animBlockCount > 0) S._dirty = true;
   }
 
   // Render once per frame if needed
@@ -394,22 +391,32 @@ function shRebuild(){
 
 function shGet(k){ return spatialHash.get(k); }
 
+function _isAnimated(b){
+  const td = TILES[b.color];
+  return td && td.frames > 1;
+}
+
 function addBlock(b){
   if(!b.type) b.type = 'tile';
   if(!b.state) b.state = {};
   world.blocks.push(b);
   shAdd(b);
+  if(_isAnimated(b)) S.animBlockCount++;
 }
 
 function removeBlock(b){
   const idx = world.blocks.indexOf(b);
   if(idx >= 0) world.blocks.splice(idx, 1);
   shRemove(b);
+  if(_isAnimated(b)) S.animBlockCount--;
 }
 
 function removeBlocksWhere(fn){
   const removing = world.blocks.filter(fn);
-  for(const b of removing) shRemove(b);
+  for(const b of removing){
+    shRemove(b);
+    if(_isAnimated(b)) S.animBlockCount--;
+  }
   world.blocks = world.blocks.filter(b => !fn(b));
 }
 
@@ -417,6 +424,7 @@ function setBlocks(newBlocks){
   for(const b of newBlocks){ if(!b.type) b.type = 'tile'; if(!b.state) b.state = {}; }
   world.blocks = newBlocks;
   shRebuild();
+  S.animBlockCount = newBlocks.filter(_isAnimated).length;
 }
 
 
@@ -1532,6 +1540,7 @@ function saveSnapshot(){
   S.history.push(JSON.stringify(world.blocks));
   if(S.history.length > 50) S.history.shift();
   S.redoStack = [];
+  scheduleAutoSave();
 }
 
 function doUndo(){
@@ -2829,9 +2838,22 @@ function _buildSaveData(){
   return JSON.stringify({blocks:world.blocks, camX:camera.x, camY:camera.y, zoom:camera.zoom, currentHeight:S.currentHeight, currentLayer:S.currentLayer});
 }
 
+function _doSave(){
+  localStorage.setItem('blockBuilder_save', _buildSaveData());
+}
+
+function _showSaveIndicator(){
+  const btn = document.getElementById('saveBtn');
+  const orig = btn.textContent;
+  btn.textContent = '已存';
+  btn.style.color = '#6f6';
+  setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1500);
+}
+
 // Save: overwrite localStorage (no file download)
 document.getElementById('saveBtn').addEventListener('click', () => {
-  localStorage.setItem('blockBuilder_save', _buildSaveData());
+  _doSave();
+  _showSaveIndicator();
 });
 
 // Save As: download as new JSON file
@@ -2922,6 +2944,37 @@ document.getElementById('hideHeight').addEventListener('change', () => {
 });
 document.getElementById('showAllBtn').addEventListener('click', () => {
   S.hiddenHeights.clear(); S.hiddenLayers.clear(); draw();
+});
+
+// ── Auto-save: debounce 5s after edit, hard cap 30s ──
+let _autoSaveTimer = null;
+let _lastAutoSave = Date.now();
+
+function scheduleAutoSave(){
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(() => {
+    _doSave();
+    _lastAutoSave = Date.now();
+  }, 5000);
+  // Hard cap: if 30s since last save, save now
+  if(Date.now() - _lastAutoSave >= 30000){
+    clearTimeout(_autoSaveTimer);
+    _doSave();
+    _lastAutoSave = Date.now();
+  }
+}
+
+window.addEventListener('beforeunload', () => {
+  _doSave();
+});
+
+// ── Ctrl+S intercept ──
+document.addEventListener('keydown', (e) => {
+  if(e.ctrlKey && e.key === 's'){
+    e.preventDefault();
+    _doSave();
+    _showSaveIndicator();
+  }
 });
 
 

@@ -14,6 +14,7 @@
       <select id="srcSelect"></select>
       <select id="catSelect"></select>
       <input id="tileSearch" type="text" placeholder="搜尋..." class="tile-search">
+      <button id="modeToggle" class="mode-btn">遊戲模式</button>
     </div>
     <div id="tilePalette"></div>
     <div id="toggleRow">
@@ -83,11 +84,13 @@
     </div>
   </div>
   <div id="game-ui">
+    <div id="gameTopBar">
+      <button id="modeToggleGame" class="mode-btn">編輯模式</button>
+    </div>
     <div id="resourceBar"></div>
     <div id="buildMenu"></div>
   </div>
   <div id="canvasWrap">
-    <button id="modeToggle" class="mode-btn">遊戲模式</button>
     <div id="stagingArea">
       <div class="staging-title">暫存區</div>
       <div id="stagingGrid"></div>

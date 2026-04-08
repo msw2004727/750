@@ -59,8 +59,9 @@ if(world.blocks.length === 0){
   }
 }
 
-// ── Mode toggle button ──
+// ── Mode toggle buttons (one in editor-ui, one in game-ui) ──
 document.getElementById('modeToggle').addEventListener('click', togglePlay);
+document.getElementById('modeToggleGame').addEventListener('click', togglePlay);
 
 // ── Initial resize + start game loop ──
 window.addEventListener('resize', resize);

@@ -4098,7 +4098,7 @@ bus.on('mode', (mode) => {
 // ── Character Library: browse & preview all character sprites ──
 
 const IMG_BASE = '%E7%B4%A0%E6%9D%90/%E4%BA%BA%E7%89%A9/%E5%88%87%E5%89%B2/';
-const CHAR_LAYER = 10; // dedicated character layer
+const CHAR_LAYER = 6; // above tiles (0-5) but below gz+1 in sort key
 
 // Action English → Chinese label
 const ACTION_LABEL = {

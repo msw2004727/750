@@ -31,6 +31,7 @@ const ORDER = [
   'combos.js',
   'ui.js',
   'playMode.js',
+  'resourceUI.js',
   'main.js',
 ];
 

@@ -16,6 +16,7 @@ import './saveLoad.js';
 import './combos.js';
 import './ui.js';
 import { togglePlay } from './playMode.js';
+import './resourceUI.js';
 
 // ── Load saved state or default blocks ──
 import { loadFromData } from './saveLoad.js';

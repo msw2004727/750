@@ -38,11 +38,64 @@ body {
 }
 #resourceBar {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 3px;
   padding: 4px 8px;
-  font-size: 13px;
-  min-height: 24px;
 }
+.res-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 18px;
+}
+.res-icon {
+  font-size: 12px;
+  font-weight: bold;
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.res-row[data-res="金"] .res-icon { color: #FFD700; }
+.res-row[data-res="木"] .res-icon { color: #6ABF4B; }
+.res-row[data-res="水"] .res-icon { color: #4A9FDD; }
+.res-row[data-res="火"] .res-icon { color: #E8553A; }
+.res-row[data-res="土"] .res-icon { color: #C8A256; }
+.res-bar-wrap {
+  flex: 1;
+  max-width: 120px;
+  height: 8px;
+  background: #1a1a2e;
+  border: 1px solid #333;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.res-bar-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+.res-row[data-res="金"] .res-bar-fill { background: #FFD700; }
+.res-row[data-res="木"] .res-bar-fill { background: #6ABF4B; }
+.res-row[data-res="水"] .res-bar-fill { background: #4A9FDD; }
+.res-row[data-res="火"] .res-bar-fill { background: #E8553A; }
+.res-row[data-res="土"] .res-bar-fill { background: #C8A256; }
+.res-val {
+  font-size: 11px;
+  color: #ddd;
+  min-width: 32px;
+  text-align: right;
+  font-family: monospace;
+}
+.res-rate {
+  font-size: 10px;
+  min-width: 42px;
+  text-align: right;
+  font-family: monospace;
+}
+.res-rate.positive { color: #6f6; }
+.res-rate.negative { color: #f66; }
+.res-rate.zero { color: #666; }
 #buildMenu {
   display: flex;
   gap: 4px;

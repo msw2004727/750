@@ -1,5 +1,6 @@
 import { S, camera, world, canvas, draw } from './state.js';
 import { drawNow } from './gameLoop.js';
+import { TILES } from './tileData.js';
 import { setBlocks } from './spatialHash.js';
 import { toScreen } from './coords.js';
 import { showToast } from './ui.js';
@@ -107,6 +108,24 @@ document.getElementById('exportImg').addEventListener('click', () => {
   S.hiddenHeights = oldHH; S.hiddenLayers = oldHL;
   S.showGrid = oldGrid; S.showVGrid = oldVGrid; S.showCoords = oldCoord;
   draw();
+});
+
+// ── Export yOffset adjustments ──
+document.getElementById('exportOffsets').addEventListener('click', () => {
+  const offsets = {};
+  for(const b of world.blocks){
+    if(b.yOffset && b.yOffset !== 0) offsets[b.color] = b.yOffset;
+  }
+  for(const [key, td] of Object.entries(TILES)){
+    if(td.defaultYOff && !offsets[key]) offsets[key] = td.defaultYOff;
+  }
+  if(Object.keys(offsets).length === 0){ showToast('沒有任何偏移調整'); return; }
+  const text = JSON.stringify(offsets, null, 2);
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('已複製 ' + Object.keys(offsets).length + ' 筆偏移到剪貼簿');
+  }).catch(() => {
+    prompt('複製以下內容貼到 tileData.js 的 DEFAULT_Y_OFFSETS：', text);
+  });
 });
 
 // ── Cloud Save / Load (jsonblob.com) ──

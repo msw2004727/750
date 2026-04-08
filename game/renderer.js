@@ -6,7 +6,7 @@ import { getRectCells, getLineCells } from './geometry.js';
 import { setRealDraw } from './gameLoop.js';
 import { drawGrid, drawVGrid } from './gridOverlay.js';
 import { drawMinimap } from './minimap.js';
-import { CHARS, IMG_BASE } from './characterLib.js';
+import { CHARS, IMG_BASE, FACTION_COLORS } from './characterLib.js';
 
 // ── Shake animation (gameLoop handles the timing) ──
 export function triggerShake(block){
@@ -246,17 +246,28 @@ function _drawCharacter(block){
   ctx.scale(flipScale, 1);
   ctx.drawImage(img, -dw / 2, dy, dw, dh);
   ctx.restore();
+  // Faction color ring
+  const factionColor = FACTION_COLORS[st.faction];
+  if(factionColor){
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = factionColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(x, y + th * 1.5, tw * 0.45, th * 0.3, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
   // Shadow ellipse
-  ctx.globalAlpha = 0.2;
+  ctx.globalAlpha = 0.15;
   ctx.fillStyle = '#000';
   ctx.beginPath();
-  ctx.ellipse(x, y + th * 1.5, tw * 0.4, th * 0.3, 0, 0, Math.PI * 2);
+  ctx.ellipse(x, y + th * 1.5, tw * 0.35, th * 0.25, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 1;
   // Selection highlight
   if(S.selectedBlocks.has(block)){
     ctx.strokeStyle = '#FFD700';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.ellipse(x, y + th * 1.5, tw * 0.5, th * 0.35, 0, 0, Math.PI * 2);
     ctx.stroke();

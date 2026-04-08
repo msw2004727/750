@@ -17,6 +17,38 @@ const ACTION_LABEL = {
   work_1:'工作1', work_2:'工作2', run:'奔跑',
 };
 
+// ── Class base stats ──
+const CLASS_STATS = {
+  '村民': { hp:30, atk:3,  def:1, spd:3, range:1, atkSpeed:1.0 },
+  '步兵': { hp:80, atk:10, def:8, spd:2, range:1, atkSpeed:1.2 },
+  '射手': { hp:50, atk:12, def:3, spd:2, range:4, atkSpeed:1.5 },
+  '法師': { hp:45, atk:15, def:2, spd:1, range:3, atkSpeed:2.0 },
+  '騎兵': { hp:70, atk:12, def:5, spd:4, range:1, atkSpeed:1.0 },
+};
+
+// ── Faction system ──
+export const FACTIONS = ['正義','反派','邪惡','善良'];
+export const FACTION_COLORS = { '正義':'#4A9FDD', '反派':'#E85050', '邪惡':'#9B59B6', '善良':'#5CBF5C' };
+export const FACTION_LABELS = { '正義':'Justice', '反派':'Villain', '邪惡':'Evil', '善良':'Gentle' };
+
+// Relation matrix: how factionA reacts to factionB
+// 'hostile' = attack, 'flee' = run away, 'neutral' = ignore
+const RELATIONS = {
+  '正義': { '正義':'neutral', '反派':'hostile', '邪惡':'hostile', '善良':'neutral' },
+  '反派': { '正義':'hostile', '反派':'neutral', '邪惡':'hostile', '善良':'neutral' },
+  '邪惡': { '正義':'hostile', '反派':'hostile', '邪惡':'neutral', '善良':'hostile' },
+  '善良': { '正義':'neutral', '反派':'flee',    '邪惡':'flee',    '善良':'neutral' },
+};
+
+export function getRelation(factionA, factionB){
+  if(!RELATIONS[factionA]) return 'neutral';
+  return RELATIONS[factionA][factionB] || 'neutral';
+}
+
+export function getClassStats(clsLabel){
+  return CLASS_STATS[clsLabel] || CLASS_STATS['村民'];
+}
+
 // Character database
 const CHARS = [
   {name:'NobleMan',     label:'貴族男',   cls:'1_村民', clsLabel:'村民', type:'物理', actions:{idle:4,walk:6,idle_back:3,walk_back:3,interact:4}},
@@ -159,6 +191,7 @@ function _refreshCharSelect(){
   if(filtered.length > 0){
     _curChar = filtered[0];
     _refreshActionSelect();
+    _updateStatsInfo();
   }
 }
 
@@ -206,12 +239,20 @@ document.getElementById('charTypeSelect').addEventListener('change', () => {
   _refreshCharSelect();
 });
 
+function _updateStatsInfo(){
+  const el = document.getElementById('charStatsInfo');
+  if(!el || !_curChar) return;
+  const s = getClassStats(_curChar.clsLabel);
+  el.textContent = 'HP:'+s.hp+' ATK:'+s.atk+' DEF:'+s.def+' SPD:'+s.spd+' R:'+s.range;
+}
+
 // Character select
 document.getElementById('charNameSelect').addEventListener('change', (e) => {
   const found = CHARS.find(c => c.name === e.target.value);
   if(found){
     _curChar = found;
     _refreshActionSelect();
+    _updateStatsInfo();
   }
 });
 
@@ -253,8 +294,9 @@ function _closePlacement(){
 document.getElementById('charPlaceBtn').addEventListener('click', () => {
   if(!_placeTarget || !_curChar) return;
   const {gx, gy, gz} = _placeTarget;
+  const faction = document.getElementById('charFactionSelect').value;
+  const stats = getClassStats(_curChar.clsLabel);
   saveSnapshot();
-  // Remove existing character at this position
   const existing = getCharAt(gx, gy, gz);
   if(existing) removeBlock(existing);
   addBlock({
@@ -266,10 +308,12 @@ document.getElementById('charPlaceBtn').addEventListener('click', () => {
       cls: _curChar.cls,
       clsLabel: _curChar.clsLabel,
       charType: _curChar.type,
+      faction: faction,
+      curHp: stats.hp,
       action: 'idle',
       style: _style,
       facing: 'right',
-      speed: 1,
+      speed: stats.spd,
       path: [],
       actions: _curChar.actions,
       subX: 0.25, subY: 0.25,

@@ -2392,9 +2392,9 @@ function onUp(){
 function _onWheel(e){
   e.preventDefault();
   if(S.dragBlock && !S.dragBlock._copyMode){
-    const dir = e.deltaY < 0 ? 1 : -1;
+    const dir = e.deltaY < 0 ? 0.25 : -0.25;
     const cur = S.dragBlock.yOffset || 0;
-    const next = Math.max(0, Math.min(5, cur + dir));
+    const next = Math.max(0, Math.min(5, Math.round((cur + dir) * 100) / 100));
     if(next !== cur){
       S.dragBlock.yOffset = next;
       draw();

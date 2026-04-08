@@ -2443,7 +2443,6 @@ function onUp(){
     const y2 = Math.max(S.boxSelect.sy, S.boxSelect.ey);
     S.selectedBlocks = new Set();
     for(const b of world.blocks){
-      if(b.gz !== S.currentHeight || b.layer !== S.currentLayer) continue;
       const p = toScreen(b.gx, b.gy, b.gz);
       if(p.x >= x1 && p.x <= x2 && p.y >= y1 && p.y <= y2){
         S.selectedBlocks.add(b);

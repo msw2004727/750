@@ -3245,10 +3245,22 @@ document.getElementById('homeBtn').addEventListener('click', () => {
   camera.x = 0; camera.y = 0; camera.zoom = 1; draw();
 });
 
-// ── Clear all ──
+// ── Clear all (with confirmation modal) ──
 document.getElementById('clearBtn').addEventListener('click', () => {
-  saveSnapshot();
-  setBlocks([]); draw();
+  const overlay = document.getElementById('cloudOverlay');
+  document.getElementById('cloudTitle').textContent = '確認清除';
+  document.getElementById('cloudBody').innerHTML =
+    '<div style="color:#f66;font-size:14px;margin:12px 0;">確定要刪除所有方塊？</div>' +
+    '<div style="color:#888;font-size:12px;margin-bottom:12px;">此操作可用 Ctrl+Z 復原</div>' +
+    '<button class="cloud-action" id="_clearCancel">取消</button>' +
+    '<button class="cloud-action" id="_clearConfirm" style="color:#f66;border-color:#633;">確認清除</button>';
+  overlay.style.display = 'flex';
+  document.getElementById('_clearCancel').addEventListener('click', () => { overlay.style.display = 'none'; });
+  document.getElementById('_clearConfirm').addEventListener('click', () => {
+    overlay.style.display = 'none';
+    saveSnapshot();
+    setBlocks([]); draw();
+  });
 });
 
 // ── Fold panels ──

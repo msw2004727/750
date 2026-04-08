@@ -6,6 +6,7 @@ import { getRectCells, getLineCells } from './geometry.js';
 import { setRealDraw } from './gameLoop.js';
 import { drawGrid, drawVGrid } from './gridOverlay.js';
 import { drawMinimap } from './minimap.js';
+import { CHARS, IMG_BASE } from './characterLib.js';
 
 // ── Shake animation (gameLoop handles the timing) ──
 export function triggerShake(block){
@@ -188,6 +189,60 @@ export function drawCube(gx, gy, gz, color, hl, block){
   }
 }
 
+// ── Character sprite cache + draw ──
+const _charImgCache = new Map();
+function _getCharImg(charName, style, action, frameIdx){
+  const charDef = CHARS.find(c => c.name === charName);
+  if(!charDef) return null;
+  const cls = charDef.cls;
+  const path = IMG_BASE +
+    encodeURIComponent(cls) + '/' +
+    charName + '/' + style + '/' + action + '/' + frameIdx + '.png';
+  if(!_charImgCache.has(path)){
+    const img = new Image();
+    img.src = path;
+    _charImgCache.set(path, img);
+  }
+  return _charImgCache.get(path);
+}
+
+function _drawCharacter(block){
+  const p = _pixelPos(block.gx, block.gy, block.gz);
+  const tw = _stepTW, th = _stepTH;
+  const x = p.x, y = p.y;
+  const st = block.state || {};
+  const action = st.action || 'idle';
+  const style = st.style || 'outline';
+  const actions = st.actions || {};
+  const frameCount = actions[action] || 1;
+  const frame = S.animTick % frameCount;
+  const img = _getCharImg(block.color, style, action, frame);
+  if(!img || !img.complete || !img.naturalWidth) return;
+  ctx.imageSmoothingEnabled = false;
+  // Draw character centered on tile, scaled to tile width
+  const scale = (tw * 2) / img.naturalWidth;
+  const dw = Math.round(img.naturalWidth * scale);
+  const dh = Math.round(img.naturalHeight * scale);
+  const dx = x - dw / 2;
+  const dy = y + th - dh; // feet at tile center bottom
+  ctx.drawImage(img, dx, dy, dw, dh);
+  // Shadow ellipse
+  ctx.globalAlpha = 0.2;
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.ellipse(x, y + th * 1.5, tw * 0.4, th * 0.3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  // Selection highlight
+  if(S.selectedBlocks.has(block)){
+    ctx.strokeStyle = '#FFD700';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(x, y + th * 1.5, tw * 0.5, th * 0.35, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
 // ── Draw ghost preview ──
 function drawGhost(gx, gy, gz, color, valid){
   const p = _pixelPos(gx, gy, gz);
@@ -233,7 +288,8 @@ function _drawActual(){
   for(const b of sorted){
     if(b.gz < S.currentHeight){
       ctx.globalAlpha = 0.4;
-      drawCube(b.gx, b.gy, b.gz, b.color, b===S.dragBlock, b);
+      if(b.type === 'character') _drawCharacter(b);
+      else drawCube(b.gx, b.gy, b.gz, b.color, b===S.dragBlock, b);
       ctx.globalAlpha = 1;
     }
   }
@@ -249,7 +305,10 @@ function _drawActual(){
   }
 
   for(const b of sorted){
-    if(b.gz >= S.currentHeight) drawCube(b.gx, b.gy, b.gz, b.color, b===S.dragBlock, b);
+    if(b.gz >= S.currentHeight){
+      if(b.type === 'character') _drawCharacter(b);
+      else drawCube(b.gx, b.gy, b.gz, b.color, b===S.dragBlock, b);
+    }
   }
 
   drawVGrid(vr);

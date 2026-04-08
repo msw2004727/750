@@ -1,7 +1,12 @@
 // ── Character Library: browse & preview all character sprites ──
-import { draw } from './state.js';
+import { S, draw } from './state.js';
+import { addBlock, removeBlock } from './spatialHash.js';
+import { shKey, shGet } from './spatialHash.js';
+import { saveSnapshot } from './history.js';
+import { showToast } from './ui.js';
 
 const IMG_BASE = '%E7%B4%A0%E6%9D%90/%E4%BA%BA%E7%89%A9/%E5%88%87%E5%89%B2/';
+export const CHAR_LAYER = 10; // dedicated character layer
 
 // Action English → Chinese label
 const ACTION_LABEL = {
@@ -229,3 +234,85 @@ document.getElementById('charLibClose').addEventListener('click', _close);
 document.getElementById('charLibOverlay').addEventListener('click', (e) => {
   if(e.target === e.currentTarget) _close();
 });
+
+// ── Placement API ──
+let _placeTarget = null; // {gx, gy, gz} set by context menu
+
+export function openForPlacement(gx, gy, gz){
+  _placeTarget = {gx, gy, gz};
+  document.getElementById('charPlaceRow').style.display = '';
+  _open();
+}
+
+function _closePlacement(){
+  _placeTarget = null;
+  document.getElementById('charPlaceRow').style.display = 'none';
+  _close();
+}
+
+document.getElementById('charPlaceBtn').addEventListener('click', () => {
+  if(!_placeTarget || !_curChar) return;
+  const {gx, gy, gz} = _placeTarget;
+  saveSnapshot();
+  // Remove existing character at this position
+  const existing = getCharAt(gx, gy, gz);
+  if(existing) removeBlock(existing);
+  addBlock({
+    gx, gy, gz, layer: CHAR_LAYER,
+    type: 'character',
+    color: _curChar.name,
+    srcH: 32, srcW: 32,
+    state: {
+      cls: _curChar.cls,
+      clsLabel: _curChar.clsLabel,
+      charType: _curChar.type,
+      action: _curAction,
+      style: _style,
+      facing: 'SE',
+      speed: 1,
+      path: [],
+      actions: _curChar.actions,
+    }
+  });
+  draw();
+  showToast('已放置 ' + _curChar.label);
+  _closePlacement();
+});
+
+// ── Query helpers ──
+export function getCharAt(gx, gy, gz){
+  const set = shGet(shKey(gx, gy, gz, CHAR_LAYER));
+  if(!set) return null;
+  for(const b of set){
+    if(b.type === 'character') return b;
+  }
+  return null;
+}
+
+export function canMoveTo(charBlock, nx, ny){
+  const gz = charBlock.gz;
+  // Check ground: need a tile at (nx, ny, gz, layer 0-5)
+  let hasGround = false;
+  for(let l = 0; l <= 5; l++){
+    const s = shGet(shKey(nx, ny, gz, l));
+    if(s && s.size > 0){
+      // Check if any ground tile is a tall wall (srcH > 32)
+      for(const b of s){
+        if(b.type === 'tile' && b.srcH > 32) return false; // wall blocks
+      }
+      hasGround = true;
+    }
+  }
+  if(!hasGround) return false;
+  // Check head space: nothing at gz+1 blocking
+  for(let l = 0; l <= 5; l++){
+    const s = shGet(shKey(nx, ny, gz + 1, l));
+    if(s && s.size > 0) return false;
+  }
+  // Check no other character there
+  if(getCharAt(nx, ny, gz)) return false;
+  return true;
+}
+
+// Export CHARS for external use
+export { CHARS, ACTION_LABEL, IMG_BASE };

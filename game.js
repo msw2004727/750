@@ -1361,6 +1361,60 @@ function drawCube(gx, gy, gz, color, hl, block){
   }
 }
 
+// ── Character sprite cache + draw ──
+const _charImgCache = new Map();
+function _getCharImg(charName, style, action, frameIdx){
+  const charDef = CHARS.find(c => c.name === charName);
+  if(!charDef) return null;
+  const cls = charDef.cls;
+  const path = IMG_BASE +
+    encodeURIComponent(cls) + '/' +
+    charName + '/' + style + '/' + action + '/' + frameIdx + '.png';
+  if(!_charImgCache.has(path)){
+    const img = new Image();
+    img.src = path;
+    _charImgCache.set(path, img);
+  }
+  return _charImgCache.get(path);
+}
+
+function _drawCharacter(block){
+  const p = _pixelPos(block.gx, block.gy, block.gz);
+  const tw = _stepTW, th = _stepTH;
+  const x = p.x, y = p.y;
+  const st = block.state || {};
+  const action = st.action || 'idle';
+  const style = st.style || 'outline';
+  const actions = st.actions || {};
+  const frameCount = actions[action] || 1;
+  const frame = S.animTick % frameCount;
+  const img = _getCharImg(block.color, style, action, frame);
+  if(!img || !img.complete || !img.naturalWidth) return;
+  ctx.imageSmoothingEnabled = false;
+  // Draw character centered on tile, scaled to tile width
+  const scale = (tw * 2) / img.naturalWidth;
+  const dw = Math.round(img.naturalWidth * scale);
+  const dh = Math.round(img.naturalHeight * scale);
+  const dx = x - dw / 2;
+  const dy = y + th - dh; // feet at tile center bottom
+  ctx.drawImage(img, dx, dy, dw, dh);
+  // Shadow ellipse
+  ctx.globalAlpha = 0.2;
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.ellipse(x, y + th * 1.5, tw * 0.4, th * 0.3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  // Selection highlight
+  if(S.selectedBlocks.has(block)){
+    ctx.strokeStyle = '#FFD700';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(x, y + th * 1.5, tw * 0.5, th * 0.35, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
 // ── Draw ghost preview ──
 function drawGhost(gx, gy, gz, color, valid){
   const p = _pixelPos(gx, gy, gz);
@@ -1406,7 +1460,8 @@ function _drawActual(){
   for(const b of sorted){
     if(b.gz < S.currentHeight){
       ctx.globalAlpha = 0.4;
-      drawCube(b.gx, b.gy, b.gz, b.color, b===S.dragBlock, b);
+      if(b.type === 'character') _drawCharacter(b);
+      else drawCube(b.gx, b.gy, b.gz, b.color, b===S.dragBlock, b);
       ctx.globalAlpha = 1;
     }
   }
@@ -1422,7 +1477,10 @@ function _drawActual(){
   }
 
   for(const b of sorted){
-    if(b.gz >= S.currentHeight) drawCube(b.gx, b.gy, b.gz, b.color, b===S.dragBlock, b);
+    if(b.gz >= S.currentHeight){
+      if(b.type === 'character') _drawCharacter(b);
+      else drawCube(b.gx, b.gy, b.gz, b.color, b===S.dragBlock, b);
+    }
   }
 
   drawVGrid(vr);
@@ -1783,6 +1841,22 @@ function onCtx(e){
     if(td) td.defaultYOff = hit.yOffset || 0;
     showToast(hit.color + ' 預設偏移 = ' + (hit.yOffset||0));
   }});
+
+  // Character placement
+  const charHere = getCharAt(hit.gx, hit.gy, hit.gz);
+  if(charHere){
+    items.push({label:'替換角色 (' + charHere.color + ')', action:() => {
+      openForPlacement(hit.gx, hit.gy, hit.gz);
+    }});
+    items.push({label:'移除角色', action:() => {
+      saveSnapshot(); removeBlock(charHere); draw();
+      showToast('已移除 ' + charHere.color);
+    }});
+  } else {
+    items.push({label:'放置角色', action:() => {
+      openForPlacement(hit.gx, hit.gy, hit.gz);
+    }});
+  }
 
   items.push({label:'刪除', action:() => {
     if(computeReachable(hit.gx, hit.gy, hit.gz, hit).size <= 1){ triggerShake(hit); return; }
@@ -3976,6 +4050,7 @@ bus.on('mode', (mode) => {
 // ── Character Library: browse & preview all character sprites ──
 
 const IMG_BASE = '%E7%B4%A0%E6%9D%90/%E4%BA%BA%E7%89%A9/%E5%88%87%E5%89%B2/';
+const CHAR_LAYER = 10; // dedicated character layer
 
 // Action English → Chinese label
 const ACTION_LABEL = {
@@ -4203,6 +4278,87 @@ document.getElementById('charLibClose').addEventListener('click', _close);
 document.getElementById('charLibOverlay').addEventListener('click', (e) => {
   if(e.target === e.currentTarget) _close();
 });
+
+// ── Placement API ──
+let _placeTarget = null; // {gx, gy, gz} set by context menu
+
+function openForPlacement(gx, gy, gz){
+  _placeTarget = {gx, gy, gz};
+  document.getElementById('charPlaceRow').style.display = '';
+  _open();
+}
+
+function _closePlacement(){
+  _placeTarget = null;
+  document.getElementById('charPlaceRow').style.display = 'none';
+  _close();
+}
+
+document.getElementById('charPlaceBtn').addEventListener('click', () => {
+  if(!_placeTarget || !_curChar) return;
+  const {gx, gy, gz} = _placeTarget;
+  saveSnapshot();
+  // Remove existing character at this position
+  const existing = getCharAt(gx, gy, gz);
+  if(existing) removeBlock(existing);
+  addBlock({
+    gx, gy, gz, layer: CHAR_LAYER,
+    type: 'character',
+    color: _curChar.name,
+    srcH: 32, srcW: 32,
+    state: {
+      cls: _curChar.cls,
+      clsLabel: _curChar.clsLabel,
+      charType: _curChar.type,
+      action: _curAction,
+      style: _style,
+      facing: 'SE',
+      speed: 1,
+      path: [],
+      actions: _curChar.actions,
+    }
+  });
+  draw();
+  showToast('已放置 ' + _curChar.label);
+  _closePlacement();
+});
+
+// ── Query helpers ──
+function getCharAt(gx, gy, gz){
+  const set = shGet(shKey(gx, gy, gz, CHAR_LAYER));
+  if(!set) return null;
+  for(const b of set){
+    if(b.type === 'character') return b;
+  }
+  return null;
+}
+
+function canMoveTo(charBlock, nx, ny){
+  const gz = charBlock.gz;
+  // Check ground: need a tile at (nx, ny, gz, layer 0-5)
+  let hasGround = false;
+  for(let l = 0; l <= 5; l++){
+    const s = shGet(shKey(nx, ny, gz, l));
+    if(s && s.size > 0){
+      // Check if any ground tile is a tall wall (srcH > 32)
+      for(const b of s){
+        if(b.type === 'tile' && b.srcH > 32) return false; // wall blocks
+      }
+      hasGround = true;
+    }
+  }
+  if(!hasGround) return false;
+  // Check head space: nothing at gz+1 blocking
+  for(let l = 0; l <= 5; l++){
+    const s = shGet(shKey(nx, ny, gz + 1, l));
+    if(s && s.size > 0) return false;
+  }
+  // Check no other character there
+  if(getCharAt(nx, ny, gz)) return false;
+  return true;
+}
+
+// Export CHARS for external use
 
 
 // ── main.js ──

@@ -7,6 +7,7 @@ import { triggerShake } from './renderer.js';
 import { addToStaging } from './staging.js';
 import { mousePos, hitTest, hitTestAll } from './hitTest.js';
 import { showToast } from './ui.js';
+import { openForPlacement, getCharAt, CHAR_LAYER } from './characterLib.js';
 
 let _ctxDismiss = null;
 function _showCtxMenu(x, y, items){
@@ -203,6 +204,22 @@ export function onCtx(e){
     if(td) td.defaultYOff = hit.yOffset || 0;
     showToast(hit.color + ' 預設偏移 = ' + (hit.yOffset||0));
   }});
+
+  // Character placement
+  const charHere = getCharAt(hit.gx, hit.gy, hit.gz);
+  if(charHere){
+    items.push({label:'替換角色 (' + charHere.color + ')', action:() => {
+      openForPlacement(hit.gx, hit.gy, hit.gz);
+    }});
+    items.push({label:'移除角色', action:() => {
+      saveSnapshot(); removeBlock(charHere); draw();
+      showToast('已移除 ' + charHere.color);
+    }});
+  } else {
+    items.push({label:'放置角色', action:() => {
+      openForPlacement(hit.gx, hit.gy, hit.gz);
+    }});
+  }
 
   items.push({label:'刪除', action:() => {
     if(computeReachable(hit.gx, hit.gy, hit.gz, hit).size <= 1){ triggerShake(hit); return; }

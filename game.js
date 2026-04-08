@@ -1393,7 +1393,7 @@ function _getCharImg(charName, style, action, frameIdx){
 
 function _drawCharacter(block){
   const p = _pixelPos(block.gx, block.gy, block.gz);
-  const tw = _stepTW, th = _stepTH;
+  const tw = _stepTW, th = _stepTH, ch = _stepCH;
   // Sub-grid offset
   const st = block.state || {};
   const subX = st.subX || 0, subY = st.subY || 0;
@@ -1422,12 +1422,21 @@ function _drawCharacter(block){
     S._dirty = true;
   }
   const flipScale = st._flipState || 1;
-  const ch = _stepCH;
+  // Find ground tile height at character position to stand on top
+  let groundSrcH = 32;
+  for(const b of world.blocks){
+    if(b.type === 'character') continue;
+    if(b.gx === block.gx && b.gy === block.gy && b.gz === block.gz && b.layer <= 5){
+      if(b.srcH > groundSrcH) groundSrcH = b.srcH;
+    }
+  }
+  // Scale standing offset proportionally to tile height (32px=1x CUBE_H, 48px=1.5x, etc)
+  const tileTopOffset = Math.round(_stepCH * (groundSrcH / 32));
   const scale = (tw * 2) / img.naturalWidth;
   const dw = Math.round(img.naturalWidth * scale);
   const dh = Math.round(img.naturalHeight * scale);
-  // Feet on top face of the cube (raised by CUBE_H)
-  const feetY = y + th - ch;
+  // Feet on top face of the ground tile
+  const feetY = y + th - tileTopOffset;
   const dy = feetY - dh;
   ctx.save();
   ctx.translate(x, 0);

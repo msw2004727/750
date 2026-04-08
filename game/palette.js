@@ -170,9 +170,12 @@ export function populatePalette(){
   for(const src of srcList){
     for(const cat of src.cats){
       if(!showAll && cat.label !== catLabel) continue;
-      if(elemFilter && (cat.elem || '無') !== elemFilter) continue;
       for(const i of cat.tiles){
         const key = src.prefix + String(i).padStart(3,'0');
+        if(elemFilter){
+          const td = TILES[key];
+          if((td && td.elem || '無') !== elemFilter) continue;
+        }
         items.push({key, src, i});
       }
     }

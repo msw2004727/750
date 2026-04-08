@@ -384,3 +384,26 @@ state: { terrain:'grass', building:null, resourceLeft:10 }
 // 全域遊戲狀態（state.js game 物件）
 game.resources = { 木:30, 火:20, 土:20, 水:15, 金:10 }
 ```
+
+## 多人遊戲方向（未來規劃）
+
+> **目標**：多人同地圖即時互動（看到其他玩家的角色在移動）
+
+### 現階段已準備
+- **Entity ID**：每個 block 自動分配唯一 `id`（`addBlock` / `setBlocks` 自動補全）
+- **集中 mutation**：`addBlock` / `removeBlock` / `setBlocks` 是所有修改的唯一入口，未來可包裝成 command
+- **Event Bus**：遊戲邏輯透過 `bus.emit` 解耦，未來可替換為網路事件
+- **State 分離**：`S`（編輯器）、`world`（世界）、`game`（遊戲）各自獨立
+
+### 未來需要做的（現在不做）
+- **伺服器端**：Node.js + WebSocket，跑遊戲邏輯（server-authoritative）
+- **Command pattern**：mutation 包裝成 `{action, params, playerId, timestamp}`
+- **Delta sync**：只傳差異，不傳整個 world.blocks
+- **玩家身份**：block 加 `ownerId` 欄位，角色加 `playerId`
+- **衝突解決**：兩人同時改同格的處理規則
+
+### 架構守則（從現在開始遵守）
+- 所有 block 必須有 `id`（由 `addBlock` 自動賦予）
+- 不要用陣列 index 引用 block，用 `id` 或 object reference
+- mutation 只透過 `spatialHash.js` 的 export 函式，不直接操作 `world.blocks`
+- 新功能盡量透過 `bus` 事件驅動，不直接跨模組呼叫

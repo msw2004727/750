@@ -40,7 +40,9 @@ function _isAnimated(b){
   return td && td.frames > 1;
 }
 
+let _nextId = 1;
 export function addBlock(b){
+  if(!b.id) b.id = 'b' + (_nextId++);
   if(!b.type) b.type = 'tile';
   if(!b.state) b.state = {};
   // Apply per-tile default yOffset if not explicitly set
@@ -70,7 +72,7 @@ export function removeBlocksWhere(fn){
 }
 
 export function setBlocks(newBlocks){
-  for(const b of newBlocks){ if(!b.type) b.type = 'tile'; if(!b.state) b.state = {}; }
+  for(const b of newBlocks){ if(!b.id) b.id = 'b' + (_nextId++); if(!b.type) b.type = 'tile'; if(!b.state) b.state = {}; }
   world.blocks = newBlocks;
   shRebuild();
   S.animBlockCount = newBlocks.filter(_isAnimated).length;

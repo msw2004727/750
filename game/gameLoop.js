@@ -19,7 +19,8 @@ const ANIM_INTERVAL = 600;
 
 function loop(now) {
   requestAnimationFrame(loop);
-  const dt = lastTime ? now - lastTime : 0;
+  const rawDt = lastTime ? now - lastTime : 0;
+  const dt = Math.min(rawDt, 500); // cap dt to prevent burst after tab switch
   lastTime = now;
 
   // Shake animation

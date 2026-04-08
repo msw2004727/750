@@ -503,7 +503,8 @@ const ANIM_INTERVAL = 600;
 
 function loop(now) {
   requestAnimationFrame(loop);
-  const dt = lastTime ? now - lastTime : 0;
+  const rawDt = lastTime ? now - lastTime : 0;
+  const dt = Math.min(rawDt, 500); // cap dt to prevent burst after tab switch
   lastTime = now;
 
   // Shake animation
@@ -4518,11 +4519,11 @@ function _approach(cur, target, step){
 let _moving = false;
 function tickMovement(now){
   if(!_lastTime) _lastTime = now;
-  const dt = now - _lastTime;
+  const dt = Math.min(now - _lastTime, MOVE_INTERVAL); // cap to prevent burst after tab switch
   _lastTime = now;
   _moveAccum += dt;
   if(_moveAccum < MOVE_INTERVAL) return;
-  _moveAccum -= MOVE_INTERVAL;
+  _moveAccum = 0; // reset instead of subtract to prevent accumulated catch-up
 
   _moving = false;
   const chars = world.blocks.filter(b => b.type === 'character');

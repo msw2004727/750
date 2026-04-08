@@ -268,7 +268,7 @@ document.getElementById('charPlaceBtn').addEventListener('click', () => {
       charType: _curChar.type,
       action: 'idle',
       style: _style,
-      facing: 'SE',
+      facing: 'right',
       speed: 1,
       path: [],
       actions: _curChar.actions,

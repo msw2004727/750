@@ -78,11 +78,9 @@ export function stepCharacter(ch){
   if(Math.abs(curSx - edgeSx) > 0.01 || Math.abs(curSy - edgeSy) > 0.01){
     st.subX = _approach(curSx, edgeSx, SUB_STEP);
     st.subY = _approach(curSy, edgeSy, SUB_STEP);
-    // Update facing
-    if(dx > 0) st.facing = 'SE';
-    else if(dx < 0) st.facing = 'NW';
-    else if(dy > 0) st.facing = 'SW';
-    else if(dy < 0) st.facing = 'NE';
+    // Update facing: screen-right (SE/NE) or screen-left (SW/NW)
+    if(dx > 0 || dy < 0) st.facing = 'right';
+    else if(dx < 0 || dy > 0) st.facing = 'left';
     st.action = 'walk';
     return true;
   }

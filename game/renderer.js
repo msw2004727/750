@@ -214,21 +214,17 @@ function _drawCharacter(block){
   const subX = st.subX || 0, subY = st.subY || 0;
   const x = p.x + Math.round((subX - subY) * tw);
   const y = p.y + Math.round((subX + subY) * th * 0.5);
-  const facing = st.facing || 'SE';
+  const facing = st.facing || 'right';
   const style = st.style || 'outline';
   const actions = st.actions || {};
-  // Choose action: use walk_back for backward movement if available
   let action = st.action || 'idle';
-  const isBack = (facing === 'NW' || facing === 'NE');
-  if(action === 'walk' && isBack && actions['walk_back']) action = 'walk_back';
-  if(action === 'idle' && isBack && actions['idle_back']) action = 'idle_back';
   const frameCount = actions[action] || 1;
   const frame = S.animTick % frameCount;
   const img = _getCharImg(block.color, style, action, frame);
   if(!img || !img.complete || !img.naturalWidth) return;
   ctx.imageSmoothingEnabled = false;
-  // Mirror horizontally when facing left (SW or NW)
-  const shouldFlip = (facing === 'SW' || facing === 'NW');
+  // Mirror horizontally when facing left
+  const shouldFlip = (facing === 'left');
   // Flip transition animation (squeeze & expand)
   if(st._flipState === undefined) st._flipState = shouldFlip ? -1 : 1;
   const targetFlip = shouldFlip ? -1 : 1;

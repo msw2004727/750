@@ -2,12 +2,13 @@ import { S } from './state.js';
 import { shKey, shGet } from './spatialHash.js';
 
 export function hasBlockAt(gx, gy, gz, exclude, layer){
-  const chkLayer = (layer !== undefined) ? layer : S.currentLayer;
-  const k = shKey(gx, gy, gz, chkLayer);
-  const s = shGet(k);
-  if(!s) return false;
-  for(const b of s){
-    if(b !== exclude) return true;
+  // Check all tile layers (0-5) for collision regardless of current layer
+  for(let l = 0; l <= 5; l++){
+    const s = shGet(shKey(gx, gy, gz, l));
+    if(!s) continue;
+    for(const b of s){
+      if(b !== exclude) return true;
+    }
   }
   return false;
 }

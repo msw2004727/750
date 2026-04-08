@@ -281,8 +281,7 @@ for(const v of MEDIEVAL_VARIANTS){
 
 // ── Per-tile default yOffset (exported from editor, manually curated) ──
 const DEFAULT_Y_OFFSETS = {
-  // 格式：'tileKey': yOffset   例如 't042': 0.5
-  // 由編輯器「匯出偏移」功能產生，貼到這裡即可
+  // 由 build.cjs 自動從 offsets.json 合併，不需手動編輯
 };
 
 // ── Build TILES + preload images ──
@@ -1552,26 +1551,19 @@ function onCtx(e){
   items.push({label:'匯出全部偏移', action:() => {
     const offsets = {};
     for(const b of world.blocks){
-      if(b.yOffset && b.yOffset !== 0){
-        // Keep the latest adjustment per tile key
-        offsets[b.color] = b.yOffset;
-      }
+      if(b.yOffset && b.yOffset !== 0) offsets[b.color] = b.yOffset;
     }
-    // Also include currently set defaults from TILES
     for(const [key, td] of Object.entries(TILES)){
       if(td.defaultYOff && !offsets[key]) offsets[key] = td.defaultYOff;
     }
-    if(Object.keys(offsets).length === 0){
-      showToast('沒有任何偏移調整');
-      return;
-    }
-    const text = JSON.stringify(offsets, null, 2);
-    navigator.clipboard.writeText(text).then(() => {
-      showToast('已複製 ' + Object.keys(offsets).length + ' 筆偏移到剪貼簿');
-    }).catch(() => {
-      // Fallback: show in prompt for manual copy
-      prompt('複製以下內容貼到 tileData.js 的 DEFAULT_Y_OFFSETS：', text);
-    });
+    if(Object.keys(offsets).length === 0){ showToast('沒有任何偏移調整'); return; }
+    const blob = new Blob([JSON.stringify(offsets, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'offsets.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('已下載 offsets.json（' + Object.keys(offsets).length + ' 筆）');
   }});
 
   items.push({label:'刪除', action:() => {
@@ -2968,7 +2960,7 @@ document.getElementById('exportImg').addEventListener('click', () => {
   draw();
 });
 
-// ── Export yOffset adjustments ──
+// ── Export yOffset adjustments as offsets.json ──
 document.getElementById('exportOffsets').addEventListener('click', () => {
   const offsets = {};
   for(const b of world.blocks){
@@ -2978,12 +2970,13 @@ document.getElementById('exportOffsets').addEventListener('click', () => {
     if(td.defaultYOff && !offsets[key]) offsets[key] = td.defaultYOff;
   }
   if(Object.keys(offsets).length === 0){ showToast('沒有任何偏移調整'); return; }
-  const text = JSON.stringify(offsets, null, 2);
-  navigator.clipboard.writeText(text).then(() => {
-    showToast('已複製 ' + Object.keys(offsets).length + ' 筆偏移到剪貼簿');
-  }).catch(() => {
-    prompt('複製以下內容貼到 tileData.js 的 DEFAULT_Y_OFFSETS：', text);
-  });
+  const blob = new Blob([JSON.stringify(offsets, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'offsets.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('已下載 offsets.json（' + Object.keys(offsets).length + ' 筆），放到專案資料夾後 build 即生效');
 });
 
 // ── Cloud Save / Load (jsonblob.com) ──

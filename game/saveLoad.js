@@ -110,7 +110,7 @@ document.getElementById('exportImg').addEventListener('click', () => {
   draw();
 });
 
-// ── Export yOffset adjustments ──
+// ── Export yOffset adjustments as offsets.json ──
 document.getElementById('exportOffsets').addEventListener('click', () => {
   const offsets = {};
   for(const b of world.blocks){
@@ -120,12 +120,13 @@ document.getElementById('exportOffsets').addEventListener('click', () => {
     if(td.defaultYOff && !offsets[key]) offsets[key] = td.defaultYOff;
   }
   if(Object.keys(offsets).length === 0){ showToast('沒有任何偏移調整'); return; }
-  const text = JSON.stringify(offsets, null, 2);
-  navigator.clipboard.writeText(text).then(() => {
-    showToast('已複製 ' + Object.keys(offsets).length + ' 筆偏移到剪貼簿');
-  }).catch(() => {
-    prompt('複製以下內容貼到 tileData.js 的 DEFAULT_Y_OFFSETS：', text);
-  });
+  const blob = new Blob([JSON.stringify(offsets, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'offsets.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('已下載 offsets.json（' + Object.keys(offsets).length + ' 筆），放到專案資料夾後 build 即生效');
 });
 
 // ── Cloud Save / Load (jsonblob.com) ──

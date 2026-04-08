@@ -151,8 +151,7 @@ for(const v of MEDIEVAL_VARIANTS){
 
 // ── Per-tile default yOffset (exported from editor, manually curated) ──
 const DEFAULT_Y_OFFSETS = {
-  // 格式：'tileKey': yOffset   例如 't042': 0.5
-  // 由編輯器「匯出偏移」功能產生，貼到這裡即可
+  // 由 build.cjs 自動從 offsets.json 合併，不需手動編輯
 };
 
 // ── Build TILES + preload images ──

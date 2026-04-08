@@ -74,6 +74,29 @@ function strip(filename, src) {
   return text;
 }
 
+// ── Auto-merge offsets.json into DEFAULT_Y_OFFSETS ──
+const OFFSETS_FILE = path.join(__dirname, 'offsets.json');
+if (fs.existsSync(OFFSETS_FILE)) {
+  try {
+    const offsets = JSON.parse(fs.readFileSync(OFFSETS_FILE, 'utf8'));
+    const count = Object.keys(offsets).length;
+    if (count > 0) {
+      // Read tileData.js and replace DEFAULT_Y_OFFSETS content
+      const tdPath = path.join(DIR, 'tileData.js');
+      let td = fs.readFileSync(tdPath, 'utf8');
+      const formatted = JSON.stringify(offsets, null, 2).replace(/^/gm, '  ').trim();
+      td = td.replace(
+        /const DEFAULT_Y_OFFSETS = \{[^}]*\};/s,
+        'const DEFAULT_Y_OFFSETS = ' + formatted + ';'
+      );
+      fs.writeFileSync(tdPath, td, 'utf8');
+      console.log(`Merged ${count} offsets from offsets.json into tileData.js`);
+    }
+  } catch (e) {
+    console.warn('Warning: failed to read offsets.json:', e.message);
+  }
+}
+
 // Build
 const parts = ['(function(){'];
 for (const file of ORDER) {

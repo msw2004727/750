@@ -106,6 +106,7 @@ function _showPropertyPanel(block, cx, cy){
   function _updateBlock(){
     document.getElementById('_prop_高度').textContent = block.gz;
     document.getElementById('_prop_圖層').textContent = block.layer;
+    document.getElementById('_prop_偏移').textContent = block.yOffset || 0;
     S.currentHeight = block.gz;
     S.currentLayer = block.layer;
     document.getElementById('heightNum').textContent = S.currentHeight;
@@ -119,6 +120,10 @@ function _showPropertyPanel(block, cx, cy){
   _makeRow('圖層', block.layer,
     () => { if(block.layer < 5){ saveSnapshot(); shRemove(block); block.layer++; shAdd(block); _updateBlock(); draw(); }},
     () => { if(block.layer > 0){ saveSnapshot(); shRemove(block); block.layer--; shAdd(block); _updateBlock(); draw(); }}
+  );
+  _makeRow('偏移', block.yOffset || 0,
+    () => { if((block.yOffset||0) < 5){ saveSnapshot(); block.yOffset = Math.round(((block.yOffset||0) + 0.25) * 100) / 100; _updateBlock(); draw(); }},
+    () => { if((block.yOffset||0) > 0){ saveSnapshot(); block.yOffset = Math.round(((block.yOffset||0) - 0.25) * 100) / 100; _updateBlock(); draw(); }}
   );
 
   // Close button

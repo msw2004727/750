@@ -295,7 +295,23 @@ const ELEM_OVERRIDES = {
     "r010": "無",
     "m010": "無",
     "n010": "無",
-    "r001": "無"
+    "r001": "無",
+    "o048": "土",
+    "p044": "土",
+    "p045": "土",
+    "p046": "土",
+    "p047": "土",
+    "p048": "土",
+    "q044": "土",
+    "q045": "土",
+    "q046": "土",
+    "q047": "土",
+    "q048": "土",
+    "r044": "土",
+    "r045": "土",
+    "r046": "土",
+    "r047": "土",
+    "r048": "土"
   };
 
 // ── Build TILES + preload images ──
@@ -2765,6 +2781,22 @@ function jumpToTile(tileKey){
   }
 }
 
+// ── Palette multi-select (Ctrl+click) ──
+const _paletteSelected = new Set();
+function _clearPaletteSelection(){
+  _paletteSelected.clear();
+  document.querySelectorAll('#tilePalette .tb.palette-sel').forEach(b => b.classList.remove('palette-sel'));
+}
+function _togglePaletteSelect(btn, key){
+  if(_paletteSelected.has(key)){
+    _paletteSelected.delete(key);
+    btn.classList.remove('palette-sel');
+  } else {
+    _paletteSelected.add(key);
+    btn.classList.add('palette-sel');
+  }
+}
+
 // ── Shared tile button creator ──
 function _createTileButton(container, key, src, i){
   const btn = document.createElement('button');
@@ -2782,6 +2814,12 @@ function _createTileButton(container, key, src, i){
   let dragStarted = false;
   btn.addEventListener('mousedown', (e) => {
     if(e.button !== 0) return;
+    // Ctrl+click: toggle palette selection
+    if(e.ctrlKey){
+      e.preventDefault();
+      _togglePaletteSelect(btn, key);
+      return;
+    }
     dragStarted = false;
     const sx = e.clientX, sy = e.clientY;
     const onMove2 = (e2) => {
@@ -2795,6 +2833,7 @@ function _createTileButton(container, key, src, i){
       document.removeEventListener('mouseup', onUp2);
       if(!dragStarted){
         if(S.brushMode){ S.brushTile = {color:key, srcH}; updateBrushIndicator(); return; }
+        _clearPaletteSelection();
         placeOnCanvas(key, srcH);
       }
     };
@@ -2804,35 +2843,44 @@ function _createTileButton(container, key, src, i){
   btn.addEventListener('click', (e) => { e.preventDefault(); });
   btn.addEventListener('contextmenu', (e) => {
     e.preventDefault();
-    _showElemPicker(e.clientX, e.clientY, key);
+    // If this tile is in the multi-selection, or selection is non-empty, show batch picker
+    const targets = _paletteSelected.size > 0 ? [..._paletteSelected] : [key];
+    _showElemPicker(e.clientX, e.clientY, targets);
   });
   setupMobileTileDrag(btn, key);
   container.appendChild(btn);
 }
 
-// ── Element picker (right-click on palette tile) ──
+// ── Element picker (right-click on palette tile, supports batch) ──
 let _elemPickerEl = null;
-function _showElemPicker(cx, cy, key){
+function _showElemPicker(cx, cy, keys){
   _hideElemPicker();
-  const td = TILES[key];
-  if(!td) return;
+  if(!Array.isArray(keys)) keys = [keys];
   const menu = document.createElement('div');
   menu.className = 'ctx-menu';
   menu.style.left = cx + 'px';
   menu.style.top = cy + 'px';
   const title = document.createElement('div');
   title.style.cssText = 'padding:4px 14px;font-size:10px;color:#888;';
-  title.textContent = key + ' 屬性：' + (td.elem || '無');
+  if(keys.length === 1){
+    const td = TILES[keys[0]];
+    title.textContent = keys[0] + ' 屬性：' + (td && td.elem || '無');
+  } else {
+    title.textContent = '批次修改 ' + keys.length + ' 個素材';
+  }
   menu.appendChild(title);
   for(const el of ['金','木','水','火','土','無']){
     const item = document.createElement('div');
     item.className = 'ctx-item';
-    item.textContent = el + (td.elem === el ? ' ✓' : '');
+    item.textContent = el;
     item.addEventListener('click', () => {
-      td.elem = el;
-      td._elemOverride = true;
+      for(const k of keys){
+        const td = TILES[k];
+        if(td){ td.elem = el; td._elemOverride = true; }
+      }
       _hideElemPicker();
-      showToast(key + ' → ' + el);
+      _clearPaletteSelection();
+      showToast(keys.length + ' 個素材 → ' + el);
     });
     menu.appendChild(item);
   }
@@ -2853,6 +2901,7 @@ function populatePalette(){
 
   const elemFilter = document.getElementById('elemSelect').value;
   const items = [];
+  const seen = new Set();
   const srcList = S.selectedSrc === -1 ? SOURCES : [SOURCES[S.selectedSrc]];
   const showAll = catLabel === '__all__';
   for(const src of srcList){
@@ -2860,6 +2909,8 @@ function populatePalette(){
       if(!showAll && cat.label !== catLabel) continue;
       for(const i of cat.tiles){
         const key = src.prefix + String(i).padStart(3,'0');
+        if(seen.has(key)) continue;
+        seen.add(key);
         if(elemFilter){
           const td = TILES[key];
           if((td && td.elem || '無') !== elemFilter) continue;

@@ -20,6 +20,7 @@ document.getElementById('chkVGrid').addEventListener('change', (e) => { S.showVG
 document.getElementById('chkCoord').addEventListener('change', (e) => { S.showCoords = e.target.checked; draw(); });
 document.getElementById('chkLayerInfo').addEventListener('change', (e) => { S.showLayerInfo = e.target.checked; draw(); });
 document.getElementById('chkAutoSelect').addEventListener('change', (e) => { S.autoSelectMode = e.target.checked; });
+document.getElementById('chkBlockInfo').addEventListener('change', (e) => { S.showBlockInfo = e.target.checked; draw(); });
 
 // ── Fog of war controls ──
 document.getElementById('fogRadius').addEventListener('change', (e) => {

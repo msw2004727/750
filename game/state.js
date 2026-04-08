@@ -36,7 +36,7 @@ export const S = {
   currentLayer: 0,
 
   // Display toggles
-  showCoords: false, showGrid: false, showVGrid: false,
+  showCoords: false, showGrid: false, showVGrid: false, showBlockInfo: false,
   showHover: false, showMinimap: false, showLayerInfo: false,
   hoverBlock: null,
 

@@ -15,7 +15,7 @@ export function enterPlay(){
     selectMode: S.selectMode, copyMode: S.copyMode,
     locateMode: S.locateMode, autoSelectMode: S.autoSelectMode,
     showGrid: S.showGrid, showVGrid: S.showVGrid, showCoords: S.showCoords,
-    showLayerInfo: S.showLayerInfo,
+    showLayerInfo: S.showLayerInfo, showBlockInfo: S.showBlockInfo,
   };
 
   // Disable all editor tools

@@ -147,6 +147,27 @@ export function drawCube(gx, gy, gz, color, hl, block){
     ctx.fillText(label, x, cy2);
   }
 
+  if(S.showBlockInfo && block){
+    const td2 = TILES[color] || {};
+    const elem = td2.elem || '無';
+    const elemColors = {'金':'#FFD700','木':'#66BB6A','水':'#42A5F5','火':'#EF5350','土':'#FFA726','無':'#888'};
+    const val = block.state && Object.keys(block.state).length > 0
+      ? JSON.stringify(block.state).slice(1,-1) : '-';
+    const infoText = `${elem}(${val})`;
+    const fontSize2 = Math.max(8, 10 * camera.zoom);
+    ctx.font = `bold ${fontSize2}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const ix = x, iy = y + th * 1.2;
+    const tw3 = ctx.measureText(infoText).width;
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.beginPath();
+    ctx.roundRect(ix - tw3/2 - 3, iy - fontSize2/2 - 2, tw3 + 6, fontSize2 + 4, 3);
+    ctx.fill();
+    ctx.fillStyle = elemColors[elem] || '#888';
+    ctx.fillText(infoText, ix, iy);
+  }
+
   if(S.showLayerInfo && block){
     const fontSize = Math.max(8, 10 * camera.zoom);
     ctx.font = `bold ${fontSize}px monospace`;

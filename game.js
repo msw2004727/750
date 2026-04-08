@@ -3195,10 +3195,20 @@ const helpHTML = `
 空白處拖曳 — 平移視角<br>
 <kbd>滾輪</kbd> — 縮放
 
+<h3>鍵盤快捷鍵</h3>
+<kbd>B</kbd> 筆刷 | <kbd>E</kbd> 橡皮擦 | <kbd>G</kbd> 填充 | <kbd>R</kbd> 矩形 | <kbd>L</kbd> 線段<br>
+<kbd>I</kbd> 吸管（點擊方塊設為筆刷）<br>
+<kbd>[</kbd> <kbd>]</kbd> 高度 -1 / +1<br>
+<kbd>Escape</kbd> 取消所有工具和選取<br>
+<kbd>Delete</kbd> 刪除選取的方塊<br>
+<kbd>Ctrl+Z</kbd> 返回 | <kbd>Ctrl+Y</kbd> 復原<br>
+<kbd>Ctrl+C</kbd> / <kbd>Ctrl+V</kbd> 複製 / 貼上選取組<br>
+<kbd>Ctrl+S</kbd> 儲存到瀏覽器
+
 <h3>右鍵選單</h3>
 右鍵點擊方塊可選擇：<br>
 <kbd>複製</kbd> 複製到相鄰空位 | <kbd>放入暫存</kbd> 存到暫存區<br>
-<kbd>組合放入暫存</kbd>（需先選取多個）| <kbd>刪除</kbd>
+<kbd>組合放入暫存</kbd>（需先選取多個）| <kbd>更改層級</kbd> | <kbd>刪除</kbd>
 
 <h3>工具箱（互斥，同時只能開一個）</h3>
 <kbd>筆刷</kbd> — 先點素材選為筆刷，再在畫布上點擊/拖曳連續放置<br>
@@ -3234,7 +3244,7 @@ const helpHTML = `
 <kbd>Ctrl+C</kbd> / <kbd>Ctrl+V</kbd> — 複製/貼上選取組<br>
 點擊空白 — 取消高亮
 
-<h3>暫存區（左側 9 格）</h3>
+<h3>暫存區（左上 3 格）</h3>
 從素材面板或畫布拖曳到暫存區存放<br>
 相同素材自動堆疊（顯示 x2, x3...）<br>
 點擊暫存格 — 放到畫面中央（堆疊時數量 -1）<br>
@@ -3247,7 +3257,7 @@ const helpHTML = `
 只能操作當前高度 + 圖層的方塊
 
 <h3>素材面板</h3>
-五組來源：Scrabling / Jumpstart / 3232iso / Strategy / Medieval<br>
+五組來源：Scrabling / Jumpstart / 3232iso / Strategy / Medieval（6 色盤）<br>
 類別下拉選「全部」可一次顯示該來源所有素材<br>
 <kbd>搜尋</kbd> — 輸入關鍵字篩選全部素材（檔名或編號）<br>
 點擊素材 — 放到畫面中央 | 拖曳素材 — 放到畫布或暫存區
@@ -3257,11 +3267,13 @@ const helpHTML = `
 選範本 → <kbd>放置</kbd> → 一鍵放入 | <kbd>刪除</kbd> → 移除範本
 
 <h3>檔案操作</h3>
-<kbd>Ctrl+Z</kbd> 返回 | <kbd>Ctrl+Y</kbd> 復原<br>
-<kbd>儲存</kbd> — 覆蓋存到瀏覽器（開啟時自動載入）<br>
+<kbd>儲存</kbd> — 覆蓋存到瀏覽器（開啟時自動載入，每次編輯自動存檔）<br>
 <kbd>另存</kbd> — 下載新 JSON 檔案<br>
-<kbd>載入</kbd> — 從 JSON 檔案讀取 | <kbd>匯出圖</kbd> — 下載 PNG 截圖<br>
-<kbd>原點</kbd> — 回到 (0,0) | <kbd>清除全部</kbd> — 刪除所有方塊
+<kbd>載入</kbd> — 從 JSON 檔案讀取<br>
+<kbd>☁ 上傳</kbd> — 存到雲端，取得分享代碼<br>
+<kbd>☁ 下載</kbd> — 貼上代碼，載入別人分享的地圖<br>
+<kbd>匯出圖</kbd> — 下載 PNG 截圖<br>
+<kbd>原點</kbd> — 回到 (0,0) | <kbd>清除全部</kbd> — 刪除所有方塊（可 Ctrl+Z 復原）
 
 <h3>手機操作</h3>
 單指拖曳方塊 — 移動 | 單指空白處 — 平移<br>

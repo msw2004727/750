@@ -1406,24 +1406,18 @@ function _drawCharacter(block){
   ctx.imageSmoothingEnabled = false;
   // Mirror horizontally when facing left
   const shouldFlip = (facing === 'left');
-  // Flip transition animation (squeeze & expand)
+  // Flip transition: squeeze to 0 then expand to target direction
   if(st._flipState === undefined) st._flipState = shouldFlip ? -1 : 1;
   const targetFlip = shouldFlip ? -1 : 1;
   if(st._flipState !== targetFlip){
-    // Animate: move toward 0 first (squeeze), then to target (expand)
-    const speed = 0.15;
-    if(Math.abs(st._flipState) > 0.05){
-      st._flipState -= Math.sign(st._flipState) * speed;
-    } else {
-      st._flipState = targetFlip * 0.05;
-    }
-    if(Math.sign(st._flipState) === Math.sign(targetFlip)){
-      st._flipState += Math.sign(targetFlip) * speed;
-      if(Math.abs(st._flipState) >= 1) st._flipState = targetFlip;
-    }
-    S._dirty = true; // keep redrawing during transition
+    const speed = 0.25;
+    // Move toward target: 1 → 0 → -1 or -1 → 0 → 1
+    st._flipState += (targetFlip - st._flipState > 0 ? speed : -speed);
+    // Snap when close
+    if(Math.abs(st._flipState - targetFlip) < speed) st._flipState = targetFlip;
+    S._dirty = true;
   }
-  const flipScale = st._flipState;
+  const flipScale = st._flipState || 1;
   const scale = (tw * 2) / img.naturalWidth;
   const dw = Math.round(img.naturalWidth * scale);
   const dh = Math.round(img.naturalHeight * scale);

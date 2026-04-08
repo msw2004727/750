@@ -1992,8 +1992,12 @@ document.addEventListener('keydown', (e) => {
     if(S.clipboard && S.clipboard.length > 0){
       e.preventDefault();
       saveSnapshot();
-      const center = toGrid(camera.W/2, camera.H/2);
-      const gx = snap(center.gx), gy = snap(center.gy);
+      const mx = S.lastMouseClientX, my = S.lastMouseClientY;
+      const r = canvas.getBoundingClientRect();
+      const sx = (mx >= r.left && mx <= r.right) ? mx - r.left : camera.W / 2;
+      const sy = (my >= r.top && my <= r.bottom) ? my - r.top : camera.H / 2;
+      const mouseGrid = toGrid(sx, sy);
+      const gx = snap(mouseGrid.gx), gy = snap(mouseGrid.gy);
       const pasted = [];
       for(const t of S.clipboard){
         const nx = gx+t.dx, ny = gy+t.dy;
